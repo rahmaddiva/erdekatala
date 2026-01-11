@@ -22,3 +22,9 @@ $routes->get('/dusun', 'DusunController::index');
 $routes->post('/dusun/store', 'DusunController::store');
 $routes->post('/dusun/update/(:num)', 'DusunController::update/$1');
 $routes->get('/dusun/delete/(:num)', 'DusunController::delete/$1');
+
+// routes rt
+$routes->get('/rt', 'RtController::index');
+$routes->post('/rt/store', 'RtController::store');
+$routes->post('/rt/update/(:num)', 'RtController::update/$1');
+$routes->get('/rt/delete/(:num)', 'RtController::delete/$1');

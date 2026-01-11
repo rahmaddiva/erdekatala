@@ -62,7 +62,7 @@
                                                         </button>
                                                         <a href="/dusun/delete/<?= $d['id_dusun'] ?>"
                                                             class="btn btn-danger btn-sm btn-flat"
-                                                            onclick="return confirm('Apakah Anda yakin ingin menghapus desa ini?')"
+                                                            onclick="return confirm('Apakah Anda yakin ingin menghapus dusun ini?')"
                                                             title="Hapus Data">
                                                             <i class="fas fa-trash"></i>
                                                         </a>

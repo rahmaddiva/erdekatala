@@ -23,8 +23,8 @@ class RtController extends BaseController
     {
         $data = [
             'title' => 'Data RT',
-            'rt' => $this->rtModel->findAll(),
-            'dusun' => $this->dusunModel->findAll(),
+            'rt' => $this->rtModel->getRtWithDusun(),
+            'dusun' => $this->dusunModel->getDusunByDesa(session()->get('id_desa')),
         ];
 
         return view('rt/index', $data);
@@ -32,11 +32,11 @@ class RtController extends BaseController
 
     public function store()
     {
-        $namaRt = $this->request->getPost('nama_rt');
+        $namaRt = $this->request->getPost('no_rt');
         $idDusun = $this->request->getPost('id_dusun');
 
         $this->rtModel->insert([
-            'nama_rt' => $namaRt,
+            'no_rt' => $namaRt,
             'id_dusun' => $idDusun,
         ]);
 
@@ -45,11 +45,11 @@ class RtController extends BaseController
 
     public function update($id)
     {
-        $namaRt = $this->request->getPost('nama_rt');
+        $namaRt = $this->request->getPost('no_rt');
         $idDusun = $this->request->getPost('id_dusun');
 
         $this->rtModel->update($id, [
-            'nama_rt' => $namaRt,
+            'no_rt' => $namaRt,
             'id_dusun' => $idDusun,
         ]);
 

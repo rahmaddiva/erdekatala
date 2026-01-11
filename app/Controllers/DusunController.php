@@ -20,6 +20,7 @@ class DusunController extends BaseController
     {
         $data = [
             'title' => 'Data Dusun',
+        
             'dusun' => $this->dusunModel->getDusunByDesa(session()->get('id_desa')),
         ];
 

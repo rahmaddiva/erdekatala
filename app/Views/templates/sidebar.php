@@ -8,6 +8,8 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
+        <?php $s1 = service('uri')->getSegment(1);
+        $s2 = service('uri')->getSegment(2); ?>
         <!-- Sidebar user panel (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
@@ -35,35 +37,35 @@
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
                 <li class="nav-item">
-                    <a href="<?= base_url('dashboard') ?>" class="nav-link active">
+                    <a href="<?= base_url('dashboard') ?>" class="nav-link <?= ($s1 == 'dashboard') ? 'active' : '' ?>">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
 
                 <li class="nav-header">MANAJEMEN WILAYAH</li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
+                <li class="nav-item <?= (in_array($s1, ['desa', 'dusun', 'rt']) ? 'menu-open' : '') ?>">
+                    <a href="#" class="nav-link <?= (in_array($s1, ['desa', 'dusun', 'rt']) ? 'active' : '') ?>">
                         <i class="nav-icon fas fa-map-marked-alt"></i>
                         <p>Master Wilayah <i class="right fas fa-angle-left"></i></p>
                     </a>
                     <ul class="nav nav-treeview">
                         <?php if (session()->get('role') == 'admin_dinas'): ?>
                             <li class="nav-item">
-                                <a href="<?= base_url('desa') ?>" class="nav-link">
+                                <a href="<?= base_url('desa') ?>" class="nav-link <?= ($s1 == 'desa') ? 'active' : '' ?>">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Data Desa</p>
                                 </a>
                             </li>
-                        <?php endif; ?> 
+                        <?php endif; ?>
                         <li class="nav-item">
-                            <a href="<?= base_url('dusun') ?>" class="nav-link">
+                            <a href="<?= base_url('dusun') ?>" class="nav-link <?= ($s1 == 'dusun') ? 'active' : '' ?>">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Data Dusun</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="<?= base_url('rt') ?>" class="nav-link">
+                            <a href="<?= base_url('rt') ?>" class="nav-link <?= ($s1 == 'rt') ? 'active' : '' ?>">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Data RT</p>
                             </a>
@@ -73,13 +75,15 @@
 
                 <li class="nav-header">DATA AGREGAT</li>
                 <li class="nav-item">
-                    <a href="<?= base_url('laporan/input') ?>" class="nav-link">
+                    <a href="<?= base_url('laporan/input') ?>"
+                        class="nav-link <?= ($s1 == 'laporan' && $s2 == 'input') ? 'active' : '' ?>">
                         <i class="nav-icon fas fa-edit"></i>
                         <p>Input Laporan Baru</p>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= base_url('laporan') ?>" class="nav-link">
+                    <a href="<?= base_url('laporan') ?>"
+                        class="nav-link <?= ($s1 == 'laporan' && $s2 != 'input') ? 'active' : '' ?>">
                         <i class="nav-icon fas fa-file-invoice"></i>
                         <p>Riwayat Laporan</p>
                     </a>
@@ -87,7 +91,7 @@
 
                 <li class="nav-header">PENGATURAN</li>
                 <li class="nav-item">
-                    <a href="<?= base_url('users') ?>" class="nav-link">
+                    <a href="<?= base_url('users') ?>" class="nav-link <?= ($s1 == 'users') ? 'active' : '' ?>">
                         <i class="nav-icon fas fa-user-cog"></i>
                         <p>Manajemen User</p>
                     </a>
