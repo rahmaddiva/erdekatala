@@ -11,6 +11,6 @@ class DesaModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $protectFields = true;
-    protected $allowedFields = ['nama_desa', 'kode_desa', 'created_at'];
+    protected $allowedFields = ['id_kecamatan', 'nama_desa', 'kode_desa', 'created_at'];
 
 }

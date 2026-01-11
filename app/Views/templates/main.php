@@ -95,8 +95,31 @@
                 "dom": "<'row px-3 pt-3'<'col-sm-6'l><'col-sm-6 text-right'f>>" +
                     "<'row'<'col-sm-12'tr>>" +
                     "<'row px-3 pb-3'<'col-sm-5'i><'col-sm-7'p>>",
-                    // mengatur tata letak paginasi di kanan bawah
+                // mengatur tata letak paginasi di kanan bawah
             });
+            $("#example1").DataTable({
+                "paging": true,
+                "lengthChange": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "responsive": true,
+                "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"],
+                "language": {
+                    "search": "Cari:",
+                    "lengthMenu": "Tampilkan _MENU_ data",
+                    "zeroRecords": "Data tidak ditemukan",
+                    "info": "Menampilkan _START_ s/d _END_ dari _TOTAL_ data",
+                    "paginate": {
+                        "next": "Berikutnya",
+                        "previous": "Sebelumnya"
+                    }
+                },
+                "dom": "<'row px-3 pt-3'<'col-sm-6'l><'col-sm-6 text-right'f>>" +
+                    "<'row'<'col-sm-12'tr>>" +
+                    "<'row px-3 pb-3'<'col-sm-5'i><'col-sm-7 text-right'p>>"
+            }).buttons().container().appendTo('#example1_wrapper .col-sm-6:eq(0)');
         });
     </script>
 

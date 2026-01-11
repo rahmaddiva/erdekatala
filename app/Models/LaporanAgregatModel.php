@@ -118,30 +118,60 @@ class LaporanAgregatModel extends Model
         'jml_penggunaan_alat_kontrasepsi',
     ];
 
-    // Dates
-    protected $useTimestamps = false; // Karena menggunakan default CURRENT_TIMESTAMP di SQL
+
 
     /**
-     * Fungsi kustom untuk mengambil data rekap per desa
+     * Ambil semua laporan berdasarkan Desa
+     * Digunakan oleh: Admin Desa
      */
-    public function getRekapByDesa($id_desa, $bulan, $tahun)
-    {
-        return $this->select('SUM(jiwa_l) as total_l, SUM(jiwa_p) as total_p, SUM(kk_l) as total_kk_l, SUM(kk_p) as total_kk_p')
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->where('m_dusun.id_desa', $id_desa)
-            ->where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->first();
-    }
-
-    public function getDataDashboard()
+    public function getRekapByDesa($id_desa)
     {
         return $this->select('laporan_agregat.*')
             ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
             ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            // where session id_desa
-            ->where('m_dusun.id_desa', session()->get('id_desa'))
+            ->where('m_dusun.id_desa', $id_desa)
             ->findAll();
     }
+    /**
+     * Ambil semua laporan berdasarkan Kecamatan
+     * Digunakan oleh: Admin Kecamatan
+     */
+    public function getRekapByKecamatan($id_kecamatan, $id_desa = null)
+    {
+        $builder = $this->select('laporan_agregat.*, m_desa.nama_desa')
+            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->where('m_desa.id_kecamatan', $id_kecamatan);
+
+        // Jika admin memilih desa tertentu
+        if ($id_desa) {
+            $builder->where('m_desa.id_desa', $id_desa);
+        }
+
+        return $builder->findAll();
+    }
+
+    /**
+     * Menghasilkan data untuk tabel rekapitulasi per desa
+     */
+    public function getSummaryPerDesa($id_kecamatan)
+    {
+        return $this->select('m_desa.nama_desa, 
+                          SUM(jiwa_l + jiwa_p) as total_jiwa, 
+                          SUM(kk_l + kk_p) as total_kk,
+                          SUM(jml_balita) as total_balita,
+                          SUM(jml_pus) as total_pus,
+                          SUM(jiwa_l) as total_jiwa_l, 
+                          SUM(jiwa_p) as total_jiwa_p'
+        )
+            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->where('m_desa.id_kecamatan', $id_kecamatan)
+            ->groupBy('m_desa.id_desa')
+            ->findAll();
+    }
+
+
 }

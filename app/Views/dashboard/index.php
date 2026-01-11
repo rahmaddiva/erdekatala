@@ -93,6 +93,63 @@
                 </div>
             </div>
 
+
+
+            <?php if (session()->get('role') == 'admin_kecamatan'): ?>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-outline card-secondary">
+                            <div class="card-header">
+                                <h3 class="card-title">Rekapitulasi Data Per Desa</h3>
+                            </div>
+                            <div class="card-body p-0">
+                                <table id="example1" class="table table-striped table-valign-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Nama Desa</th>
+                                            <th>Total Jiwa</th>
+                                            <th>Total KK</th>
+                                            <th>Laki-Laki</th>
+                                            <th>Perempuan</th>
+                                            <th>Total Balita</th>
+                                            <th>Total PUS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($data_summary_desa as $summary): ?>
+                                            <tr>
+                                                <td>
+                                                    <?= $summary['nama_desa'] ?>
+                                                </td>
+                                                <td>
+                                                    <?= number_format($summary['total_jiwa']) ?>
+                                                </td>
+                                                <td>
+                                                    <?= number_format($summary['total_kk']) ?>
+                                                </td>
+                                                <td>
+                                                    <?= number_format($summary['total_jiwa_l']) ?>
+                                                </td>
+                                                <td>
+                                                    <?= number_format($summary['total_jiwa_p']) ?>
+                                                </td>
+
+                                                <td>
+                                                    <?= number_format($summary['total_balita']) ?>
+                                                </td>
+                                                <td>
+                                                    <?= number_format($summary['total_pus']) ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
         </div>
     </section>
 </div>

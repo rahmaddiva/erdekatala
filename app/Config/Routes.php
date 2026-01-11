@@ -16,3 +16,9 @@ $routes->get('/desa', 'DesaController::index');
 $routes->post('/desa/store', 'DesaController::store');
 $routes->post('/desa/update/(:num)', 'DesaController::update/$1');
 $routes->get('/desa/delete/(:num)', 'DesaController::delete/$1');
+
+// routes dusun
+$routes->get('/dusun', 'DusunController::index');
+$routes->post('/dusun/store', 'DusunController::store');
+$routes->post('/dusun/update/(:num)', 'DusunController::update/$1');
+$routes->get('/dusun/delete/(:num)', 'DusunController::delete/$1');

@@ -16,7 +16,27 @@ class DashboardController extends BaseController
 
     public function index()
     {
-        $allLaporan = $this->laporanModel->getDataDashboard();
+        $user = session()->get();
+        $id_desa_filter = $this->request->getGet('id_desa'); // Ambil filter dari URL
+        $data_summary_desa = [];
+        $list_desa = [];
+
+        if ($user['role'] == 'admin_kecamatan') {
+            // Ambil list desa untuk dropdown filter
+            $desaModel = new \App\Models\DesaModel();
+            $list_desa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
+
+            // Ambil data laporan (dengan filter jika ada)
+            $allLaporan = $this->laporanModel->getRekapByKecamatan($user['id_kecamatan'], $id_desa_filter);
+
+            // Ambil ringkasan per desa untuk tabel
+            $data_summary_desa = $this->laporanModel->getSummaryPerDesa($user['id_kecamatan']);
+
+        } elseif ($user['role'] == 'admin_desa') {
+            $allLaporan = $this->laporanModel->getRekapByDesa($user['id_desa']);
+        } else {
+            $allLaporan = $this->laporanModel->findAll();
+        }
 
         // 1. Inisialisasi Data Ringkasan (Info Boxes)
         $totals = [
@@ -155,6 +175,9 @@ class DashboardController extends BaseController
             'ageLabels' => $ageLabels,
             'piramidaL' => $piramidaL,
             'piramidaP' => $piramidaP,
+            'list_desa' => $list_desa,         // Untuk dropdown
+            'selected_desa' => $id_desa_filter,    // Desa yang sedang dipilih
+            'data_summary_desa' => $data_summary_desa  // Untuk tabel rekap
         ];
 
         return view('dashboard/index', $data);

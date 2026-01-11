@@ -16,5 +16,9 @@ class DusunModel extends Model
         'nama_dusun',
     ];
 
+    public function getDusunByDesa($idDesa)
+    {
+        return $this->where('id_desa', $idDesa)->findAll();
+    }
 
 }

@@ -140,10 +140,15 @@ class LaporanAgregatSeeder extends Seeder
                 'non_jkn' => round($totalJiwa * 0.2),
                 'kk_punya_akta_nikah' => rand(20, 30),
                 'pend_punya_akta_lahir' => $totalJiwa - rand(0, 5),
+                'kb_aktif' => rand(15, 25),
+                'jml_pus' => rand(20, 30),
+                'jml_penggunaan_alat_kontrasepsi' => rand(15, 25),
             ];
         }
 
         // Simpan ke database
+        // kosongkan tabel terlebih dahulu untuk menghindari duplikasi
+        $db->table('laporan_agregat')->truncate();
         $db->table('laporan_agregat')->insertBatch($data);
     }
 }

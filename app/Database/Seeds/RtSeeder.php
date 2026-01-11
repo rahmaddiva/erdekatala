@@ -17,7 +17,7 @@ class RtSeeder extends Seeder
             for ($i = 1; $i <= 3; $i++) {
                 $data[] = [
                     'id_dusun' => $dusun['id_dusun'],
-                    'nomor_rt' => str_pad($i, 3, '0', STR_PAD_LEFT), // Hasil: 001, 002, 003
+                    'no_rt' => str_pad($i, 3, '0', STR_PAD_LEFT), // Hasil: 001, 002, 003
                 ];
             }
         }
