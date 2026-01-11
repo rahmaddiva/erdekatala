@@ -126,7 +126,7 @@ class LaporanAgregatModel extends Model
      */
     public function getRekapByDesa($id_desa)
     {
-        return $this->select('laporan_agregat.*')
+        return $this->select('laporan_agregat.*, m_rt.no_rt, m_dusun.nama_dusun')
             ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
             ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
             ->where('m_dusun.id_desa', $id_desa)

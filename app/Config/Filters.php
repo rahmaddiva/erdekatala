@@ -25,15 +25,17 @@ class Filters extends BaseFilters
      * or [filter_name => [classname1, classname2, ...]]
      */
     public array $aliases = [
-        'csrf'          => CSRF::class,
-        'toolbar'       => DebugToolbar::class,
-        'honeypot'      => Honeypot::class,
-        'invalidchars'  => InvalidChars::class,
+        'csrf' => CSRF::class,
+        'toolbar' => DebugToolbar::class,
+        'honeypot' => Honeypot::class,
+        'invalidchars' => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'cors'          => Cors::class,
-        'forcehttps'    => ForceHTTPS::class,
-        'pagecache'     => PageCache::class,
-        'performance'   => PerformanceMetrics::class,
+        'cors' => Cors::class,
+        'forcehttps' => ForceHTTPS::class,
+        'pagecache' => PageCache::class,
+        'performance' => PerformanceMetrics::class,
+        // App Filters
+        'loggedin' => \App\Filters\LoggedIn::class,
     ];
 
     /**
@@ -75,6 +77,8 @@ class Filters extends BaseFilters
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
+            // Require login for most pages; exclude pages needed for authentication and public assets
+            'loggedin' => ['except' => ['/', 'login', 'proses_login', 'assets/*', 'favicon.ico']],
         ],
         'after' => [
             // 'honeypot',

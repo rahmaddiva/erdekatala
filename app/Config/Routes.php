@@ -28,3 +28,11 @@ $routes->get('/rt', 'RtController::index');
 $routes->post('/rt/store', 'RtController::store');
 $routes->post('/rt/update/(:num)', 'RtController::update/$1');
 $routes->get('/rt/delete/(:num)', 'RtController::delete/$1');
+
+// routes laporan agregat
+$routes->get('/laporan', 'LaporanAgregatController::index');
+$routes->get('/laporan/input', 'LaporanAgregatController::create');
+$routes->post('/laporan/store', 'LaporanAgregatController::store');
+$routes->get('/laporan/edit/(:num)', 'LaporanAgregatController::edit/$1');
+$routes->post('/laporan/update/(:num)', 'LaporanAgregatController::update/$1');
+$routes->get('/laporan/delete/(:num)', 'LaporanAgregatController::delete/$1');

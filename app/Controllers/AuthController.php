@@ -40,7 +40,7 @@ class AuthController extends BaseController
         $user = $this->userModel->where('username', $username)->first();
         if ($user && password_verify($password, $user['password'])) {
             // set session
-            $this->session->set('user_id', $user['id_user']);
+            $this->session->set('id_user', $user['id_user']);
             $this->session->set('id_kecamatan', $user['id_kecamatan']);
             $this->session->set('nama_lengkap', $user['nama_lengkap']);
             $this->session->set('id_desa', $user['id_desa']);
@@ -53,7 +53,7 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Username atau password salah');
         }
     }
-    
+
     public function logout()
     {
         // session destroy
