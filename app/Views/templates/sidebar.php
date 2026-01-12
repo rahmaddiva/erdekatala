@@ -91,21 +91,30 @@
                         <p>Riwayat Laporan</p>
                     </a>
                 </li>
-
-                <li class="nav-header">PENGATURAN</li>
                 <li class="nav-item">
-                    <a href="<?= base_url('users') ?>" class="nav-link <?= ($s1 == 'users') ? 'active' : '' ?>">
-                        <i class="nav-icon fas fa-user-cog"></i>
-                        <p>Manajemen User</p>
+                    <a href="<?= base_url('grafik') ?>"
+                        class="nav-link <?= ($s1 == 'grafik' && $s2 != 'input') ? 'active' : '' ?>">
+                        <i class="nav-icon fas fa-chart-bar"></i>
+                        <p>Grafik</p>
                     </a>
                 </li>
 
-                <li class="nav-item">
-                    <a href="<?= base_url('auth/logout') ?>" class="nav-link text-danger">
-                        <i class="nav-icon fas fa-sign-out-alt"></i>
-                        <p>Logout</p>
-                    </a>
-                </li>
+                <?php if (session()->get('role') == 'admin_dinas'): ?>
+                    <li class="nav-header">PENGATURAN</li>
+                    <li class="nav-item">
+                        <a href="<?= base_url('users') ?>" class="nav-link <?= ($s1 == 'users') ? 'active' : '' ?>">
+                            <i class="nav-icon fas fa-user-cog"></i>
+                            <p>Manajemen User</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="<?= base_url('logout') ?>" class="nav-link text-danger">
+                            <i class="nav-icon fas fa-sign-out-alt"></i>
+                            <p>Logout</p>
+                        </a>
+                    </li>
+                <?php endif; ?>
 
             </ul>
         </nav>

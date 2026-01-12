@@ -9,10 +9,16 @@ class DesaController extends BaseController
 {
 
     protected $desaModel;
-
+    protected $session;
     public function __construct()
     {
+        $this->session = session();
         $this->desaModel = new DesaModel();
+        // cek role jika bukan admin_dinas maka redirect ke dashboard
+        if ($this->session->get('role') != 'admin_dinas') {
+            header('Location: ' . base_url('dashboard'));
+            exit();
+        }
     }
 
     public function index()

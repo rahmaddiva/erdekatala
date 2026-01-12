@@ -324,6 +324,40 @@
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card card-outline card-primary shadow">
+                        <div class="card-header">
+                            <h3 class="card-title">Statistik Jiwa & Kepala Keluarga (Gender)</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartGender"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card card-outline card-success shadow">
+                        <div class="card-header">
+                            <h3 class="card-title">Capaian Dokumen Adminduk</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartDokumen"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card card-outline card-info shadow">
+                        <div class="card-header">
+                            <h3 class="card-title">Distribusi JKN / BPJS</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="chartBPJS"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
     </section>
@@ -355,6 +389,48 @@ document.addEventListener("DOMContentLoaded", function () {
     const maleData = <?= json_encode($piramidaL) ?>;
     const femaleData = <?= json_encode($piramidaP) ?>;
     const negativeMale = maleData.map(val => -Math.abs(val));
+
+     // --- 1. Grafik Gender (Grouped Bar) ---
+        var optGender = {
+            series: [{
+                name: 'Laki-laki',
+                data: [<?= $grafik['gender']['jiwa_l'] ?>, <?= $grafik['gender']['kk_l'] ?>]
+        }, {
+            name: 'Perempuan',
+            data: [<?= $grafik['gender']['jiwa_p'] ?>, <?= $grafik['gender']['kk_p'] ?>]
+        }],
+        chart: { type: 'bar', height: 350 },
+        xaxis: { categories: ['Jumlah Jiwa', 'Jumlah KK'] },
+        colors: ['#007bff', '#dc3545']
+    };
+    new ApexCharts(document.querySelector("#chartGender"), optGender).render();
+
+    // --- 2. Grafik Dokumen (Radar atau Bar) ---
+    var optDokumen = {
+        series: [{
+            name: 'Total Punya',
+            data: [
+                    <?= $grafik['dokumen']['ktp_elektronik'] ?>,
+                    <?= $grafik['dokumen']['akta_lahir'] ?>,
+                    <?= $grafik['dokumen']['akta_nikah'] ?>,
+                    <?= $grafik['dokumen']['kk_fisik'] ?>
+                ]
+        }],
+        chart: { type: 'bar', height: 350 },
+        plotOptions: { bar: { horizontal: true } },
+        xaxis: { categories: ['KTP-el', 'Akta Lahir', 'Akta Nikah', 'KK Fisik'] },
+        colors: ['#28a745']
+    };
+    new ApexCharts(document.querySelector("#chartDokumen"), optDokumen).render();
+
+    // --- 3. Grafik BPJS (Donut) ---
+    var optBPJS = {
+        series: [<?= $grafik['bpjs']['pbi'] ?>, <?= $grafik['bpjs']['non_pbi'] ?>, <?= $grafik['bpjs']['non_jkn'] ?>],
+        chart: { type: 'donut', height: 350 },
+        labels: ['PBI', 'Non PBI', 'Tidak Ada JKN'],
+        colors: ['#17a2b8', '#20c997', '#ffc107']
+    };
+    new ApexCharts(document.querySelector("#chartBPJS"), optBPJS).render();
 
     new ApexCharts(document.querySelector("#chartPiramida"), {
         ...commonOptions,

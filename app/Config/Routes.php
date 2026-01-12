@@ -46,3 +46,11 @@ $routes->get('laporan/export', 'LaporanAgregatController::export');
 $routes->get('dashboard/getDesaByKecamatan/(:num)', 'DashboardController::getDesaByKecamatan/$1');
 $routes->get('dashboard/getDusunByDesa/(:num)', 'DashboardController::getDusunByDesa/$1');
 $routes->get('dashboard/getRtByDusun/(:num)', 'DashboardController::getRtByDusun/$1');
+
+// User CRUD
+$routes->get('/users', 'UserController::index');
+$routes->get('/users/create', 'UserController::create');
+$routes->post('/users/store', 'UserController::store');
+$routes->get('/users/edit/(:num)', 'UserController::edit/$1');
+$routes->post('/users/update/(:num)', 'UserController::update/$1');
+$routes->get('/users/delete/(:num)', 'UserController::delete/$1');

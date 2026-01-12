@@ -109,6 +109,39 @@ class DashboardController extends BaseController
             }
         }
 
+        // Inisialisasi Group Data
+        $data_grafik = [
+            'gender' => ['jiwa_l' => 0, 'jiwa_p' => 0, 'kk_l' => 0, 'kk_p' => 0],
+            'dokumen' => [
+                'ktp_elektronik' => 0,
+                'akta_lahir' => 0,
+                'akta_nikah' => 0,
+                'kk_fisik' => 0,
+                'kk_non_fisik' => 0
+            ],
+            'bpjs' => ['pbi' => 0, 'non_pbi' => 0, 'non_jkn' => 0],
+            'pus_jkn' => ['jkn' => 0, 'non_jkn' => 0]
+        ];
+
+        foreach ($allLaporan as $l) {
+            // Jenis Kelamin
+            $data_grafik['gender']['jiwa_l'] += $l['jiwa_l'];
+            $data_grafik['gender']['jiwa_p'] += $l['jiwa_p'];
+            $data_grafik['gender']['kk_l'] += $l['kk_l'];
+            $data_grafik['gender']['kk_p'] += $l['kk_p'];
+
+            // Dokumen
+            $data_grafik['dokumen']['ktp_elektronik'] += $l['pend_wajib_ktp'];
+            $data_grafik['dokumen']['akta_lahir'] += $l['pend_punya_akta_lahir'];
+            $data_grafik['dokumen']['akta_nikah'] += $l['kk_punya_akta_nikah'];
+            $data_grafik['dokumen']['kk_fisik'] += $l['kk_punya_kartu_fisik'];
+            $data_grafik['dokumen']['kk_non_fisik'] += $l['kk_belum_punya_kartu_fisik'];
+
+            // JKN / BPJS
+            $data_grafik['bpjs']['pbi'] += $l['pus_pbi'];
+            $data_grafik['bpjs']['non_pbi'] += $l['pus_non_pbi'];
+            $data_grafik['bpjs']['non_jkn'] += $l['non_jkn'];
+        }
         // Inisialisasi Data Ringkasan
         $totals = [
             'jiwa_l' => 0,
@@ -230,9 +263,9 @@ class DashboardController extends BaseController
                 $piramidaP[$idx] += $l[$fields[1]] ?? 0;
             }
         }
-
         $data = [
-            'title' => 'Dashboard Statistik ERDEKATALA',
+            'title' => 'Statistik Agregat Kependudukan',
+            'grafik' => $data_grafik,
             'list_kecamatan' => $list_kecamatan,
             'list_desa' => $list_desa,
             'list_dusun' => $list_dusun,
@@ -253,6 +286,7 @@ class DashboardController extends BaseController
 
         return view('dashboard/index', $data);
     }
+
 
     // AJAX endpoint untuk chained dropdown
     public function getDesaByKecamatan($id_kecamatan)
