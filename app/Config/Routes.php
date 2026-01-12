@@ -7,6 +7,9 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'AuthController::index');
 $routes->get('/dashboard', 'DashboardController::index');
+$routes->get('/profile', 'AuthController::profile');
+$routes->post('/profile/update', 'AuthController::update_profile');
+$routes->post('/profile/password', 'AuthController::change_password');
 $routes->get('/login', 'AuthController::index');
 $routes->get('/logout', 'AuthController::logout');
 $routes->post('/proses_login', 'AuthController::proses_login');

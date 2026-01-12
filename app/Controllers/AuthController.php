@@ -22,6 +22,77 @@ class AuthController extends BaseController
         return view('auth/login');
     }
 
+    public function profile()
+    {
+        $data = [
+            'title' => 'Profile User',
+            'user' => $this->userModel->find($this->session->get('id_user'))
+        ];
+        return view('auth/profile', $data);
+    }
+
+    public function update_profile()
+    {
+        $id = $this->session->get('id_user');
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'nama_lengkap' => 'required',
+            'username' => 'required'
+        ]);
+
+        if (!$validation->withRequest($this->request)->run()) {
+            return redirect()->back()->withInput()->with('error', implode(' ', $validation->getErrors()));
+        }
+
+        $username = $this->request->getPost('username');
+        $nama = $this->request->getPost('nama_lengkap');
+
+        // check username uniqueness (except current user)
+        $existing = $this->userModel->where('username', $username)->where('id_user !=', $id)->first();
+        if ($existing) {
+            return redirect()->back()->withInput()->with('error', 'Username sudah digunakan oleh pengguna lain');
+        }
+
+        $this->userModel->update($id, [
+            'username' => $username,
+            'nama_lengkap' => $nama
+        ]);
+
+        // update session values
+        $this->session->set('username', $username);
+        $this->session->set('nama_lengkap', $nama);
+
+        return redirect()->to('/profile')->with('success', 'Profil berhasil diperbarui');
+    }
+
+    public function change_password()
+    {
+        $id = $this->session->get('id_user');
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'current_password' => 'required',
+            'new_password' => 'required|min_length[6]',
+            'new_password_confirm' => 'required|matches[new_password]'
+        ]);
+
+        if (!$validation->withRequest($this->request)->run()) {
+            return redirect()->back()->withInput()->with('error', implode(' ', $validation->getErrors()));
+        }
+
+        $current = $this->request->getPost('current_password');
+        $new = $this->request->getPost('new_password');
+
+        $user = $this->userModel->find($id);
+        if (!$user || !password_verify($current, $user['password'])) {
+            return redirect()->back()->with('error', 'Password lama tidak sesuai');
+        }
+
+        $hash = password_hash($new, PASSWORD_DEFAULT);
+        $this->userModel->update($id, ['password' => $hash]);
+
+        return redirect()->to('/profile')->with('success', 'Password berhasil diubah');
+    }
+
     public function proses_login()
     {
         // validasi input login

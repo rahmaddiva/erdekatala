@@ -13,7 +13,7 @@
         <!-- Sidebar user panel (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
-                <img src="<?= base_url('assets/') ?>dist/img/user2-160x160.jpg" class="img-circle elevation-2"
+                <img src="<?= base_url('assets/') ?>dist/img/avatar5.png" class="img-circle elevation-2"
                     alt="User Image">
             </div>
             <div class="info">
@@ -52,14 +52,14 @@
                             <p>Master Wilayah <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
-                                <?php if (session()->get('role') == 'admin_dinas'): ?>
+                            <?php if (session()->get('role') == 'admin_dinas'): ?>
                                 <li class="nav-item">
                                     <a href="<?= base_url('desa') ?>" class="nav-link <?= ($s1 == 'desa') ? 'active' : '' ?>">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Data Desa</p>
                                     </a>
                                 </li>
-                                <?php endif; ?>
+                            <?php endif; ?>
                             <li class="nav-item">
                                 <a href="<?= base_url('dusun') ?>" class="nav-link <?= ($s1 == 'dusun') ? 'active' : '' ?>">
                                     <i class="far fa-circle nav-icon"></i>
