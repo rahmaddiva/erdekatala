@@ -39,6 +39,8 @@
     <!-- ./wrapper -->
 
     <!-- REQUIRED SCRIPTS -->
+
+
     <!-- jQuery -->
     <script src="<?= base_url('assets/') ?>plugins/jquery/jquery.min.js"></script>
     <!-- Bootstrap -->
@@ -53,8 +55,7 @@
     <script src="<?= base_url('assets/') ?>plugins/raphael/raphael.min.js"></script>
     <script src="<?= base_url('assets/') ?>plugins/jquery-mapael/jquery.mapael.min.js"></script>
     <script src="<?= base_url('assets/') ?>plugins/jquery-mapael/maps/usa_states.min.js"></script>
-    <!-- ChartJS -->
-    <script src="<?= base_url('assets/') ?>plugins/chart.js/Chart.min.js"></script>
+
     <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
     <script src="<?= base_url('assets/') ?>dist/js/pages/dashboard2.js"></script>
 
@@ -97,6 +98,24 @@
                     "<'row px-3 pb-3'<'col-sm-5'i><'col-sm-7'p>>",
                 // mengatur tata letak paginasi di kanan bawah
             });
+            $(document).ready(function () {
+                // Inisialisasi DataTables
+                $('#tableLaporan').DataTable({
+                    "responsive": true,
+                    "lengthChange": true,
+                    "autoWidth": false,
+                    "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"],
+                    "language": {
+                        "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json" // Terjemahan Indo
+                    },
+                    // Mengatur tata letak agar search bar dan length menu memiliki padding yang pas
+                    "dom": "<'row px-3 pt-3'<'col-sm-6'l><'col-sm-6 text-right'f>>" +
+                        "<'row'<'col-sm-12'tr>>" +
+                        "<'row px-3 pb-3'<'col-sm-5'i><'col-sm-7'p>>",
+                    // mengatur tata letak paginasi di kanan bawah
+
+                }).buttons().container().appendTo('#tableLaporan_wrapper .col-md-6:eq(0)');
+            });
             $("#example1").DataTable({
                 "paging": true,
                 "lengthChange": true,
@@ -121,6 +140,7 @@
                     "<'row px-3 pb-3'<'col-sm-5'i><'col-sm-7 text-right'p>>"
             }).buttons().container().appendTo('#example1_wrapper .col-sm-6:eq(0)');
         });
+
     </script>
 
 

@@ -55,41 +55,39 @@
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card card-outline card-success">
-                        <div class="card-header">
-                            <h3 class="card-title">Pendidikan KK (Horizontal Bar)</h3>
-                        </div>
-                        <div class="card-body"><canvas id="barPendidikan" height="150"></canvas></div>
-                    </div>
+            <div class="card card-info">
+                <div class="card-header">
+                    <h3 class="card-title">Tingkat Pendidikan</h3>
                 </div>
-                <div class="col-md-6">
-                    <div class="card card-outline card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title">Pekerjaan KK (Doughnut)</h3>
-                        </div>
-                        <div class="card-body"><canvas id="doughnutPekerjaan" height="150"></canvas></div>
-                    </div>
+                <div class="card-body">
+                    <div id="chartPendidikan"></div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-md-7">
-                    <div class="card card-outline card-info">
-                        <div class="card-header">
-                            <h3 class="card-title">Piramida Penduduk</h3>
-                        </div>
-                        <div class="card-body"><canvas id="piramidaChart" height="180"></canvas></div>
-                    </div>
+            <div class="card card-success">
+                <div class="card-header">
+                    <h3 class="card-title">Jenis Pekerjaan</h3>
                 </div>
-                <div class="col-md-5">
-                    <div class="card card-outline card-warning">
-                        <div class="card-header">
-                            <h3 class="card-title">Status Perkawinan (Polar Area)</h3>
-                        </div>
-                        <div class="card-body"><canvas id="polarKawin" height="180"></canvas></div>
-                    </div>
+                <div class="card-body">
+                    <div id="chartPekerjaan"></div>
+                </div>
+            </div>
+
+            <div class="card card-danger">
+                <div class="card-header">
+                    <h3 class="card-title">Piramida Penduduk</h3>
+                </div>
+                <div class="card-body">
+                    <div id="chartPiramida"></div>
+                </div>
+            </div>
+
+            <div class="card card-warning">
+                <div class="card-header">
+                    <h3 class="card-title">Status Perkawinan</h3>
+                </div>
+                <div class="card-body">
+                    <div id="chartKawin"></div>
                 </div>
             </div>
 
@@ -153,89 +151,118 @@
         </div>
     </section>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener("DOMContentLoaded", function () {
+        // Pengaturan warna teks untuk Dark Mode
+        const darkModeTextColor = '#ffffff';
+        const labelStyle = {
+            colors: darkModeTextColor,
+            fontSize: '12px',
+            fontWeight: 600,
+            fontFamily: 'Source Sans Pro, sans-serif'
+        };
 
-        // 1. Pendidikan (Horizontal Bar)
-        new Chart(document.getElementById('barPendidikan'), {
-            type: 'bar',
-            data: {
-                labels: <?= json_encode(array_keys($pendidikan)) ?>,
-                datasets: [{
-                    label: 'Jumlah KK',
-                    backgroundColor: '#28a745',
-                    data: <?= json_encode(array_values($pendidikan)) ?>
-                }]
+        // Konfigurasi Umum Chart
+        const commonOptions = {
+            chart: {
+                foreColor: darkModeTextColor, // Mengubah semua teks chart menjadi putih
+                toolbar: { show: false }
             },
-            options: { indexAxis: 'y' }
-        });
+            theme: {
+                mode: 'dark' // Mengaktifkan mode gelap bawaan ApexCharts
+            }
+        };
 
-        // 2. Pekerjaan (Doughnut)
-        new Chart(document.getElementById('doughnutPekerjaan'), {
-            type: 'doughnut',
-            data: {
-                labels: <?= json_encode(array_keys($pekerjaan)) ?>,
-                datasets: [{
-                    data: <?= json_encode(array_values($pekerjaan)) ?>,
-                    backgroundColor: ['#007bff', '#dc3545', '#ffc107', '#28a745', '#17a2b8', '#20c997', '#e83e8c', '#6c757d']
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'right'
+        // 1. Chart Pendidikan (Donut)
+        new ApexCharts(document.querySelector("#chartPendidikan"), {
+            ...commonOptions,
+            series: <?= json_encode(array_values($pendidikan)) ?>,
+            chart: { ...commonOptions.chart, type: 'donut', height: 350 },
+            labels: <?= json_encode(array_keys($pendidikan)) ?>,
+            stroke: { show: false }, // Menghilangkan garis pinggir agar lebih clean
+            plotOptions: {
+                pie: {
+                    donut: {
+                        labels: {
+                            show: true,
+                            name: { color: darkModeTextColor },
+                            value: { color: darkModeTextColor },
+                            total: { show: true, label: 'Total', color: darkModeTextColor }
+                        }
                     }
                 }
-            }
-        });
+            },
+            legend: { position: 'bottom', labels: { colors: darkModeTextColor } }
+        }).render();
+
+        // 2. Chart Pekerjaan (Bar Horizontal)
+        new ApexCharts(document.querySelector("#chartPekerjaan"), {
+            ...commonOptions,
+            series: [{ name: 'Jiwa', data: <?= json_encode(array_values($pekerjaan)) ?> }],
+            chart: { ...commonOptions.chart, type: 'bar', height: 350 },
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    dataLabels: { position: 'top' }
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                offsetX: 30,
+                style: { colors: [darkModeTextColor] }
+            },
+            xaxis: {
+                categories: <?= json_encode(array_keys($pekerjaan)) ?>,
+                labels: { style: labelStyle }
+            },
+            yaxis: { labels: { style: labelStyle } },
+            grid: { borderColor: '#444' } // Warna garis grid lebih halus di dark mode
+        }).render();
 
         // 3. Piramida Penduduk
-        new Chart(document.getElementById('piramidaChart'), {
-            type: 'bar',
-            data: {
-                labels: <?= json_encode($ageLabels) ?>,
-                datasets: [
-                    {
-                        label: 'Laki-laki',
-                        backgroundColor: '#007bff',
-                        data: <?= json_encode($piramidaL) ?>
-                    },
-                    {
-                        label: 'Perempuan',
-                        backgroundColor: '#dc3545',
-                        data: <?= json_encode($piramidaP) ?>
-                    }
-                ]
+        const maleData = <?= json_encode($piramidaL) ?>;
+        const femaleData = <?= json_encode($piramidaP) ?>;
+        const negativeMale = maleData.map(val => -Math.abs(val));
+
+        new ApexCharts(document.querySelector("#chartPiramida"), {
+            ...commonOptions,
+            series: [
+                { name: 'Laki-laki', data: negativeMale },
+                { name: 'Perempuan', data: femaleData }
+            ],
+            chart: { ...commonOptions.chart, type: 'bar', height: 450, stacked: true },
+            colors: ['#30befd', '#ff5b5b'], // Warna biru & merah yang lebih neon agar kontras
+            plotOptions: { bar: { horizontal: true, barHeight: '85%' } },
+            xaxis: {
+                categories: <?= json_encode($ageLabels) ?>,
+                labels: {
+                    formatter: (val) => Math.abs(val),
+                    style: labelStyle
+                }
             },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        stacked: false
+            yaxis: { labels: { style: labelStyle } },
+            legend: { position: 'top', labels: { colors: darkModeTextColor } },
+            grid: { borderColor: '#444' }
+        }).render();
+
+        // 4. Status Perkawinan (Radial Bar)
+        new ApexCharts(document.querySelector("#chartKawin"), {
+            ...commonOptions,
+            series: <?= json_encode(array_values($status_kawin)) ?>,
+            chart: { ...commonOptions.chart, height: 350, type: 'radialBar' },
+            plotOptions: {
+                radialBar: {
+                    track: { background: '#333' }, // Warna lintasan yang gelap
+                    dataLabels: {
+                        name: { color: darkModeTextColor },
+                        value: { color: darkModeTextColor },
+                        total: { show: true, label: 'Total', color: darkModeTextColor }
                     }
                 }
-            }
-        });
-
-        // 4. Status Kawin (Polar Area)
-        new Chart(document.getElementById('polarKawin'), {
-            type: 'polarArea',
-            data: {
-                labels: <?= json_encode(array_keys($status_kawin)) ?>,
-                datasets: [{
-                    data: <?= json_encode(array_values($status_kawin)) ?>,
-                    backgroundColor: ['#007bff', '#ffc107', '#dc3545', '#6c757d']
-                }]
             },
-            options: {
-                responsive: true
-            }
-        });
+            labels: <?= json_encode(array_keys($status_kawin)) ?>,
+        }).render();
     });
 </script>
-
 <?= $this->endSection() ?>
