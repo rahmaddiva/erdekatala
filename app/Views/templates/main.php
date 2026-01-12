@@ -241,6 +241,25 @@
                     title: '<?= session()->getFlashdata('success') ?>'
                 });
             <?php endif; ?>
+
+            // Konfirmasi logout menggunakan SweetAlert2
+            $('.logout-btn').on('click', function (e) {
+                e.preventDefault();
+                var url = $(this).data('logout-url');
+                Swal.fire({
+                    title: 'Konfirmasi Logout',
+                    text: 'Apakah Anda yakin ingin keluar?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, keluar',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = url;
+                    }
+                });
+            });
         });
 
     </script>

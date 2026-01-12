@@ -83,6 +83,9 @@ class LaporanAgregatController extends BaseController
                 if (!empty($id_desa_filter)) {
                     $builder->where('m_desa.id_desa', $id_desa_filter);
                 }
+            } elseif ($user['role'] == 'admin_desa') {
+                $builder->where('m_desa.id_desa', $user['id_desa']);
+
             }
 
 

@@ -232,7 +232,7 @@ class DashboardController extends BaseController
         }
 
         $data = [
-            'title' => 'Dashboard Statistik DP3AP2KB',
+            'title' => 'Dashboard Statistik ERDEKATALA',
             'list_kecamatan' => $list_kecamatan,
             'list_desa' => $list_desa,
             'list_dusun' => $list_dusun,

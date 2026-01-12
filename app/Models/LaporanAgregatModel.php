@@ -173,6 +173,23 @@ class LaporanAgregatModel extends Model
             ->findAll();
     }
 
+    public function getSummaryPerDusun($id_desa)
+    {
+        return $this->select('m_dusun.nama_dusun, 
+                          SUM(jiwa_l + jiwa_p) as total_jiwa, 
+                          SUM(kk_l + kk_p) as total_kk,
+                          SUM(jml_balita) as total_balita,
+                          SUM(jml_pus) as total_pus,
+                          SUM(jiwa_l) as total_jiwa_l, 
+                          SUM(jiwa_p) as total_jiwa_p'
+        )
+            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+            ->where('m_dusun.id_desa', $id_desa)
+            ->groupBy('m_dusun.id_dusun')
+            ->findAll();
+    }
+
     public function getSummaryPerKecamatan()
     {
         return $this->select('kecamatan.nama_kecamatan, 
