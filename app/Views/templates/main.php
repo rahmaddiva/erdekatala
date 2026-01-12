@@ -16,7 +16,11 @@
     <!-- Theme style -->
     <link rel="stylesheet" href="<?= base_url('assets/') ?>dist/css/adminlte.min.css">
     <!-- DataTables -->
-    <link rel="stylesheet" href=".<?= base_url('assets/') ?>plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="<?= base_url('assets/') ?>plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <!-- Select2 -->
+    <link rel="stylesheet" href="<?= base_url('assets/') ?>plugins/select2/css/select2.min.css">
+    <link rel="stylesheet" href="<?= base_url('assets/') ?>plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
+    <link rel="stylesheet" href="<?= base_url('assets/') ?>plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
 </head>
 
 <body class="hold-transition dark-mode sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
@@ -42,6 +46,7 @@
 
 
     <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="<?= base_url('assets/') ?>plugins/jquery/jquery.min.js"></script>
     <!-- Bootstrap -->
     <script src="<?= base_url('assets/') ?>plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -50,11 +55,9 @@
     <!-- AdminLTE App -->
     <script src="<?= base_url('assets/') ?>dist/js/adminlte.js"></script>
 
-    <!-- jQuery Mapael -->
-    <script src="<?= base_url('assets/') ?>plugins/jquery-mousewheel/jquery.mousewheel.js"></script>
-    <script src="<?= base_url('assets/') ?>plugins/raphael/raphael.min.js"></script>
-    <script src="<?= base_url('assets/') ?>plugins/jquery-mapael/jquery.mapael.min.js"></script>
-    <script src="<?= base_url('assets/') ?>plugins/jquery-mapael/maps/usa_states.min.js"></script>
+    <!-- Select2 -->
+    <script src="<?= base_url('assets/') ?>plugins/select2/js/select2.full.min.js"></script>
+    <script src="<?= base_url('assets/') ?>plugins/sweetalert2/sweetalert2.min.js"></script>
 
     <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
     <script src="<?= base_url('assets/') ?>dist/js/pages/dashboard2.js"></script>
@@ -139,6 +142,39 @@
                     "<'row'<'col-sm-12'tr>>" +
                     "<'row px-3 pb-3'<'col-sm-5'i><'col-sm-7 text-right'p>>"
             }).buttons().container().appendTo('#example1_wrapper .col-sm-6:eq(0)');
+        });
+        $('.select2').select2()
+
+        //Initialize Select2 Elements
+        $('.select2bs4').select2({
+            theme: 'bootstrap4'
+        })
+
+        $(function () {
+            // Inisialisasi Toast AdminLTE
+            var Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+
+            // Deteksi Flashdata Error dari CodeIgniter
+            <?php if (session()->getFlashdata('error')): ?>
+                Toast.fire({
+                    icon: 'error',
+                    title: '<?= session()->getFlashdata('error') ?>'
+                });
+            <?php endif; ?>
+
+            // Deteksi Flashdata Success dari CodeIgniter
+            <?php if (session()->getFlashdata('success')): ?>
+                Toast.fire({
+                    icon: 'success',
+                    title: '<?= session()->getFlashdata('success') ?>'
+                });
+            <?php endif; ?>
         });
 
     </script>

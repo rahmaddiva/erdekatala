@@ -17,14 +17,6 @@
             <div class="row">
                 <div class="col-lg-12">
 
-                    <?php if (session()->getFlashdata('success')): ?>
-                        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-                            <i class="icon fas fa-check-circle mr-2"></i> <?= session()->getFlashdata('success') ?>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    <?php endif; ?>
 
                     <div class="card card-outline card-primary shadow-sm">
                         <div class="card-header border-0">

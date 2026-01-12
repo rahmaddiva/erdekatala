@@ -42,19 +42,105 @@ class LaporanAgregatController extends BaseController
         ];
     }
 
-    // Tampilkan Daftar Laporan
     public function index()
     {
         $user = session()->get();
-        if ($user['role'] == 'admin_desa') {
-            $data['laporan'] = $this->laporanModel->getRekapByDesa($user['id_desa']);
-        } elseif ($user['role'] == 'admin_kecamatan') {
-            $data['laporan'] = $this->laporanModel->getRekapByKecamatan($user['id_kecamatan']);
-        } else {
-            $data['laporan'] = $this->laporanModel->findAll();
+
+        // 1. Menangani Request Data via AJAX (Server-side)
+        if ($this->request->isAJAX()) {
+            $draw = $this->request->getVar('draw');
+            $start = $this->request->getVar('start');
+            $length = $this->request->getVar('length');
+            $search = $this->request->getVar('search')['value'] ?? null;
+            $id_desa_filter = $this->request->getVar('id_desa'); // Filter khusus admin kecamatan
+
+            // Total semua data (sebelum difilter)
+            $totalData = $this->laporanModel->countAll();
+
+            // Builder dasar dengan Join
+            $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, m_dusun.nama_dusun, m_rt.no_rt')
+                ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+                ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+                ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa');
+
+            // Filter Berdasarkan Hak Akses (Role)
+            if ($user['role'] == 'admin_desa') {
+                $builder->where('m_desa.id_desa', $user['id_desa']);
+            } elseif ($user['role'] == 'admin_kecamatan') {
+                $builder->where('m_desa.id_kecamatan', $user['id_kecamatan']);
+                // Tambahan filter dropdown desa jika dipilih
+                if ($id_desa_filter) {
+                    $builder->where('m_desa.id_desa', $id_desa_filter);
+                }
+            }
+
+            // Search Filter
+            if ($search) {
+                $builder->groupStart()
+                    ->like('m_dusun.nama_dusun', $search)
+                    ->orLike('laporan_agregat.tahun', $search)
+                    ->orLike('m_desa.nama_desa', $search)
+                    ->groupEnd();
+            }
+
+            // Clone builder untuk mendapatkan total yang difilter
+            $builderFiltered = clone $builder;
+            $totalFiltered = $builderFiltered->countAllResults(false);
+
+            // Ambil data dengan limit & offset
+            $laporan = $builder->orderBy('laporan_agregat.id_laporan', 'DESC')
+                ->findAll($length, $start);
+
+            // Mapping Data untuk JSON
+            $data = [];
+            $no = $start + 1;
+
+            foreach ($laporan as $row) {
+                // Button Aksi
+                $editBtn = '<a href="' . base_url('laporan/edit/' . $row['id_laporan']) . '" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
+                $deleteBtn = '<button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(' . $row['id_laporan'] . ')" title="Hapus"><i class="fas fa-trash"></i></button>';
+
+                $rowArray = [];
+                $rowArray[] = $no++;
+                $rowArray[] = '<strong>' . ($this->bulanList[$row['bulan']] ?? $row['bulan']) . '</strong> ' . $row['tahun'];
+
+                // Kolom Desa (Hanya untuk admin kecamatan)
+                if ($user['role'] == 'admin_kecamatan') {
+                    $rowArray[] = '<span class="badge badge-secondary">' . esc($row['nama_desa']) . '</span>';
+                }
+
+                $rowArray[] = esc($row['nama_dusun']);
+                $rowArray[] = 'RT ' . esc($row['no_rt']);
+                $rowArray[] = '<span class="badge badge-info">' . number_format($row['jiwa_l'] + $row['jiwa_p']) . ' Jiwa</span>';
+                $rowArray[] = '<span class="badge badge-success">' . number_format($row['kk_l'] + $row['kk_p']) . ' KK</span>';
+                $rowArray[] = $editBtn . ' ' . $deleteBtn;
+
+                $data[] = $rowArray;
+            }
+
+            $output = [
+                "draw" => $draw,
+                "recordsTotal" => $totalData,
+                "recordsFiltered" => $totalFiltered,
+                "data" => $data,
+            ];
+
+            return $this->response->setJSON($output);
         }
 
-        $data['title'] = "Daftar Laporan Agregat";
+        // 2. Menampilkan Halaman Utama (Request Biasa)
+        $list_desa = [];
+        if ($user['role'] == 'admin_kecamatan') {
+            $desaModel = new \App\Models\DesaModel();
+            $list_desa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
+        }
+
+        $data = [
+            'title' => 'Riwayat Laporan Agregat',
+            'list_desa' => $list_desa,
+            'filter_desa' => $this->request->getVar('id_desa') ?? null,
+        ];
+
         return view('laporan/index', $data);
     }
 
@@ -63,13 +149,30 @@ class LaporanAgregatController extends BaseController
     {
         $user = session()->get();
 
+        // Ambil daftar RT berdasarkan Role
+        if ($user['role'] == 'admin_desa') {
+            $list_rt = $this->rtModel->select('m_rt.*, m_dusun.nama_dusun')
+                ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+                ->where('m_dusun.id_desa', $user['id_desa'])
+                ->findAll();
+        } elseif ($user['role'] == 'admin_kecamatan') {
+            // Admin Kecamatan melihat SEMUA RT dari SEMUA DESA di kecamatannya
+            $list_rt = $this->rtModel->select('m_rt.*, m_dusun.nama_dusun, m_desa.nama_desa')
+                ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+                ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+                ->where('m_desa.id_kecamatan', $user['id_kecamatan'])
+                ->orderBy('m_desa.nama_desa', 'ASC')
+                ->findAll();
+        } else {
+            $list_rt = $this->rtModel->findAll();
+        }
+
         $data = [
             'title' => 'Input Laporan Baru',
-            'list_rt' => ($user['role'] == 'admin_desa')
-                ? $this->rtModel->select('m_rt.*, m_dusun.nama_dusun')->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')->where('m_dusun.id_desa', $user['id_desa'])->findAll()
-                : $this->rtModel->findAll(),
-            'bulan' => $this->bulanList // Mengirim array berindeks angka
+            'list_rt' => $list_rt,
+            'bulan' => $this->bulanList
         ];
+
         return view('laporan/form', $data);
     }
 
@@ -107,11 +210,36 @@ class LaporanAgregatController extends BaseController
     // Form Edit
     public function edit($id)
     {
+        $user = session()->get();
+        $laporan = $this->laporanModel->find($id);
+
+        if (!$laporan)
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+
+        // SECURITY CHECK: Pastikan Admin Kecamatan hanya bisa edit data di wilayahnya
+        if ($user['role'] == 'admin_kecamatan') {
+            $cekWilayah = $this->laporanModel->select('m_desa.id_kecamatan')
+                ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+                ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+                ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+                ->where('laporan_agregat.id_laporan', $id)
+                ->first();
+
+            if ($cekWilayah['id_kecamatan'] != $user['id_kecamatan']) {
+                return redirect()->to('/laporan')->with('error', 'Anda tidak memiliki akses ke data di luar wilayah kecamatan Anda.');
+            }
+        }
+
+        // Ambil list RT (Gunakan logika yang sama dengan create untuk scope wilayah)
+        $list_rt = ($user['role'] == 'admin_kecamatan')
+            ? $this->rtModel->select('m_rt.*, m_desa.nama_desa, m_dusun.nama_dusun , m_rt.no_rt')->join('m_dusun', 'm_dusun.id_dusun=m_rt.id_dusun')->join('m_desa', 'm_desa.id_desa=m_dusun.id_desa')->where('m_desa.id_kecamatan', $user['id_kecamatan'])->findAll()
+            : $this->rtModel->getRtWithDusun();
+
         $data = [
             'title' => 'Edit Laporan',
-            'laporan' => $this->laporanModel->find($id),
-            'list_rt' => (new RtModel())->getRtWithDusun(),
-            'bulan' => ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+            'laporan' => $laporan,
+            'list_rt' => $list_rt,
+            'bulan' => $this->bulanList
         ];
         return view('laporan/form', $data);
     }

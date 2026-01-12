@@ -31,6 +31,7 @@ $routes->get('/rt/delete/(:num)', 'RtController::delete/$1');
 
 // routes laporan agregat
 $routes->get('/laporan', 'LaporanAgregatController::index');
+$routes->post('/laporan', 'LaporanAgregatController::index');
 $routes->get('/laporan/input', 'LaporanAgregatController::create');
 $routes->post('/laporan/store', 'LaporanAgregatController::store');
 $routes->get('/laporan/edit/(:num)', 'LaporanAgregatController::edit/$1');

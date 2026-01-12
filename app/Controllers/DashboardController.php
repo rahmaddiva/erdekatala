@@ -16,26 +16,47 @@ class DashboardController extends BaseController
 
     public function index()
     {
+
         $user = session()->get();
-        $id_desa_filter = $this->request->getGet('id_desa'); // Ambil filter dari URL
-        $data_summary_desa = [];
+        $id_kecamatan_filter = $this->request->getGet('id_kecamatan');
+        $id_desa_filter = $this->request->getGet('id_desa');
+
+        $list_kecamatan = [];
         $list_desa = [];
+        $data_summary = [];
 
-        if ($user['role'] == 'admin_kecamatan') {
-            // Ambil list desa untuk dropdown filter
-            $desaModel = new \App\Models\DesaModel();
+        $kecamatanModel = new \App\Models\KecamatanModel();
+        $desaModel = new \App\Models\DesaModel();
+
+        if ($user['role'] == 'admin_dinas') {
+            // Admin Dinas: Bisa lihat semua kecamatan
+            $list_kecamatan = $kecamatanModel->findAll();
+
+            // Jika kecamatan dipilih, ambil daftar desanya
+            if ($id_kecamatan_filter) {
+                $list_desa = $desaModel->where('id_kecamatan', $id_kecamatan_filter)->findAll();
+            }
+
+            // Ambil data laporan berdasarkan filter yang aktif
+            if ($id_desa_filter) {
+                $allLaporan = $this->laporanModel->getRekapByDesa($id_desa_filter);
+            } elseif ($id_kecamatan_filter) {
+                $allLaporan = $this->laporanModel->getRekapByKecamatan($id_kecamatan_filter);
+                $data_summary = $this->laporanModel->getSummaryPerDesa($id_kecamatan_filter);
+            } else {
+                // Default: Semua data se-Kabupaten
+                $allLaporan = $this->laporanModel->findAll();
+                $data_summary = $this->laporanModel->getSummaryPerKecamatan(); // Buat method ini di Model
+            }
+
+        } elseif ($user['role'] == 'admin_kecamatan') {
+            // Logika admin_kecamatan yang sudah ada...
             $list_desa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
-
-            // Ambil data laporan (dengan filter jika ada)
             $allLaporan = $this->laporanModel->getRekapByKecamatan($user['id_kecamatan'], $id_desa_filter);
-
-            // Ambil ringkasan per desa untuk tabel
-            $data_summary_desa = $this->laporanModel->getSummaryPerDesa($user['id_kecamatan']);
-
-        } elseif ($user['role'] == 'admin_desa') {
-            $allLaporan = $this->laporanModel->getRekapByDesa($user['id_desa']);
+            $data_summary = $this->laporanModel->getSummaryPerDesa($user['id_kecamatan']);
         } else {
-            $allLaporan = $this->laporanModel->findAll();
+            // Logika admin_desa...
+            $allLaporan = $this->laporanModel->getRekapByDesa($user['id_desa']);
         }
 
         // 1. Inisialisasi Data Ringkasan (Info Boxes)
@@ -167,17 +188,20 @@ class DashboardController extends BaseController
         }
 
         $data = [
-            'title' => 'Dashboard Erdekatala',
-            'totals' => $totals,
+            'title' => 'Dashboard Statistik Dinas',
+            'list_kecamatan' => $list_kecamatan,
+            'list_desa' => $list_desa,
+            'filter_kec' => $id_kecamatan_filter,
+            'filter_desa' => $id_desa_filter,
+            'data_summary' => $data_summary,
             'pendidikan' => $pendidikan,
             'pekerjaan' => $pekerjaan,
             'status_kawin' => $status_kawin,
             'ageLabels' => $ageLabels,
             'piramidaL' => $piramidaL,
             'piramidaP' => $piramidaP,
-            'list_desa' => $list_desa,         // Untuk dropdown
-            'selected_desa' => $id_desa_filter,    // Desa yang sedang dipilih
-            'data_summary_desa' => $data_summary_desa  // Untuk tabel rekap
+            'totals' => $totals
+
         ];
 
         return view('dashboard/index', $data);

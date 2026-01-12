@@ -5,6 +5,14 @@
     <section class="content-header">
         <div class="container-fluid">
             <h1><?= $title ?></h1>
+            <!-- peringatan -->
+            <div class="alert alert-info alert-dismissible mt-1">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <h5><i class="icon fas fa-info-circle"></i> Informasi!</h5>
+                Form laporan agregat digunakan untuk memasukkan data statistik kependudukan secara
+                berkala (bulanan) berdasarkan RT / wilayah. Pastikan data yang dimasukkan sudah benar
+                sebelum disimpan ke dalam sistem.
+            </div>
         </div>
     </section>
 
@@ -39,12 +47,19 @@
                         <div class="tab-pane fade show active" id="tab-umum">
                             <div class="row">
                                 <div class="col-md-4">
-                                    <label>RT / Dusun</label>
-                                    <select name="id_rt" class="form-control" required>
+                                    <label>Pilih RT / Wilayah</label>
+                                    <select name="id_rt" class="form-control select2bs4" required>
                                         <option value="">-- Pilih RT --</option>
                                         <?php foreach ($list_rt as $rt): ?>
                                             <option value="<?= $rt['id_rt'] ?>" <?= (isset($laporan) && $laporan['id_rt'] == $rt['id_rt']) ? 'selected' : '' ?>>
-                                                RT <?= $rt['no_rt'] ?> - <?= $rt['nama_dusun'] ?>
+                                                <?php
+                                                // Jika admin kecamatan, tampilkan Nama Desa agar lebih jelas
+                                                if (session()->get('role') == 'admin_kecamatan') {
+                                                    echo "[Desa " . $rt['nama_desa'] . "] - RT " . $rt['no_rt'] . " (" . $rt['nama_dusun'] . ")";
+                                                } else {
+                                                    echo "RT " . $rt['no_rt'] . " (" . $rt['nama_dusun'] . ")";
+                                                }
+                                                ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -254,7 +269,7 @@
                 <div class="card-footer">
                     <div class="float-right">
                         <a href="/laporan" class="btn btn-secondary">Batal</a>
-                        <button type="submit" class="btn btn-success btn-lg">
+                        <button type="submit" class="btn btn-success btn-submit">
                             <i class="fas fa-save"></i>
                             <?= isset($laporan) ? 'Update Laporan' : 'Simpan Laporan Baru' ?>
                         </button>

@@ -138,7 +138,7 @@ class LaporanAgregatModel extends Model
      */
     public function getRekapByKecamatan($id_kecamatan, $id_desa = null)
     {
-        $builder = $this->select('laporan_agregat.*, m_desa.nama_desa')
+        $builder = $this->select('laporan_agregat.*, m_desa.nama_desa, m_dusun.nama_dusun , m_rt.no_rt')
             ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
             ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
             ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
@@ -173,5 +173,21 @@ class LaporanAgregatModel extends Model
             ->findAll();
     }
 
-
+    public function getSummaryPerKecamatan()
+    {
+        return $this->select('kecamatan.nama_kecamatan, 
+                          SUM(jiwa_l + jiwa_p) as total_jiwa, 
+                          SUM(kk_l + kk_p) as total_kk,
+                          SUM(jml_balita) as total_balita,
+                          SUM(jml_pus) as total_pus,
+                          SUM(jiwa_l) as total_jiwa_l, 
+                          SUM(jiwa_p) as total_jiwa_p'
+        )
+            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan')
+            ->groupBy('kecamatan.id_kecamatan')
+            ->findAll();
+    }
 }

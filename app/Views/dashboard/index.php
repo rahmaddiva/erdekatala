@@ -15,6 +15,88 @@
     <section class="content">
         <div class="container-fluid">
 
+            <div class="card card-outline card-primary shadow-sm mb-4">
+                <div class="card-body">
+                    <form action="/dashboard" method="get">
+                        <div class="row align-items-end">
+                            <?php if (session()->get('role') == 'admin_dinas'): ?>
+                                <div class="col-md-3">
+                                    <label>Pilih Kecamatan:</label>
+                                    <select name="id_kecamatan" id="filter_kecamatan" class="form-control select2bs4">
+                                        <option value="">-- Semua Kecamatan --</option>
+                                        <?php foreach ($list_kecamatan as $k): ?>
+                                            <option value="<?= $k['id_kecamatan'] ?>" <?= ($filter_kec == $k['id_kecamatan']) ? 'selected' : '' ?>>
+                                                <?= $k['nama_kecamatan'] ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="col-md-3">
+                                <label>Pilih Desa:</label>
+                                <select name="id_desa" id="filter_desa" class="form-control select2bs4">
+                                    <option value="">-- Semua Desa --</option>
+                                    <?php foreach ($list_desa as $d): ?>
+                                        <option value="<?= $d['id_desa'] ?>" <?= ($filter_desa == $d['id_desa']) ? 'selected' : '' ?>>
+                                            <?= $d['nama_desa'] ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card card-outline card-info">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-table mr-1"></i>
+                        Ringkasan Data <?= ($filter_kec) ? 'Per Desa' : 'Per Kecamatan' ?>
+                    </h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Wilayah</th>
+                                <th class="text-center">Total KK</th>
+                                <th class="text-center">Total Jiwa</th>
+                                <th class="text-center">L</th>
+                                <th class="text-center">P</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($data_summary as $s): ?>
+                                <tr>
+                                    <td>
+                                        <?= $s['nama_kecamatan'] ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?= number_format($s['total_kk']) ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?= number_format($s['total_jiwa']) ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?= number_format($s['total_jiwa_l']) ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?= number_format($s['total_jiwa_p']) ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="row">
                 <div class="col-12 col-sm-6 col-md-3">
                     <div class="info-box shadow-sm">

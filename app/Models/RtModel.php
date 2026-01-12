@@ -18,7 +18,7 @@ class RtModel extends Model
 
     public function getRtWithDusun()
     {
-        return $this->select('m_rt.*, m_dusun.nama_dusun')
+        return $this->select('m_rt.*, m_dusun.nama_dusun ,m_dusun.nama_dusun , m_rt.no_rt')
             ->join('m_dusun', 'm_rt.id_dusun = m_dusun.id_dusun')
             ->where('m_dusun.id_desa', session()->get('id_desa'))
             ->findAll();
