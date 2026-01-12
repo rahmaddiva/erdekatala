@@ -16,17 +16,22 @@ class DashboardController extends BaseController
 
     public function index()
     {
-
         $user = session()->get();
         $id_kecamatan_filter = $this->request->getGet('id_kecamatan');
         $id_desa_filter = $this->request->getGet('id_desa');
+        $id_dusun_filter = $this->request->getGet('id_dusun');
+        $id_rt_filter = $this->request->getGet('id_rt');
 
         $list_kecamatan = [];
         $list_desa = [];
+        $list_dusun = [];
+        $list_rt = [];
         $data_summary = [];
 
         $kecamatanModel = new \App\Models\KecamatanModel();
         $desaModel = new \App\Models\DesaModel();
+        $dusunModel = new \App\Models\DusunModel();
+        $rtModel = new \App\Models\RtModel();
 
         if ($user['role'] == 'admin_dinas') {
             // Admin Dinas: Bisa lihat semua kecamatan
@@ -37,29 +42,74 @@ class DashboardController extends BaseController
                 $list_desa = $desaModel->where('id_kecamatan', $id_kecamatan_filter)->findAll();
             }
 
-            // Ambil data laporan berdasarkan filter yang aktif
+            // Jika desa dipilih, ambil daftar dusunnya
             if ($id_desa_filter) {
+                $list_dusun = $dusunModel->where('id_desa', $id_desa_filter)->findAll();
+            }
+
+            // Jika dusun dipilih, ambil daftar RT-nya
+            if ($id_dusun_filter) {
+                $list_rt = $rtModel->where('id_dusun', $id_dusun_filter)->findAll();
+            }
+
+            // Ambil data laporan berdasarkan filter yang aktif
+            if ($id_rt_filter) {
+                $allLaporan = $this->laporanModel->where('id_rt', $id_rt_filter)->findAll();
+            } elseif ($id_dusun_filter) {
+                $allLaporan = $this->laporanModel->getRekapByDusun($id_dusun_filter);
+            } elseif ($id_desa_filter) {
                 $allLaporan = $this->laporanModel->getRekapByDesa($id_desa_filter);
+                $data_summary = $this->laporanModel->getSummaryPerDusun($id_desa_filter);
             } elseif ($id_kecamatan_filter) {
                 $allLaporan = $this->laporanModel->getRekapByKecamatan($id_kecamatan_filter);
                 $data_summary = $this->laporanModel->getSummaryPerDesa($id_kecamatan_filter);
             } else {
                 // Default: Semua data se-Kabupaten
                 $allLaporan = $this->laporanModel->findAll();
-                $data_summary = $this->laporanModel->getSummaryPerKecamatan(); // Buat method ini di Model
+                $data_summary = $this->laporanModel->getSummaryPerKecamatan();
             }
 
         } elseif ($user['role'] == 'admin_kecamatan') {
-            // Logika admin_kecamatan yang sudah ada...
             $list_desa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
-            $allLaporan = $this->laporanModel->getRekapByKecamatan($user['id_kecamatan'], $id_desa_filter);
-            $data_summary = $this->laporanModel->getSummaryPerDesa($user['id_kecamatan']);
+
+            if ($id_desa_filter) {
+                $list_dusun = $dusunModel->where('id_desa', $id_desa_filter)->findAll();
+            }
+
+            if ($id_dusun_filter) {
+                $list_rt = $rtModel->where('id_dusun', $id_dusun_filter)->findAll();
+            }
+
+            if ($id_rt_filter) {
+                $allLaporan = $this->laporanModel->where('id_rt', $id_rt_filter)->findAll();
+            } elseif ($id_dusun_filter) {
+                $allLaporan = $this->laporanModel->getRekapByDusun($id_dusun_filter);
+            } elseif ($id_desa_filter) {
+                $allLaporan = $this->laporanModel->getRekapByDesa($id_desa_filter);
+                $data_summary = $this->laporanModel->getSummaryPerDusun($id_desa_filter);
+            } else {
+                $allLaporan = $this->laporanModel->getRekapByKecamatan($user['id_kecamatan']);
+                $data_summary = $this->laporanModel->getSummaryPerDesa($user['id_kecamatan']);
+            }
         } else {
-            // Logika admin_desa...
-            $allLaporan = $this->laporanModel->getRekapByDesa($user['id_desa']);
+            // Admin Desa
+            $list_dusun = $dusunModel->where('id_desa', $user['id_desa'])->findAll();
+
+            if ($id_dusun_filter) {
+                $list_rt = $rtModel->where('id_dusun', $id_dusun_filter)->findAll();
+            }
+
+            if ($id_rt_filter) {
+                $allLaporan = $this->laporanModel->where('id_rt', $id_rt_filter)->findAll();
+            } elseif ($id_dusun_filter) {
+                $allLaporan = $this->laporanModel->getRekapByDusun($id_dusun_filter);
+            } else {
+                $allLaporan = $this->laporanModel->getRekapByDesa($user['id_desa']);
+                $data_summary = $this->laporanModel->getSummaryPerDusun($user['id_desa']);
+            }
         }
 
-        // 1. Inisialisasi Data Ringkasan (Info Boxes)
+        // Inisialisasi Data Ringkasan
         $totals = [
             'jiwa_l' => 0,
             'jiwa_p' => 0,
@@ -70,9 +120,9 @@ class DashboardController extends BaseController
             'bpjs' => 0
         ];
 
-        // 2. Data Grouping untuk Charts
+        // Data Grouping untuk Charts
         $pendidikan = [
-            'Tdk Sekolah' => 0,
+            'Tidak Sekolah' => 0,
             'SD' => 0,
             'SMP' => 0,
             'SMA' => 0,
@@ -82,14 +132,14 @@ class DashboardController extends BaseController
         ];
 
         $pekerjaan = [
-            'Tani' => 0,
+            'Petani' => 0,
             'Nelayan' => 0,
             'PNS' => 0,
             'Swasta' => 0,
             'Pedagang' => 0,
             'Wiraswasta' => 0,
             'Buruh' => 0,
-            'Tidak Kerja' => 0
+            'Tidak Bekerja' => 0
         ];
 
         $status_kawin = [
@@ -99,7 +149,7 @@ class DashboardController extends BaseController
             'Cerai Mati' => 0
         ];
 
-        // Piramida Penduduk - lengkap dengan semua kelompok umur
+        // Piramida Penduduk
         $ageLabels = [
             '0-4',
             '5-9',
@@ -123,7 +173,6 @@ class DashboardController extends BaseController
         $piramidaL = array_fill(0, 18, 0);
         $piramidaP = array_fill(0, 18, 0);
 
-        // Mapping field piramida
         $piramidaFields = [
             ['u0_4_l', 'u0_4_p'],
             ['u5_9_l', 'u5_9_p'],
@@ -146,7 +195,6 @@ class DashboardController extends BaseController
         ];
 
         foreach ($allLaporan as $l) {
-            // Totals - gunakan field yang benar
             $totals['jiwa_l'] += $l['jiwa_l'] ?? 0;
             $totals['jiwa_p'] += $l['jiwa_p'] ?? 0;
             $totals['kk_l'] += $l['kk_l'] ?? 0;
@@ -155,8 +203,7 @@ class DashboardController extends BaseController
             $totals['pus'] += $l['jml_pus'] ?? 0;
             $totals['bpjs'] += $l['pend_bpjs'] ?? 0;
 
-            // Pendidikan
-            $pendidikan['Tdk Sekolah'] += $l['kk_pend_tidak_sekolah'] ?? 0;
+            $pendidikan['Tidak Sekolah'] += $l['kk_pend_tidak_sekolah'] ?? 0;
             $pendidikan['SD'] += $l['kk_pend_sd'] ?? 0;
             $pendidikan['SMP'] += $l['kk_pend_smp'] ?? 0;
             $pendidikan['SMA'] += $l['kk_pend_sma'] ?? 0;
@@ -164,23 +211,20 @@ class DashboardController extends BaseController
             $pendidikan['S1'] += $l['kk_pend_s1'] ?? 0;
             $pendidikan['S2/S3'] += $l['kk_pend_s2_s3'] ?? 0;
 
-            // Pekerjaan
-            $pekerjaan['Tani'] += $l['kk_ker_tani'] ?? 0;
+            $pekerjaan['Petani'] += $l['kk_ker_tani'] ?? 0;
             $pekerjaan['Nelayan'] += $l['kk_ker_nelayan'] ?? 0;
             $pekerjaan['PNS'] += $l['kk_ker_pns'] ?? 0;
             $pekerjaan['Swasta'] += $l['kk_ker_swasta'] ?? 0;
             $pekerjaan['Pedagang'] += $l['kk_ker_pedagang'] ?? 0;
             $pekerjaan['Wiraswasta'] += $l['kk_ker_wiraswasta'] ?? 0;
             $pekerjaan['Buruh'] += $l['kk_ker_buruh'] ?? 0;
-            $pekerjaan['Tidak Kerja'] += $l['kk_ker_tidak_kerja'] ?? 0;
+            $pekerjaan['Tidak Bekerja'] += $l['kk_ker_tidak_kerja'] ?? 0;
 
-            // Status Perkawinan
             $status_kawin['Kawin'] += $l['kk_kawin'] ?? 0;
             $status_kawin['Belum Kawin'] += $l['kk_belum_kawin'] ?? 0;
             $status_kawin['Cerai Hidup'] += $l['kk_cerai_hidup'] ?? 0;
             $status_kawin['Cerai Mati'] += $l['kk_cerai_mati'] ?? 0;
 
-            // Piramida Penduduk
             foreach ($piramidaFields as $idx => $fields) {
                 $piramidaL[$idx] += $l[$fields[0]] ?? 0;
                 $piramidaP[$idx] += $l[$fields[1]] ?? 0;
@@ -188,11 +232,15 @@ class DashboardController extends BaseController
         }
 
         $data = [
-            'title' => 'Dashboard Statistik Dinas',
+            'title' => 'Dashboard Statistik DP3AP2KB',
             'list_kecamatan' => $list_kecamatan,
             'list_desa' => $list_desa,
+            'list_dusun' => $list_dusun,
+            'list_rt' => $list_rt,
             'filter_kec' => $id_kecamatan_filter,
             'filter_desa' => $id_desa_filter,
+            'filter_dusun' => $id_dusun_filter,
+            'filter_rt' => $id_rt_filter,
             'data_summary' => $data_summary,
             'pendidikan' => $pendidikan,
             'pekerjaan' => $pekerjaan,
@@ -201,9 +249,30 @@ class DashboardController extends BaseController
             'piramidaL' => $piramidaL,
             'piramidaP' => $piramidaP,
             'totals' => $totals
-
         ];
 
         return view('dashboard/index', $data);
+    }
+
+    // AJAX endpoint untuk chained dropdown
+    public function getDesaByKecamatan($id_kecamatan)
+    {
+        $desaModel = new \App\Models\DesaModel();
+        $desa = $desaModel->where('id_kecamatan', $id_kecamatan)->findAll();
+        return $this->response->setJSON($desa);
+    }
+
+    public function getDusunByDesa($id_desa)
+    {
+        $dusunModel = new \App\Models\DusunModel();
+        $dusun = $dusunModel->where('id_desa', $id_desa)->findAll();
+        return $this->response->setJSON($dusun);
+    }
+
+    public function getRtByDusun($id_dusun)
+    {
+        $rtModel = new \App\Models\RtModel();
+        $rt = $rtModel->where('id_dusun', $id_dusun)->findAll();
+        return $this->response->setJSON($rt);
     }
 }

@@ -38,3 +38,8 @@ $routes->get('/laporan/edit/(:num)', 'LaporanAgregatController::edit/$1');
 $routes->post('/laporan/update/(:num)', 'LaporanAgregatController::update/$1');
 $routes->get('/laporan/delete/(:num)', 'LaporanAgregatController::delete/$1');
 $routes->get('laporan/export', 'LaporanAgregatController::export');
+
+// AJAX Routes untuk Chained Dropdown
+$routes->get('dashboard/getDesaByKecamatan/(:num)', 'DashboardController::getDesaByKecamatan/$1');
+$routes->get('dashboard/getDusunByDesa/(:num)', 'DashboardController::getDusunByDesa/$1');
+$routes->get('dashboard/getRtByDusun/(:num)', 'DashboardController::getRtByDusun/$1');
