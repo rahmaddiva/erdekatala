@@ -4,7 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AdminLTE 3 | Dashboard 2</title>
+    <title>ERDEKATALA |
+        <?= $title ?>
+    </title>
 
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet"
@@ -21,15 +23,79 @@
     <link rel="stylesheet" href="<?= base_url('assets/') ?>plugins/select2/css/select2.min.css">
     <link rel="stylesheet" href="<?= base_url('assets/') ?>plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
     <link rel="stylesheet" href="<?= base_url('assets/') ?>plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
+    <style>
+        /* Preloader styles */
+        #preloader {
+            position: fixed;
+            inset: 0;
+            background: #0b0f14;
+            background: linear-gradient(180deg, #0b0f14 0%, rgba(11, 15, 20, 0.95) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 2000;
+            color: #fff;
+        }
+
+        .preloader-logo {
+            width: 120px;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+            transform-origin: center;
+            animation: preloader-bounce 1.6s infinite;
+        }
+
+        .preloader-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.08);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            margin-top: 16px;
+            animation: spin 1s linear infinite;
+        }
+
+        .preloader-text {
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.85;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes preloader-bounce {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-6px)
+            }
+        }
+
+        /* hide preloader after loaded */
+        body.preloader-done #preloader {
+            display: none;
+        }
+    </style>
 </head>
 
 <body class="hold-transition dark-mode sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
     <div class="wrapper">
 
         <!-- Preloader -->
-        <div class="preloader flex-column justify-content-center align-items-center">
-            <img class="animation__wobble" src="<?= base_url('assets/') ?>dist/img/AdminLTELogo.png" alt="AdminLTELogo"
-                height="60" width="60">
+        <div id="preloader" aria-hidden="true">
+            <img class="preloader-logo" src="<?= base_url('assets/') ?>dist/img/erdekatala.png" alt="ERDEKATALA Logo">
+            <div class="preloader-spinner" role="status" aria-label="Loading"></div>
+            <div class="preloader-text">Memuat…</div>
         </div>
 
         <?= $this->include('templates/navbar'); ?>
@@ -177,6 +243,24 @@
             <?php endif; ?>
         });
 
+    </script>
+
+    <script>
+        // Preloader: fade out when page fully loaded
+        $(window).on('load', function () {
+            // small delay for smoother effect
+            setTimeout(function () {
+                $('#preloader').fadeOut(400, function () {
+                    $('body').addClass('preloader-done');
+                });
+            }, 250);
+            // Fallback: remove after 5s in case load event doesn't fire
+            setTimeout(function () {
+                $('#preloader').fadeOut(200, function () {
+                    $('body').addClass('preloader-done');
+                });
+            }, 5000);
+        });
     </script>
 
 

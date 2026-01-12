@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\LaporanAgregatModel;
 use App\Models\RtModel;
+use App\Models\KecamatanModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -13,6 +14,8 @@ class LaporanAgregatController extends BaseController
     protected $laporanModel;
     protected $rtModel;
     protected $bulanList;
+
+    protected $kecamatanModel;
 
     // Tambahkan ini di dalam class LaporanAgregatController
 
@@ -25,6 +28,7 @@ class LaporanAgregatController extends BaseController
     {
         $this->laporanModel = new LaporanAgregatModel();
         $this->rtModel = new RtModel();
+        $this->kecamatanModel = new KecamatanModel();
         // Tambahkan helper daftar bulan agar konsisten
         $this->bulanList = [
             1 => 'Januari',
@@ -53,26 +57,34 @@ class LaporanAgregatController extends BaseController
             $length = $this->request->getVar('length');
             $search = $this->request->getVar('search')['value'] ?? null;
             $id_desa_filter = $this->request->getVar('id_desa'); // Filter khusus admin kecamatan
+            $id_kecamatan_filter = $this->request->getVar('id_kecamatan');
+            $id_desa_filter = $this->request->getVar('id_desa');
 
-            // Total semua data (sebelum difilter)
+            // Total semua data (sebelum 
             $totalData = $this->laporanModel->countAll();
 
-            // Builder dasar dengan Join
-            $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, m_dusun.nama_dusun, m_rt.no_rt')
+            $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, m_dusun.nama_dusun, m_rt.no_rt, kecamatan.nama_kecamatan')
                 ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
                 ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-                ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa');
+                ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+                ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
-            // Filter Berdasarkan Hak Akses (Role)
-            if ($user['role'] == 'admin_desa') {
-                $builder->where('m_desa.id_desa', $user['id_desa']);
+            if ($user['role'] == 'admin_dinas') {
+                // Jika Desa dipilih, filter berdasarkan Desa (Otomatis masuk dalam Kecamatan tersebut)
+                if (!empty($id_desa_filter)) {
+                    $builder->where('m_desa.id_desa', $id_desa_filter);
+                }
+                // Jika hanya Kecamatan yang dipilih
+                elseif (!empty($id_kecamatan_filter)) {
+                    $builder->where('m_desa.id_kecamatan', $id_kecamatan_filter);
+                }
             } elseif ($user['role'] == 'admin_kecamatan') {
                 $builder->where('m_desa.id_kecamatan', $user['id_kecamatan']);
-                // Tambahan filter dropdown desa jika dipilih
-                if ($id_desa_filter) {
+                if (!empty($id_desa_filter)) {
                     $builder->where('m_desa.id_desa', $id_desa_filter);
                 }
             }
+
 
             // Search Filter
             if ($search) {
@@ -133,12 +145,16 @@ class LaporanAgregatController extends BaseController
         if ($user['role'] == 'admin_kecamatan') {
             $desaModel = new \App\Models\DesaModel();
             $list_desa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
+        } elseif ($user['role'] == 'admin_dinas') {
+            $desaModel = new \App\Models\DesaModel();
+            $list_desa = $desaModel->findAll();
         }
 
         $data = [
-            'title' => 'Riwayat Laporan Agregat',
-            'list_desa' => $list_desa,
-            'filter_desa' => $this->request->getVar('id_desa') ?? null,
+            'title' => 'Data Laporan Agregat',
+            'list_kecamatan' => ($user['role'] == 'admin_dinas') ? $this->kecamatanModel->findAll() : [],
+            // Jika admin kecamatan, ambil desa di kecamatannya saja
+            'list_desa' => ($user['role'] == 'admin_kecamatan') ? (new \App\Models\DesaModel())->where('id_kecamatan', $user['id_kecamatan'])->findAll() : []
         ];
 
         return view('laporan/index', $data);
@@ -164,7 +180,12 @@ class LaporanAgregatController extends BaseController
                 ->orderBy('m_desa.nama_desa', 'ASC')
                 ->findAll();
         } else {
-            $list_rt = $this->rtModel->findAll();
+            // Admin Dinas melihat SEMUA RT
+            $list_rt = $this->rtModel->select('m_rt.*, m_dusun.nama_dusun, m_desa.nama_desa')
+                ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+                ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+                ->orderBy('m_desa.nama_desa', 'ASC')
+                ->findAll();
         }
 
         $data = [

@@ -21,32 +21,38 @@
                             <i class="fas fa-file-excel"></i> Export ke Excel
                         </a>
                     </div>
-                    <?php if (session()->get('role') == 'admin_kecamatan'): ?>
+                    <!-- admin kecamatan dan admin dinas -->
+                    <?php if (in_array(session()->get('role'), ['admin_dinas', 'admin_kecamatan'])): ?>
                         <div class="card card-outline card-info shadow-sm mb-3">
                             <div class="card-body">
-                                <form action="/laporan" method="get">
-                                    <div class="row align-items-end">
+                                <div class="row">
+                                    <?php if (session()->get('role') == 'admin_dinas'): ?>
                                         <div class="col-md-4">
-                                            <label>Filter Berdasarkan Desa:</label>
-                                            <select name="id_desa" class="form-control select2bs4">
-                                                <option value="">-- Tampilkan Semua Desa --</option>
-                                                <?php foreach ($list_desa as $d): ?>
-                                                    <option value="<?= $d['id_desa'] ?>" <?= ($filter_desa == $d['id_desa']) ? 'selected' : '' ?>>
-                                                        <?= $d['nama_desa'] ?>
+                                            <label>Kecamatan:</label>
+                                            <select id="filter_kecamatan" class="form-control select2bs4">
+                                                <option value="">-- Semua Kecamatan --</option>
+                                                <?php foreach ($list_kecamatan as $k): ?>
+                                                    <option value="<?= $k['id_kecamatan'] ?>">
+                                                        <?= strtoupper($k['nama_kecamatan']) ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
-                                        <div class="col-md-4">
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-filter"></i> Terapkan Filter
-                                            </button>
-                                            <a href="/laporan" class="btn btn-secondary">
-                                                <i class="fas fa-sync"></i> Reset
-                                            </a>
-                                        </div>
+                                    <?php endif; ?>
+
+                                    <div class="col-md-4">
+                                        <label>Desa:</label>
+                                        <select id="filter_desa" class="form-control select2bs4"
+                                            <?= (session()->get('role') == 'admin_dinas') ? 'disabled' : '' ?>>
+                                            <option value="">-- Semua Desa --</option>
+                                            <?php if (session()->get('role') == 'admin_kecamatan'): ?>
+                                                <?php foreach ($list_desa as $d): ?>
+                                                    <option value="<?= $d['id_desa'] ?>"><?= strtoupper($d['nama_desa']) ?></option>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </select>
                                     </div>
-                                </form>
+                                </div>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -75,11 +81,17 @@
                                 "processing": true,
                                 "serverSide": true,
                                 "ajax": {
-                                    "url": "<?= base_url('laporan') ?>", // Mengarah ke method index
+                                    "url": "<?= base_url('laporan') ?>",
                                     "type": "POST",
                                     "data": function (d) {
-                                        d.id_desa = $('select[name="id_desa"]').val();
-                                        d.<?= csrf_token() ?> = "<?= csrf_hash() ?>"; // Jika CSRF aktif
+                                        // Ambil nilai id_kecamatan jika ada (untuk Dinas)
+                                        d.id_kecamatan = $('#filter_kecamatan').val();
+
+                                        // Ambil nilai id_desa dari ID atau Name (salah satu yang tersedia)
+                                        // Ini akan mengambil dari #filter_desa (Dinas) ATAU select[name="id_desa"] (Kecamatan)
+                                        d.id_desa = $('#filter_desa').val() || $('select[name="id_desa"]').val();
+
+                                        d.<?= csrf_token() ?> = "<?= csrf_hash() ?>";
                                     }
                                 },
                                 "columnDefs": [
@@ -89,9 +101,34 @@
                                     "processing": '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i><span class="sr-only">Loading...</span> '
                                 }
                             });
+                            // 2. Logika Chained Dropdown (Kecamatan -> Desa)
+                            $('#filter_kecamatan').on('change', function () {
+                                const idKec = $(this).val();
+                                const $desaSelect = $('#filter_desa');
 
-                            // Refresh tabel saat filter desa diubah (untuk Admin Kecamatan)
-                            $('select[name="id_desa"]').on('change', function () {
+                                if (idKec) {
+                                    $desaSelect.prop('disabled', false).html('<option value="">Memuat...</option>');
+                                    $.get('<?= base_url('dashboard/getDesaByKecamatan') ?>/' + idKec, function (res) {
+                                        let html = '<option value="">-- Semua Desa --</option>';
+                                        res.forEach(d => {
+                                            html += `<option value="${d.id_desa}">${d.nama_desa.toUpperCase()}</option>`;
+                                        });
+                                        $desaSelect.html(html);
+                                        table.draw(); // Refresh tabel setelah pilih kecamatan
+                                    });
+                                } else {
+                                    $desaSelect.prop('disabled', true).html('<option value="">-- Semua Desa --</option>');
+                                    table.draw();
+                                }
+                            });
+
+                            // Trigger refresh saat Kecamatan berubah (Dinas)
+                            $('#filter_kecamatan').on('change', function () {
+                                table.draw();
+                            });
+
+                            // Trigger refresh saat Desa berubah (Dinas & Kecamatan)
+                            $('#filter_desa, select[name="id_desa"]').on('change', function () {
                                 table.draw();
                             });
                         });
