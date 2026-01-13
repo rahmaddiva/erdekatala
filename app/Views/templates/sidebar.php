@@ -91,13 +91,6 @@
                         <p>Riwayat Laporan</p>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('grafik') ?>"
-                        class="nav-link <?= ($s1 == 'grafik' && $s2 != 'input') ? 'active' : '' ?>">
-                        <i class="nav-icon fas fa-chart-bar"></i>
-                        <p>Grafik</p>
-                    </a>
-                </li>
 
                 <?php if (session()->get('role') == 'admin_dinas'): ?>
                     <li class="nav-header">PENGATURAN</li>

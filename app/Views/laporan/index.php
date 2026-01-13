@@ -17,10 +17,34 @@
             <div class="card card-outline card-primary shadow">
                 <div class="card-body">
                     <div class="col-sm-12 text-right mb-2">
-                        <a href="/laporan/export" class="btn btn-success">
-                            <i class="fas fa-file-excel"></i> Export ke Excel
-                        </a>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
+                                <i class="fas fa-file-export mr-1"></i> Export Data
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <button class="dropdown-item" type="button" onclick="doExport('excel')">
+                                    <i class="fas fa-file-excel text-success mr-2"></i> File Excel (.xlsx)
+                                </button>
+                                <button class="dropdown-item" type="button" onclick="doExport('pdf')">
+                                    <i class="fas fa-file-pdf text-danger mr-2"></i> File PDF (.pdf)
+                                </button>
+                            </div>
+                        </div>
                     </div>
+
+                    <script>
+                        function doExport(format) {
+                            // Ambil nilai dari filter yang ada di halaman
+                            const idKec = $('#filter_kecamatan').val() || '';
+                            const idDesa = $('#filter_desa').val() || $('select[name="id_desa"]').val() || '';
+
+                            // Buat URL dengan query string
+                            const url = `<?= base_url('laporan/export') ?>/${format}?id_kecamatan=${idKec}&id_desa=${idDesa}`;
+
+                            // Arahkan browser untuk download
+                            window.location.href = url;
+                        }
+                    </script>
                     <!-- admin kecamatan dan admin dinas -->
                     <?php if (in_array(session()->get('role'), ['admin_dinas', 'admin_kecamatan'])): ?>
                         <div class="card card-outline card-info shadow-sm mb-3">

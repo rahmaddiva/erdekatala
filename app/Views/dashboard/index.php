@@ -390,47 +390,177 @@ document.addEventListener("DOMContentLoaded", function () {
     const femaleData = <?= json_encode($piramidaP) ?>;
     const negativeMale = maleData.map(val => -Math.abs(val));
 
-     // --- 1. Grafik Gender (Grouped Bar) ---
-        var optGender = {
-            series: [{
-                name: 'Laki-laki',
-                data: [<?= $grafik['gender']['jiwa_l'] ?>, <?= $grafik['gender']['kk_l'] ?>]
+     // === GRAFIK 1: GENDER (Grouped Bar Chart) ===
+    new ApexCharts(document.querySelector("#chartGender"), {
+        ...commonOptions,
+        series: [{
+            name: 'Laki-laki',
+            data: [<?= $grafik['gender']['jiwa_l'] ?>, <?= $grafik['gender']['kk_l'] ?>]
         }, {
             name: 'Perempuan',
             data: [<?= $grafik['gender']['jiwa_p'] ?>, <?= $grafik['gender']['kk_p'] ?>]
         }],
-        chart: { type: 'bar', height: 350 },
-        xaxis: { categories: ['Jumlah Jiwa', 'Jumlah KK'] },
-        colors: ['#007bff', '#dc3545']
-    };
-    new ApexCharts(document.querySelector("#chartGender"), optGender).render();
+        chart: {
+            ...commonOptions.chart,
+            type: 'bar',
+            height: 350,
+            toolbar: { show: true }
+        },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '60%',
+                borderRadius: 6,
+                dataLabels: { position: 'top' }
+            }
+        },
+        colors: ['#3b82f6', '#ec4899'], // Biru untuk L, Pink untuk P
+        dataLabels: {
+            enabled: true,
+            offsetY: -20,
+            style: {
+                fontSize: '11px',
+                colors: [darkModeTextColor],
+                fontWeight: 600
+            },
+            formatter: (val) => val.toLocaleString()
+        },
+        xaxis: {
+            categories: ['Jumlah Jiwa', 'Jumlah KK'],
+            labels: { style: labelStyle }
+        },
+        yaxis: {
+            title: { text: 'Jumlah', style: { color: darkModeTextColor } },
+            labels: {
+                style: labelStyle,
+                formatter: (val) => val.toLocaleString()
+            }
+        },
+        legend: {
+            position: 'top',
+            horizontalAlign: 'center',
+            labels: { colors: darkModeTextColor },
+            markers: { width: 12, height: 12 }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            y: { formatter: (val) => val.toLocaleString() + ' orang' }
+        }
+    }).render();
 
-    // --- 2. Grafik Dokumen (Radar atau Bar) ---
-    var optDokumen = {
+    // === GRAFIK 2: DOKUMEN (Horizontal Bar Chart) ===
+    new ApexCharts(document.querySelector("#chartDokumen"), {
+        ...commonOptions,
         series: [{
-            name: 'Total Punya',
+            name: 'Total Pemilik',
             data: [
-                    <?= $grafik['dokumen']['ktp_elektronik'] ?>,
-                    <?= $grafik['dokumen']['akta_lahir'] ?>,
-                    <?= $grafik['dokumen']['akta_nikah'] ?>,
-                    <?= $grafik['dokumen']['kk_fisik'] ?>
-                ]
+                <?= $grafik['dokumen']['ktp_elektronik'] ?>,
+                <?= $grafik['dokumen']['akta_lahir'] ?>,
+                <?= $grafik['dokumen']['akta_nikah'] ?>,
+                <?= $grafik['dokumen']['kk_fisik'] ?>
+            ]
         }],
-        chart: { type: 'bar', height: 350 },
-        plotOptions: { bar: { horizontal: true } },
-        xaxis: { categories: ['KTP-el', 'Akta Lahir', 'Akta Nikah', 'KK Fisik'] },
-        colors: ['#28a745']
-    };
-    new ApexCharts(document.querySelector("#chartDokumen"), optDokumen).render();
+        chart: {
+            ...commonOptions.chart,
+            type: 'bar',
+            height: 350
+        },
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                borderRadius: 6,
+                barHeight: '70%',
+                dataLabels: { position: 'top' }
+            }
+        },
+        colors: ['#10b981'], // Hijau
+        dataLabels: {
+            enabled: true,
+            offsetX: 30,
+            style: {
+                fontSize: '11px',
+                colors: [darkModeTextColor],
+                fontWeight: 600
+            },
+            formatter: (val) => val.toLocaleString()
+        },
+        xaxis: {
+            categories: ['KTP-el', 'Akta Lahir', 'Akta Nikah', 'KK Fisik'],
+            labels: {
+                style: labelStyle,
+                formatter: (val) => val.toLocaleString()
+            }
+        },
+        yaxis: {
+            labels: { style: labelStyle }
+        },
+        tooltip: {
+            y: { formatter: (val) => val.toLocaleString() + ' orang' }
+        }
+    }).render();
 
-    // --- 3. Grafik BPJS (Donut) ---
-    var optBPJS = {
-        series: [<?= $grafik['bpjs']['pbi'] ?>, <?= $grafik['bpjs']['non_pbi'] ?>, <?= $grafik['bpjs']['non_jkn'] ?>],
-        chart: { type: 'donut', height: 350 },
-        labels: ['PBI', 'Non PBI', 'Tidak Ada JKN'],
-        colors: ['#17a2b8', '#20c997', '#ffc107']
-    };
-    new ApexCharts(document.querySelector("#chartBPJS"), optBPJS).render();
+    // === GRAFIK 3: BPJS/JKN (Donut Chart) ===
+    new ApexCharts(document.querySelector("#chartBPJS"), {
+        ...commonOptions,
+        series: [
+            <?= $grafik['bpjs']['pbi'] ?>,
+            <?= $grafik['bpjs']['non_pbi'] ?>,
+            <?= $grafik['bpjs']['non_jkn'] ?>
+        ],
+        chart: {
+            ...commonOptions.chart,
+            type: 'donut',
+            height: 350
+        },
+        labels: ['PBI (Bantuan)', 'Non PBI (Mandiri)', 'Tidak Ber-JKN'],
+        colors: ['#06b6d4', '#14b8a6', '#f59e0b'], // Cyan, Teal, Amber
+        stroke: { show: false },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '70%',
+                    labels: {
+                        show: true,
+                        name: {
+                            color: darkModeTextColor,
+                            fontSize: '14px',
+                            fontWeight: 600
+                        },
+                        value: {
+                            color: darkModeTextColor,
+                            fontSize: '24px',
+                            fontWeight: 700,
+                            formatter: (val) => val.toLocaleString()
+                        },
+                        total: {
+                            show: true,
+                            label: 'Total KK',
+                            color: darkModeTextColor,
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString()
+                        }
+                    }
+                }
+            }
+        },
+        legend: {
+            position: 'bottom',
+            labels: { colors: darkModeTextColor },
+            fontSize: '13px'
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: (val, opts) => Math.round(val) + '%',
+            style: { fontSize: '12px', fontWeight: 600 }
+        },
+        tooltip: {
+            y: { formatter: (val) => val.toLocaleString() + ' KK' }
+        }
+    }).render();
+
+    // grafik Piramida
 
     new ApexCharts(document.querySelector("#chartPiramida"), {
         ...commonOptions,

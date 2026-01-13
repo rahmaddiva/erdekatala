@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use App\Models\LaporanAgregatModel;
 use App\Models\RtModel;
 use App\Models\KecamatanModel;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -46,6 +48,83 @@ class LaporanAgregatController extends BaseController
         ];
     }
 
+    private function generatePdf($laporan, $user)
+    {
+        // Konfigurasi Dompdf
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        // Gunakan font standar Dompdf (Helvetica) untuk menghindari masalah jika Arial tidak tersedia
+        $options->set('defaultFont', 'Helvetica');
+        $dompdf = new Dompdf($options);
+
+        $data = [
+            'title' => 'LAPORAN AGREGAT KEPENDUDUKAN',
+            'laporan' => $laporan,
+            'user' => $user,
+            'tanggal' => date('d F Y')
+        ];
+
+        $html = view('laporan/export_pdf', $data);
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape'); // Landscape karena kolom banyak
+        $dompdf->render();
+
+        // Tambahkan nomor halaman di footer menggunakan canvas Dompdf
+        $canvas = $dompdf->getCanvas();
+        $font = $dompdf->getFontMetrics()->get_font('helvetica', 'normal');
+        $fontSize = 8;
+        $text = 'Halaman: {PAGE_NUM} dari {PAGE_COUNT}';
+        $x = $canvas->get_width() - 120; // posisi sebelah kanan
+        $y = $canvas->get_height() - 24; // sedikit naik dari bawah
+        $canvas->page_text($x, $y, $text, $font, $fontSize, array(0, 0, 0));
+
+        $filename = "Laporan_Agregat_" . date('Ymd_His') . ".pdf";
+        // Kembalikan response sebagai download PDF
+        return $this->response->setHeader('Content-Type', 'application/pdf')
+            ->setBody($dompdf->output())
+            ->download($filename, null);
+    }
+
+    // Gunakan logika generateExcel yang sudah Anda miliki namun sesuaikan input $laporan-nya
+    private function generateExcel($laporan)
+    {
+        $spreadsheet = new Spreadsheet();
+
+        // -- Sheet 1: Data Pokok --
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Data Pokok');
+
+        $headers = ['No', 'Kecamatan', 'Desa', 'Dusun', 'RT', 'Bulan', 'Tahun', 'Jiwa L', 'Jiwa P', 'KK L', 'KK P'];
+        $this->writeHeader($sheet, $headers);
+
+        $rowIdx = 2;
+        foreach ($laporan as $row) {
+            $sheet->fromArray([
+                $rowIdx - 1,
+                $row['nama_kecamatan'],
+                $row['nama_desa'],
+                $row['nama_dusun'],
+                $row['no_rt'],
+                $this->bulanList[$row['bulan']] ?? $row['bulan'],
+                $row['tahun'],
+                $row['jiwa_l'],
+                $row['jiwa_p'],
+                $row['kk_l'],
+                $row['kk_p']
+            ], NULL, 'A' . $rowIdx);
+            $rowIdx++;
+        }
+
+        // ... (Anda bisa menambah sheet 2 & 3 sesuai kebutuhan data pendidikan/pekerjaan) ...
+
+        $filename = "Export_Agregat_" . date('Ymd_His') . ".xlsx";
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit();
+    }
     public function index()
     {
         $user = session()->get();
@@ -284,91 +363,49 @@ class LaporanAgregatController extends BaseController
         return redirect()->to('/laporan')->with('success', 'Laporan dihapus.');
     }
 
-    public function export()
+    public function export($format = 'excel')
     {
         $user = session()->get();
-        $laporan = $this->laporanModel->getRekapByDesa($user['id_desa']);
+        $id_kecamatan = $this->request->getGet('id_kecamatan');
+        $id_desa = $this->request->getGet('id_desa');
 
-        if (!$laporan)
-            return redirect()->back()->with('error', 'Data tidak tersedia.');
+        // 1. Inisialisasi Builder dengan Join Lengkap
+        $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, kecamatan.nama_kecamatan, m_rt.no_rt, m_dusun.nama_dusun')
+            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
-        $spreadsheet = new Spreadsheet();
-        $bulanNama = [1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-        // Definisi Style Border
-        $styleBorder = [
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                    'color' => ['argb' => 'FF000000'],
-                ],
-            ],
-        ];
-
-        // --- SHEET 1: SOSIAL EKONOMI ---
-        $sheet1 = $spreadsheet->getActiveSheet();
-        $sheet1->setTitle('Sosial Ekonomi');
-        $h1 = ['No', 'RT', 'Bulan', 'Tahun', 'Jiwa L', 'Jiwa P', 'KK L', 'KK P', 'P_Tdk_Sekolah', 'P_SD', 'P_SMP', 'P_SMA', 'P_Diploma', 'P_S1', 'P_S2_S3', 'K_Tani', 'K_Nelayan', 'K_PNS', 'K_Swasta', 'K_Pedagang', 'K_Wiraswasta', 'K_Buruh', 'K_Tdk_Kerja', 'S_Kawin', 'S_Belum_Kawin', 'S_Cerai_Hidup', 'S_Cerai_Mati'];
-        $this->writeHeader($sheet1, $h1);
-
-        foreach ($laporan as $i => $row) {
-            $rowIdx = $i + 2;
-            $data = [$i + 1, $row['no_rt'], $bulanNama[$row['bulan']], $row['tahun'], $row['jiwa_l'], $row['jiwa_p'], $row['kk_l'], $row['kk_p'], $row['kk_pend_tidak_sekolah'], $row['kk_pend_sd'], $row['kk_pend_smp'], $row['kk_pend_sma'], $row['kk_pend_diploma'], $row['kk_pend_s1'], $row['kk_pend_s2_s3'], $row['kk_ker_tani'], $row['kk_ker_nelayan'], $row['kk_ker_pns'], $row['kk_ker_swasta'], $row['kk_ker_pedagang'], $row['kk_ker_wiraswasta'], $row['kk_ker_buruh'], $row['kk_ker_tidak_kerja'], $row['kk_kawin'], $row['kk_belum_kawin'], $row['kk_cerai_hidup'], $row['kk_cerai_mati']];
-            $sheet1->fromArray($data, NULL, 'A' . $rowIdx);
+        // 2. Filter Berdasarkan Role & Parameter GET
+        if ($user['role'] == 'admin_dinas') {
+            if (!empty($id_kecamatan))
+                $builder->where('kecamatan.id_kecamatan', $id_kecamatan);
+            if (!empty($id_desa))
+                $builder->where('m_desa.id_desa', $id_desa);
+        } elseif ($user['role'] == 'admin_kecamatan') {
+            $builder->where('kecamatan.id_kecamatan', $user['id_kecamatan']);
+            if (!empty($id_desa))
+                $builder->where('m_desa.id_desa', $id_desa);
+        } else {
+            // admin_desa
+            $builder->where('m_desa.id_desa', $user['id_desa']);
         }
-        // Terapkan Border Sheet 1
-        $sheet1->getStyle('A1:AA' . (count($laporan) + 1))->applyFromArray($styleBorder);
 
+        $dataLaporan = $builder->orderBy('laporan_agregat.tahun', 'DESC')
+            ->orderBy('laporan_agregat.bulan', 'DESC')
+            ->findAll();
 
-        // --- SHEET 2: DEMOGRAFI ---
-        $sheet2 = $spreadsheet->createSheet();
-        $sheet2->setTitle('Demografi & Piramida');
-        $groups = ['0_4', '5_9', '10_14', '15_19', '20_24', '25_29', '30_34', '35_39', '40_44', '45_49', '50_54', '55_59', '60_64', '65_69', '70_74', '75_79', '80_84', '85_atas'];
-        $h2 = ['No', 'RT', 'Periode'];
-        foreach ($groups as $g) {
-            $h2[] = "L $g";
-            $h2[] = "P $g";
+        if (empty($dataLaporan)) {
+            return redirect()->back()->with('error', 'Tidak ada data untuk diexport.');
         }
-        array_push($h2, 'Balita', 'Remaja', 'Lansia');
-        $this->writeHeader($sheet2, $h2);
 
-        foreach ($laporan as $i => $row) {
-            $rowIdx = $i + 2;
-            $rowPira = [$i + 1, $row['no_rt'], $bulanNama[$row['bulan']] . ' ' . $row['tahun']];
-            foreach ($groups as $g) {
-                $rowPira[] = $row["u{$g}_l"];
-                $rowPira[] = $row["u{$g}_p"];
-            }
-            array_push($rowPira, $row['jml_balita'], $row['jml_remaja'], $row['jml_lansia']);
-            $sheet2->fromArray($rowPira, NULL, 'A' . $rowIdx);
+        // 3. Eksekusi Berdasarkan Format
+        if ($format == 'pdf') {
+            return $this->generatePdf($dataLaporan, $user);
+        } else {
+            return $this->generateExcel($dataLaporan);
         }
-        // Terapkan Border Sheet 2 (Kolom A sampai AV)
-        $sheet2->getStyle('A1:AV' . (count($laporan) + 1))->applyFromArray($styleBorder);
-
-
-        // --- SHEET 3: KESEHATAN & DOKUMEN ---
-        $sheet3 = $spreadsheet->createSheet();
-        $sheet3->setTitle('Kesehatan & Dokumen');
-        $h3 = ['No', 'RT', 'BPJS', 'Non-BPJS', 'KK_Fisik', 'KK_Belum_Fisik', 'H_Kepala', 'H_Istri', 'H_Anak', 'H_Lainnya', 'PUS_JKN', 'PUS_PBI', 'PUS_Non_PBI', 'JKN', 'Non_JKN', 'Wajib_KTP', 'Akta_Nikah', 'Akta_Lahir', 'KB_Aktif', 'Jml_PUS', 'Alat_Kontrasepsi'];
-        $this->writeHeader($sheet3, $h3);
-
-        foreach ($laporan as $i => $row) {
-            $rowIdx = $i + 2;
-            $data3 = [$i + 1, $row['no_rt'], $row['pend_bpjs'], $row['pend_non_bpjs'], $row['kk_punya_kartu_fisik'], $row['kk_belum_punya_kartu_fisik'], $row['penduduk_hub_kepala'], $row['penduduk_hub_istri'], $row['penduduk_hub_anak'], $row['penduduk_hub_lainnya'], $row['pus_jkn'], $row['pus_pbi'], $row['pus_non_pbi'], $row['jkn'], $row['non_jkn'], $row['pend_wajib_ktp'], $row['kk_punya_akta_nikah'], $row['pend_punya_akta_lahir'], $row['kb_aktif'], $row['jml_pus'], $row['jml_penggunaan_alat_kontrasepsi']];
-            $sheet3->fromArray($data3, NULL, 'A' . $rowIdx);
-        }
-        // Terapkan Border Sheet 3 (Kolom A sampai U)
-        $sheet3->getStyle('A1:U' . (count($laporan) + 1))->applyFromArray($styleBorder);
-
-        // Proses Download
-        $filename = "Export_Agregat_Lengkap_" . date('Ymd_His') . ".xlsx";
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        $writer = new Xlsx($spreadsheet);
-        $writer->save('php://output');
-        exit();
     }
-
     private function writeHeader($sheet, $headers)
     {
         $column = 'A';
