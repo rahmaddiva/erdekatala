@@ -41,6 +41,7 @@ $routes->get('/laporan/edit/(:num)', 'LaporanAgregatController::edit/$1');
 $routes->post('/laporan/update/(:num)', 'LaporanAgregatController::update/$1');
 $routes->get('/laporan/delete/(:num)', 'LaporanAgregatController::delete/$1');
 $routes->get('laporan/export/(:any)', 'LaporanAgregatController::export/$1');
+$routes->get('laporan/getPreviousData', 'LaporanAgregatController::getPreviousData');
 
 // AJAX Routes untuk Chained Dropdown
 $routes->get('dashboard/getDesaByKecamatan/(:num)', 'DashboardController::getDesaByKecamatan/$1');

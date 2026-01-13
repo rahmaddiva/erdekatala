@@ -67,23 +67,17 @@ class LaporanAgregatController extends BaseController
         $html = view('laporan/export_pdf', $data);
 
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape'); // Landscape karena kolom banyak
+        $dompdf->setPaper('A4', 'landscape');// Landscape karena kolom banyak
+        // ... (proses render tetap sama) ...
         $dompdf->render();
 
-        // Tambahkan nomor halaman di footer menggunakan canvas Dompdf
-        $canvas = $dompdf->getCanvas();
-        $font = $dompdf->getFontMetrics()->get_font('helvetica', 'normal');
-        $fontSize = 8;
-        $text = 'Halaman: {PAGE_NUM} dari {PAGE_COUNT}';
-        $x = $canvas->get_width() - 120; // posisi sebelah kanan
-        $y = $canvas->get_height() - 24; // sedikit naik dari bawah
-        $canvas->page_text($x, $y, $text, $font, $fontSize, array(0, 0, 0));
-
         $filename = "Laporan_Agregat_" . date('Ymd_His') . ".pdf";
-        // Kembalikan response sebagai download PDF
-        return $this->response->setHeader('Content-Type', 'application/pdf')
-            ->setBody($dompdf->output())
-            ->download($filename, null);
+
+        // Kirim response agar dibuka di browser
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+            ->setBody($dompdf->output());
     }
 
     // Gunakan logika generateExcel yang sudah Anda miliki namun sesuaikan input $laporan-nya
@@ -240,6 +234,32 @@ class LaporanAgregatController extends BaseController
         ];
 
         return view('laporan/index', $data);
+    }
+
+    // Tambahkan di dalam class LaporanAgregatController
+
+    public function getPreviousData()
+    {
+        $id_rt = $this->request->getGet('id_rt');
+
+        // Cari data terbaru berdasarkan RT tersebut
+        $lastData = $this->laporanModel
+            ->where('id_rt', $id_rt)
+            ->orderBy('tahun', 'DESC')
+            ->orderBy('bulan', 'DESC')
+            ->first();
+
+        if ($lastData) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $lastData
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'status' => 'error',
+            'message' => 'Tidak ditemukan data sebelumnya untuk RT ini.'
+        ]);
     }
 
     // Form Input Baru

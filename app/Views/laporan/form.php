@@ -45,7 +45,17 @@
                     <div class="tab-content">
 
                         <div class="tab-pane fade show active" id="tab-umum">
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <button type="button" id="btn-recycle" class="btn btn-outline-info btn-sm">
+                                        <i class="fas fa-sync-alt"></i> Salin Data dari Bulan Sebelumnya
+                                    </button>
+                                    <small class="text-muted d-block mt-1">*Pilih RT terlebih dahulu sebelum
+                                        menyalin data.</small>
+                                </div>
+                            </div>
                             <div class="row">
+
                                 <div class="col-md-4">
                                     <label>Pilih RT / Wilayah</label>
                                     <select name="id_rt" class="form-control select2bs4" required>
@@ -279,5 +289,80 @@
         </form>
     </section>
 </div>
+<!-- jquery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    $(document).ready(function () {
+        $('#btn-recycle').on('click', function () {
+            const idRt = $('select[name="id_rt"]').val();
+
+            if (!idRt) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih RT',
+                    text: 'Silakan pilih RT terlebih dahulu!'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Salin data ke periode ini?',
+                text: 'Data yang sudah Anda ketik manual akan tertimpa.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Salin',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '<?= base_url('laporan/getPreviousData') ?>',
+                        type: 'GET',
+                        data: { id_rt: idRt },
+                        dataType: 'json',
+                        success: function (response) {
+                            if (response.status === 'success') {
+                                const data = response.data;
+
+                                // List field yang TIDAK boleh ditimpa (Primary key, RT, Bulan, Tahun)
+                                const ignoreFields = ['id_laporan', 'id_rt', 'bulan', 'tahun', 'id_user', 'created_at', 'updated_at'];
+
+                                // Loop semua input di form
+                                $('form input[type="number"]').each(function () {
+                                    const fieldName = $(this).attr('name');
+
+                                    // Jika field ada di data dan bukan field yang diabaikan
+                                    if (data[fieldName] !== undefined && !ignoreFields.includes(fieldName)) {
+                                        $(this).val(data[fieldName]);
+                                    }
+                                });
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Sukses',
+                                    text: 'Data berhasil disalin! Silakan periksa kembali sebelum menyimpan.'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengambil data.'
+                                });
+                            }
+                        },
+                        error: function () {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Gagal mengambil data. Pastikan koneksi server tersedia.'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
 
 <?= $this->endSection() ?>

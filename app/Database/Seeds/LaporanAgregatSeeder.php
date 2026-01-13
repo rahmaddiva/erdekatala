@@ -20,7 +20,7 @@ class LaporanAgregatSeeder extends Seeder
         }
 
         $data = [];
-        $bulan = date('n'); // Bulan sekarang (1-12)
+        $bulan = date(format: 'n'); // Bulan acak antara 1-12
         $tahun = 2026;      // Tahun sesuai periode aplikasi
 
         foreach ($allRT as $rt) {
