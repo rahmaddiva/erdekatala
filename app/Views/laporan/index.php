@@ -94,6 +94,33 @@
                                 <th>Total KK</th>
                                 <th width="10%">Aksi</th>
                             </tr>
+                            <!-- Search Row -->
+                            <tr class="bg-white">
+                                <th></th>
+                                <th>
+                                    <input type="text" class="form-control form-control-sm search-input"
+                                        placeholder="Cari periode..." data-column="1">
+                                </th>
+                                <?php if (session()->get('role') == 'admin_kecamatan'): ?>
+                                    <th>
+                                        <input type="text" class="form-control form-control-sm search-input"
+                                            placeholder="Cari desa..." data-column="2">
+                                    </th>
+                                <?php endif; ?>
+                                <th>
+                                    <input type="text" class="form-control form-control-sm search-input"
+                                        placeholder="Cari dusun..."
+                                        data-column="<?= (session()->get('role') == 'admin_kecamatan') ? '3' : '2' ?>">
+                                </th>
+                                <th>
+                                    <input type="text" class="form-control form-control-sm search-input"
+                                        placeholder="Cari RT..."
+                                        data-column="<?= (session()->get('role') == 'admin_kecamatan') ? '4' : '3' ?>">
+                                </th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -101,6 +128,10 @@
                     <script>
                         $(document).ready(function () {
                             const role = "<?= session()->get('role') ?>";
+
+                            // Store search values
+                            let searchValues = {};
+
                             const table = $('#tableLaporanServerSide').DataTable({
                                 "processing": true,
                                 "serverSide": true,
@@ -110,10 +141,13 @@
                                     "data": function (d) {
                                         // Ambil nilai id_kecamatan jika ada (untuk Dinas)
                                         d.id_kecamatan = $('#filter_kecamatan').val();
-
-                                        // Ambil nilai id_desa dari ID atau Name (salah satu yang tersedia)
-                                        // Ini akan mengambil dari #filter_desa (Dinas) ATAU select[name="id_desa"] (Kecamatan)
                                         d.id_desa = $('#filter_desa').val() || $('select[name="id_desa"]').val();
+
+                                        // Tambahkan multi-column search values
+                                        d.search_periode = searchValues['periode'] || '';
+                                        d.search_desa = searchValues['desa'] || '';
+                                        d.search_dusun = searchValues['dusun'] || '';
+                                        d.search_rt = searchValues['rt'] || '';
 
                                         d.<?= csrf_token() ?> = "<?= csrf_hash() ?>";
                                     }
@@ -125,6 +159,27 @@
                                     "processing": '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i><span class="sr-only">Loading...</span> '
                                 }
                             });
+
+                            // Multi-column search handler
+                            $(document).on('keyup change', '.search-input', function () {
+                                const column = $(this).data('column');
+                                const value = $(this).val();
+
+                                // Map column index to field name
+                                const columnMap = {
+                                    '1': 'periode',
+                                    '2': 'desa',
+                                    '3': 'dusun',
+                                    '4': 'rt'
+                                };
+
+                                if (columnMap[column]) {
+                                    searchValues[columnMap[column]] = value;
+                                }
+
+                                table.draw();
+                            });
+
                             // 2. Logika Chained Dropdown (Kecamatan -> Desa)
                             $('#filter_kecamatan').on('change', function () {
                                 const idKec = $(this).val();

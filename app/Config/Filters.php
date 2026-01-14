@@ -78,7 +78,7 @@ class Filters extends BaseFilters
             // 'csrf',
             // 'invalidchars',
             // Require login for most pages; exclude pages needed for authentication and public assets
-            'loggedin' => ['except' => ['/', 'login', 'proses_login', 'assets/*', 'favicon.ico']],
+            'loggedin' => ['except' => ['/', 'login', 'proses_login', 'public/*', 'assets/*', 'favicon.ico']],
         ],
         'after' => [
             // 'honeypot',

@@ -136,6 +136,15 @@ class LaporanAgregatModel extends Model
      * Ambil semua laporan berdasarkan Kecamatan
      * Digunakan oleh: Admin Kecamatan
      */
+
+    public function getRekapByDusun($id_dusun)
+    {
+        return $this->select('laporan_agregat.*, m_rt.no_rt')
+            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+            ->where('m_rt.id_dusun', $id_dusun)
+            ->findAll();
+    }
+
     public function getRekapByKecamatan($id_kecamatan, $id_desa = null)
     {
         $builder = $this->select('laporan_agregat.*, m_desa.nama_desa, m_dusun.nama_dusun , m_rt.no_rt')

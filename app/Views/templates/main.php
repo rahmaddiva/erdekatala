@@ -88,6 +88,21 @@
             display: none;
         }
     </style>
+    <style>
+        /* Styling agar input pencarian di header tidak terlalu besar */
+        .search-row input {
+            width: 100%;
+            font-size: 12px;
+            padding: 5px;
+        }
+
+        /* Mengatur loading spinner agar di tengah */
+        div.dataTables_wrapper div.dataTables_processing {
+            top: 10% !important;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ddd;
+        }
+    </style>
 </head>
 
 <body class="hold-transition dark-mode sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">

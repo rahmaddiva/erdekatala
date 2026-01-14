@@ -5,14 +5,20 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-$routes->get('/', 'AuthController::index');
+// Public Routes (tanpa perlu login)
+$routes->get('/', 'PublicController::landingpage');
+$routes->get('/public/landingpage', 'PublicController::landingpage');
+
+// Auth Routes
+$routes->get('/login', 'AuthController::index');
+$routes->post('/proses_login', 'AuthController::proses_login');
+$routes->get('/logout', 'AuthController::logout');
+
+// Dashboard Routes (perlu login)
 $routes->get('/dashboard', 'DashboardController::index');
 $routes->get('/profile', 'AuthController::profile');
 $routes->post('/profile/update', 'AuthController::update_profile');
 $routes->post('/profile/password', 'AuthController::change_password');
-$routes->get('/login', 'AuthController::index');
-$routes->get('/logout', 'AuthController::logout');
-$routes->post('/proses_login', 'AuthController::proses_login');
 
 // routes desa
 $routes->get('/desa', 'DesaController::index');

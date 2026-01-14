@@ -110,7 +110,7 @@ class LaporanAgregatController extends BaseController
             $rowIdx++;
         }
 
-        // ... (Anda bisa menambah sheet 2 & 3 sesuai kebutuhan data pendidikan/pekerjaan) ...
+
 
         $filename = "Export_Agregat_" . date('Ymd_His') . ".xlsx";
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -132,6 +132,14 @@ class LaporanAgregatController extends BaseController
             $id_desa_filter = $this->request->getVar('id_desa'); // Filter khusus admin kecamatan
             $id_kecamatan_filter = $this->request->getVar('id_kecamatan');
             $id_desa_filter = $this->request->getVar('id_desa');
+            $bulan = $this->request->getVar('bulan'); // Ambil input bulan
+            $tahun = $this->request->getVar('tahun'); // Ambil input tahun
+
+            // Multi-column search parameters
+            $search_periode = $this->request->getVar('search_periode');
+            $search_desa = $this->request->getVar('search_desa');
+            $search_dusun = $this->request->getVar('search_dusun');
+            $search_rt = $this->request->getVar('search_rt');
 
             // Total semua data (sebelum 
             $totalData = $this->laporanModel->countAll();
@@ -161,15 +169,68 @@ class LaporanAgregatController extends BaseController
 
             }
 
+            // Multi-column Search Filter
+            if ($search_periode) {
+                // Coba konversi nama bulan ke nomor (case-insensitive)
+                $bulanNomor = null;
+                foreach ($this->bulanList as $num => $nama) {
+                    if (stripos($nama, $search_periode) !== false) {
+                        $bulanNomor = $num;
+                        break;
+                    }
+                }
 
-            // Search Filter
+                $builder->groupStart();
+
+                // Cari berdasarkan nama bulan jika ditemukan
+                if ($bulanNomor) {
+                    $builder->where('laporan_agregat.bulan', $bulanNomor);
+                }
+
+                // Atau cari berdasarkan tahun/angka
+                $builder->orLike('laporan_agregat.tahun', $search_periode);
+                $builder->orLike('laporan_agregat.bulan', $search_periode);
+
+                $builder->groupEnd();
+            }
+
+            if ($search_desa) {
+                $builder->like('m_desa.nama_desa', $search_desa);
+            }
+
+            if ($search_dusun) {
+                $builder->like('m_dusun.nama_dusun', $search_dusun);
+            }
+
+            if ($search_rt) {
+                $builder->like('m_rt.no_rt', $search_rt);
+            }
+
+            // Original Search Filter (untuk backward compatibility)
             if ($search) {
+                // Coba konversi nama bulan ke nomor (case-insensitive)
+                $bulanNomor = null;
+                foreach ($this->bulanList as $num => $nama) {
+                    if (stripos($nama, $search) !== false) {
+                        $bulanNomor = $num;
+                        break;
+                    }
+                }
+
                 $builder->groupStart()
                     ->like('m_dusun.nama_dusun', $search)
                     ->orLike('laporan_agregat.tahun', $search)
-                    ->orLike('m_desa.nama_desa', $search)
-                    ->groupEnd();
+                    ->orLike('m_rt.no_rt', $search)
+                    ->orLike('nama_desa', $search);
+
+                // Tambahkan pencarian bulan jika ditemukan nama bulan
+                if ($bulanNomor) {
+                    $builder->orWhere('laporan_agregat.bulan', $bulanNomor);
+                }
+
+                $builder->groupEnd();
             }
+
 
             // Clone builder untuk mendapatkan total yang difilter
             $builderFiltered = clone $builder;
@@ -228,15 +289,16 @@ class LaporanAgregatController extends BaseController
 
         $data = [
             'title' => 'Data Laporan Agregat',
+            'bulanList' => $this->bulanList,
             'list_kecamatan' => ($user['role'] == 'admin_dinas') ? $this->kecamatanModel->findAll() : [],
             // Jika admin kecamatan, ambil desa di kecamatannya saja
             'list_desa' => ($user['role'] == 'admin_kecamatan') ? (new \App\Models\DesaModel())->where('id_kecamatan', $user['id_kecamatan'])->findAll() : []
+
         ];
 
         return view('laporan/index', $data);
     }
 
-    // Tambahkan di dalam class LaporanAgregatController
 
     public function getPreviousData()
     {
@@ -388,6 +450,8 @@ class LaporanAgregatController extends BaseController
         $user = session()->get();
         $id_kecamatan = $this->request->getGet('id_kecamatan');
         $id_desa = $this->request->getGet('id_desa');
+        $bulan = $this->request->getGet('bulan'); // Tambahkan ini
+        $tahun = $this->request->getGet('tahun'); // Tambahkan ini
 
         // 1. Inisialisasi Builder dengan Join Lengkap
         $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, kecamatan.nama_kecamatan, m_rt.no_rt, m_dusun.nama_dusun')
@@ -410,6 +474,11 @@ class LaporanAgregatController extends BaseController
             // admin_desa
             $builder->where('m_desa.id_desa', $user['id_desa']);
         }
+
+        if ($bulan)
+            $builder->where('laporan_agregat.bulan', $bulan);
+        if ($tahun)
+            $builder->where('laporan_agregat.tahun', $tahun);
 
         $dataLaporan = $builder->orderBy('laporan_agregat.tahun', 'DESC')
             ->orderBy('laporan_agregat.bulan', 'DESC')
