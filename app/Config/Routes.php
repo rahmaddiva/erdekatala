@@ -8,6 +8,7 @@ use CodeIgniter\Router\RouteCollection;
 // Public Routes (tanpa perlu login)
 $routes->get('/', 'PublicController::landingpage');
 $routes->get('/public/landingpage', 'PublicController::landingpage');
+$routes->get('/getDesaByKecamatan/(:num)', 'PublicController::getDesaByKecamatan/$1');
 
 // Auth Routes
 $routes->get('/login', 'AuthController::index');

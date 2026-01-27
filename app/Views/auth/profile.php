@@ -17,7 +17,7 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-3">
-                <div class="card card-primary card-outline">
+                    <div class="card card-primary card-outline">
                         <div class="card-body box-profile">
                             <div class="text-center">
                                 <img class="profile-user-img img-fluid img-circle"
@@ -37,8 +37,6 @@
                                         class="float-right"><?= date('d M Y', strtotime($user['created_at'] ?? date('Y-m-d'))) ?></a>
                                 </li>
                             </ul>
-
-                            <a href="#" class="btn btn-primary btn-block"><b>Ubah Foto</b></a>
                         </div>
                         <!-- /.card-body -->
                     </div>
