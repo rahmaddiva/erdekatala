@@ -37,6 +37,7 @@
                                         class="float-right"><?= date('d M Y', strtotime($user['created_at'] ?? date('Y-m-d'))) ?></a>
                                 </li>
                             </ul>
+
                         </div>
                         <!-- /.card-body -->
                     </div>

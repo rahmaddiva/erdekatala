@@ -363,404 +363,218 @@
     </section>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.zingchart.com/zingchart.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // Konfigurasi tema gelap
-    const darkModeTextColor = '#ffffff';
-    const labelStyle = {
-        colors: darkModeTextColor,
-        fontSize: '12px',
-        fontWeight: 600,
-        fontFamily: 'Source Sans Pro, sans-serif'
+    // --- ZingChart theme helpers ---
+    const C = {
+        blue:   '#3b82f6',
+        pink:   '#ec4899',
+        green:  '#10b981',
+        amber:  '#f59e0b',
+        red:    '#ef4444',
+        cyan:   '#06b6d4',
+        teal:   '#14b8a6',
+        purple: '#8b5cf6',
+        indigo: '#6366f1'
     };
+    const BG   = '#1e2a38';
+    const TEXT = '#e2e8f0';
+    const GRID = '#2d3748';
+    const FONT = { 'font-family': 'Source Sans Pro, sans-serif', 'font-size': '12px', 'font-color': TEXT };
+    const TIP  = { 'font-color': '#fff', 'background-color': '#2d3748', 'border-radius': '4px', padding: '6px' };
 
-    const commonOptions = {
-        chart: {
-            foreColor: darkModeTextColor,
-            toolbar: { show: true, tools: { download: true } },
-            animations: { enabled: true, speed: 800 }
-        },
-        theme: { mode: 'dark' },
-        grid: { borderColor: '#444', padding: { left: 10, right: 10 } }
-    };
-
-    // 1. Piramida Penduduk (Prioritas Utama)
-    const maleData = <?= json_encode($piramidaL) ?>;
-    const femaleData = <?= json_encode($piramidaP) ?>;
-    const negativeMale = maleData.map(val => -Math.abs(val));
-
-     // === GRAFIK 1: GENDER (Grouped Bar Chart) ===
-    new ApexCharts(document.querySelector("#chartGender"), {
-        ...commonOptions,
-        series: [{
-            name: 'Laki-laki',
-            data: [<?= $grafik['gender']['jiwa_l'] ?>, <?= $grafik['gender']['kk_l'] ?>]
-        }, {
-            name: 'Perempuan',
-            data: [<?= $grafik['gender']['jiwa_p'] ?>, <?= $grafik['gender']['kk_p'] ?>]
-        }],
-        chart: {
-            ...commonOptions.chart,
-            type: 'bar',
-            height: 350,
-            toolbar: { show: true }
-        },
-        plotOptions: {
-            bar: {
-                horizontal: false,
-                columnWidth: '60%',
-                borderRadius: 6,
-                dataLabels: { position: 'top' }
-            }
-        },
-        colors: ['#3b82f6', '#ec4899'], // Biru untuk L, Pink untuk P
-        dataLabels: {
-            enabled: true,
-            offsetY: -20,
-            style: {
-                fontSize: '11px',
-                colors: [darkModeTextColor],
-                fontWeight: 600
+    // ============================================================
+    // 1. PIRAMIDA PENDUDUK — hbar stacked, L negatif / P positif
+    // ============================================================
+    const maleRaw    = <?= json_encode(array_map('intval', $piramidaL)) ?>;
+    const femaleData = <?= json_encode(array_map('intval', $piramidaP)) ?>;
+    const maleNeg    = maleRaw.map(v => -v);
+    const ageLabels  = <?= json_encode($ageLabels) ?>;
+    zingchart.render({
+        id: 'chartPiramida',
+        height: 530,
+        data: {
+            type: 'hbar',
+            'background-color': BG,
+            stacked: true,
+            title: { visible: false },
+            legend: {
+                layout: 'x2', 'background-color': 'none', 'border-width': 0,
+                item: Object.assign({}, FONT)
             },
-            formatter: (val) => val.toLocaleString()
-        },
-        xaxis: {
-            categories: ['Jumlah Jiwa', 'Jumlah KK'],
-            labels: { style: labelStyle }
-        },
-        yaxis: {
-            title: { text: 'Jumlah', style: { color: darkModeTextColor } },
-            labels: {
-                style: labelStyle,
-                formatter: (val) => val.toLocaleString()
-            }
-        },
-        legend: {
-            position: 'top',
-            horizontalAlign: 'center',
-            labels: { colors: darkModeTextColor },
-            markers: { width: 12, height: 12 }
-        },
-        tooltip: {
-            shared: true,
-            intersect: false,
-            y: { formatter: (val) => val.toLocaleString() + ' orang' }
-        }
-    }).render();
-
-    // === GRAFIK 2: DOKUMEN (Horizontal Bar Chart) ===
-    new ApexCharts(document.querySelector("#chartDokumen"), {
-        ...commonOptions,
-        series: [{
-            name: 'Total Pemilik',
-            data: [
-                <?= $grafik['dokumen']['ktp_elektronik'] ?>,
-                <?= $grafik['dokumen']['akta_lahir'] ?>,
-                <?= $grafik['dokumen']['akta_nikah'] ?>,
-                <?= $grafik['dokumen']['kk_fisik'] ?>
+            plot: {
+                animation: { effect: 2, speed: 600 },
+                'bar-width': '82%',
+                tooltip: Object.assign({ text: '%t Umur %scale-key-text: %node-value orang' }, TIP)
+            },
+            'scale-x': { values: ageLabels, item: Object.assign({}, FONT), guide: { 'line-color': GRID } },
+            'scale-y': {
+                label: { text: 'Jumlah Penduduk', 'font-color': TEXT },
+                item: Object.assign({}, FONT),
+                guide: { 'line-color': GRID },
+                format: '%v'
+            },
+            series: [
+                { text: 'Laki-laki',  values: maleNeg,    'background-color': C.blue,  'legend-marker': { 'background-color': C.blue } },
+                { text: 'Perempuan', values: femaleData, 'background-color': C.pink,  'legend-marker': { 'background-color': C.pink } }
             ]
-        }],
-        chart: {
-            ...commonOptions.chart,
+        }
+    });
+
+    // ============================================================
+    // 2. TINGKAT PENDIDIKAN KK — pie chart
+    // ============================================================
+    const pendLabels = <?= json_encode(array_keys($pendidikan)) ?>;
+    const pendValues = <?= json_encode(array_values($pendidikan)) ?>;
+    const pendColors = [C.indigo, C.purple, C.pink, C.amber, C.green, C.blue, C.cyan];
+    zingchart.render({
+        id: 'chartPendidikan',
+        height: 380,
+        data: {
+            type: 'pie',
+            'background-color': BG,
+            title: { visible: false },
+            plot: {
+                'value-box': { text: '%npv%', 'font-size': '11px', 'font-color': '#fff', placement: 'out' },
+                tooltip: Object.assign({ text: '%t\n%v KK (%npv%)' }, TIP),
+                animation: { effect: 4, speed: 600 },
+                slice: 70
+            },
+            legend: { layout: 'x3', 'background-color': 'none', 'border-width': 0, item: Object.assign({}, FONT) },
+            series: pendValues.map((v, i) => ({
+                text: pendLabels[i], values: [v],
+                'background-color': pendColors[i % pendColors.length]
+            }))
+        }
+    });
+
+    // ============================================================
+    // 3. STATUS PERKAWINAN KK — ring (donut) chart
+    // ============================================================
+    const kawinLabels = <?= json_encode(array_keys($status_kawin)) ?>;
+    const kawinValues = <?= json_encode(array_values($status_kawin)) ?>;
+    const kawinColors = [C.green, C.blue, C.amber, C.red];
+    zingchart.render({
+        id: 'chartKawin',
+        height: 380,
+        data: {
+            type: 'ring',
+            'background-color': BG,
+            title: { visible: false },
+            plot: {
+                'value-box': { text: '%npv%', 'font-size': '11px', 'font-color': '#fff', placement: 'out' },
+                tooltip: Object.assign({ text: '%t\n%v KK (%npv%)' }, TIP),
+                animation: { effect: 4, speed: 600 },
+                slice: 60
+            },
+            legend: { layout: 'x2', 'background-color': 'none', 'border-width': 0, item: Object.assign({}, FONT) },
+            series: kawinValues.map((v, i) => ({
+                text: kawinLabels[i], values: [v],
+                'background-color': kawinColors[i % kawinColors.length]
+            }))
+        }
+    });
+
+    // ============================================================
+    // 4. JENIS PEKERJAAN KK — hbar chart
+    // ============================================================
+    const pkLabels = <?= json_encode(array_keys($pekerjaan)) ?>;
+    const pkValues = <?= json_encode(array_values($pekerjaan)) ?>;
+    zingchart.render({
+        id: 'chartPekerjaan',
+        height: 400,
+        data: {
+            type: 'hbar',
+            'background-color': BG,
+            title: { visible: false },
+            plot: {
+                'background-color': C.green,
+                'border-radius': '3px',
+                animation: { effect: 2, speed: 500 },
+                'value-box': { text: '%v KK', 'font-size': '11px', 'font-color': TEXT, placement: 'top-out' },
+                tooltip: Object.assign({ text: '%t: %v KK' }, TIP)
+            },
+            'scale-x': { values: pkLabels, item: Object.assign({}, FONT), guide: { 'line-color': GRID } },
+            'scale-y': { label: { text: 'Jumlah KK', 'font-color': TEXT }, item: Object.assign({}, FONT), guide: { 'line-color': GRID } },
+            series: [{ text: 'Jumlah KK', values: pkValues }]
+        }
+    });
+
+    // ============================================================
+    // 5. GENDER JIWA & KK — grouped bar vertikal
+    // ============================================================
+    zingchart.render({
+        id: 'chartGender',
+        height: 350,
+        data: {
             type: 'bar',
-            height: 350
-        },
-        plotOptions: {
-            bar: {
-                horizontal: true,
-                borderRadius: 6,
-                barHeight: '70%',
-                dataLabels: { position: 'top' }
-            }
-        },
-        colors: ['#10b981'], // Hijau
-        dataLabels: {
-            enabled: true,
-            offsetX: 30,
-            style: {
-                fontSize: '11px',
-                colors: [darkModeTextColor],
-                fontWeight: 600
+            'background-color': BG,
+            title: { visible: false },
+            plot: {
+                'bar-width': '40%',
+                'border-radius': '4px',
+                animation: { effect: 5, speed: 500 },
+                'value-box': { text: '%v', 'font-size': '11px', 'font-color': TEXT, placement: 'top' },
+                tooltip: Object.assign({ text: '%t: %v orang' }, TIP)
             },
-            formatter: (val) => val.toLocaleString()
-        },
-        xaxis: {
-            categories: ['KTP-el', 'Akta Lahir', 'Akta Nikah', 'KK Fisik'],
-            labels: {
-                style: labelStyle,
-                formatter: (val) => val.toLocaleString()
-            }
-        },
-        yaxis: {
-            labels: { style: labelStyle }
-        },
-        tooltip: {
-            y: { formatter: (val) => val.toLocaleString() + ' orang' }
+            'scale-x': { values: ['Jumlah Jiwa', 'Jumlah KK'], item: Object.assign({}, FONT), guide: { 'line-color': GRID } },
+            'scale-y': { label: { text: 'Jumlah', 'font-color': TEXT }, item: Object.assign({}, FONT), guide: { 'line-color': GRID } },
+            legend: { layout: 'x2', 'background-color': 'none', 'border-width': 0, item: Object.assign({}, FONT) },
+            series: [
+                { text: 'Laki-laki',  values: [<?= intval($grafik['gender']['jiwa_l']) ?>, <?= intval($grafik['gender']['kk_l']) ?>], 'background-color': C.blue, 'legend-marker': { 'background-color': C.blue } },
+                { text: 'Perempuan', values: [<?= intval($grafik['gender']['jiwa_p']) ?>, <?= intval($grafik['gender']['kk_p']) ?>], 'background-color': C.pink, 'legend-marker': { 'background-color': C.pink } }
+            ]
         }
-    }).render();
+    });
 
-    // === GRAFIK 3: BPJS/JKN (Donut Chart) ===
-    new ApexCharts(document.querySelector("#chartBPJS"), {
-        ...commonOptions,
-        series: [
-            <?= $grafik['bpjs']['pbi'] ?>,
-            <?= $grafik['bpjs']['non_pbi'] ?>,
-            <?= $grafik['bpjs']['non_jkn'] ?>
-        ],
-        chart: {
-            ...commonOptions.chart,
-            type: 'donut',
-            height: 350
-        },
-        labels: ['PBI (Bantuan)', 'Non PBI (Mandiri)', 'Tidak Ber-JKN'],
-        colors: ['#06b6d4', '#14b8a6', '#f59e0b'], // Cyan, Teal, Amber
-        stroke: { show: false },
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: '70%',
-                    labels: {
-                        show: true,
-                        name: {
-                            color: darkModeTextColor,
-                            fontSize: '14px',
-                            fontWeight: 600
-                        },
-                        value: {
-                            color: darkModeTextColor,
-                            fontSize: '24px',
-                            fontWeight: 700,
-                            formatter: (val) => val.toLocaleString()
-                        },
-                        total: {
-                            show: true,
-                            label: 'Total KK',
-                            color: darkModeTextColor,
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString()
-                        }
-                    }
-                }
-            }
-        },
-        legend: {
-            position: 'bottom',
-            labels: { colors: darkModeTextColor },
-            fontSize: '13px'
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: (val, opts) => Math.round(val) + '%',
-            style: { fontSize: '12px', fontWeight: 600 }
-        },
-        tooltip: {
-            y: { formatter: (val) => val.toLocaleString() + ' KK' }
-        }
-    }).render();
-
-    // grafik Piramida
-
-    new ApexCharts(document.querySelector("#chartPiramida"), {
-        ...commonOptions,
-        series: [
-            { name: 'Laki-laki', data: negativeMale },
-            { name: 'Perempuan', data: femaleData }
-        ],
-        chart: { 
-            ...commonOptions.chart, 
-            type: 'bar', 
-            height: 500, 
-            stacked: true 
-        },
-        colors: ['#3b82f6', '#ec4899'],
-        plotOptions: { 
-            bar: { 
-                horizontal: true, 
-                barHeight: '90%',
-                borderRadius: 2
-            } 
-        },
-        dataLabels: { 
-            enabled: true,
-            formatter: (val) => Math.abs(val),
-            style: { fontSize: '10px', colors: ['#fff'] }
-        },
-        xaxis: {
-            categories: <?= json_encode($ageLabels) ?>,
-            labels: {
-                formatter: (val) => Math.abs(Math.round(val)),
-                style: labelStyle
+    // ============================================================
+    // 6. DOKUMEN ADMINDUK — hbar chart
+    // ============================================================
+    zingchart.render({
+        id: 'chartDokumen',
+        height: 350,
+        data: {
+            type: 'hbar',
+            'background-color': BG,
+            title: { visible: false },
+            plot: {
+                'background-color': C.teal,
+                'border-radius': '3px',
+                animation: { effect: 2, speed: 500 },
+                'value-box': { text: '%v', 'font-size': '11px', 'font-color': TEXT, placement: 'top-out' },
+                tooltip: Object.assign({ text: '%t: %v orang' }, TIP)
             },
-            title: { text: 'Jumlah Penduduk', style: { color: darkModeTextColor } }
-        },
-        yaxis: { 
-            labels: { style: labelStyle },
-            title: { text: 'Kelompok Umur', style: { color: darkModeTextColor } }
-        },
-        legend: { 
-            position: 'top', 
-            horizontalAlign: 'center',
-            labels: { colors: darkModeTextColor },
-            markers: { width: 12, height: 12 }
-        },
-        tooltip: {
-            shared: false,
-            x: { formatter: (val) => 'Umur: ' + val + ' tahun' },
-            y: { formatter: (val) => Math.abs(val) + ' orang' }
+            'scale-x': { values: ['KTP-el', 'Akta Lahir', 'Akta Nikah', 'KK Fisik'], item: Object.assign({}, FONT), guide: { 'line-color': GRID } },
+            'scale-y': { label: { text: 'Jumlah Penduduk', 'font-color': TEXT }, item: Object.assign({}, FONT), guide: { 'line-color': GRID } },
+            series: [{ text: 'Pemilik Dokumen', values: [<?= intval($grafik['dokumen']['ktp_elektronik']) ?>, <?= intval($grafik['dokumen']['akta_lahir']) ?>, <?= intval($grafik['dokumen']['akta_nikah']) ?>, <?= intval($grafik['dokumen']['kk_fisik']) ?>] }]
         }
-    }).render();
+    });
 
-    // 2. Pendidikan (Donut Chart)
-    new ApexCharts(document.querySelector("#chartPendidikan"), {
-        ...commonOptions,
-        series: <?= json_encode(array_values($pendidikan)) ?>,
-        chart: { 
-            ...commonOptions.chart, 
-            type: 'donut', 
-            height: 380 
-        },
-        labels: <?= json_encode(array_keys($pendidikan)) ?>,
-        colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#06b6d4'],
-        stroke: { show: false },
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: '65%',
-                    labels: {
-                        show: true,
-                        name: { 
-                            color: darkModeTextColor,
-                            fontSize: '16px',
-                            fontWeight: 600
-                        },
-                        value: { 
-                            color: darkModeTextColor,
-                            fontSize: '24px',
-                            fontWeight: 700,
-                            formatter: (val) => val.toLocaleString()
-                        },
-                        total: { 
-                            show: true, 
-                            label: 'Total', 
-                            color: darkModeTextColor,
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString()
-                        }
-                    }
-                }
-            }
-        },
-        legend: { 
-            position: 'bottom',
-            labels: { colors: darkModeTextColor },
-            fontSize: '13px'
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: (val, opts) => Math.round(val) + '%',
-            style: { fontSize: '12px', fontWeight: 600 }
-        }
-    }).render();
-
-    // 3. Status Perkawinan (Donut Chart)
-    new ApexCharts(document.querySelector("#chartKawin"), {
-        ...commonOptions,
-        series: <?= json_encode(array_values($status_kawin)) ?>,
-        chart: { 
-            ...commonOptions.chart, 
-            type: 'donut', 
-            height: 380 
-        },
-        labels: <?= json_encode(array_keys($status_kawin)) ?>,
-        colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
-        stroke: { show: false },
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: '65%',
-                    labels: {
-                        show: true,
-                        name: { 
-                            color: darkModeTextColor,
-                            fontSize: '16px',
-                            fontWeight: 600
-                        },
-                        value: { 
-                            color: darkModeTextColor,
-                            fontSize: '24px',
-                            fontWeight: 700,
-                            formatter: (val) => val.toLocaleString()
-                        },
-                        total: { 
-                            show: true, 
-                            label: 'Total', 
-                            color: darkModeTextColor,
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString()
-                        }
-                    }
-                }
-            }
-        },
-        legend: { 
-            position: 'bottom',
-            labels: { colors: darkModeTextColor },
-            fontSize: '13px'
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: (val, opts) => Math.round(val) + '%',
-            style: { fontSize: '12px', fontWeight: 600 }
-        }
-    }).render();
-
-    // 4. Pekerjaan (Bar Chart)
-    new ApexCharts(document.querySelector("#chartPekerjaan"), {
-        ...commonOptions,
-        series: [{ 
-            name: 'Jumlah Penduduk', 
-            data: <?= json_encode(array_values($pekerjaan)) ?> 
-        }],
-        chart: { 
-            ...commonOptions.chart, 
-            type: 'bar', 
-            height: 400 
-        },
-        plotOptions: {
-            bar: {
-                horizontal: true,
-                borderRadius: 4,
-                dataLabels: { position: 'top' }
-            }
-        },
-        colors: ['#10b981'],
-        dataLabels: {
-            enabled: true,
-            offsetX: 30,
-            style: { 
-                colors: [darkModeTextColor],
-                fontSize: '11px',
-                fontWeight: 600
+    // ============================================================
+    // 7. JKN / BPJS — ring chart
+    // ============================================================
+    zingchart.render({
+        id: 'chartBPJS',
+        height: 350,
+        data: {
+            type: 'ring',
+            'background-color': BG,
+            title: { visible: false },
+            plot: {
+                'value-box': { text: '%npv%', 'font-size': '11px', 'font-color': '#fff', placement: 'out' },
+                tooltip: Object.assign({ text: '%t\n%v orang (%npv%)' }, TIP),
+                animation: { effect: 4, speed: 600 },
+                slice: 65
             },
-            formatter: (val) => val.toLocaleString()
-        },
-        xaxis: {
-            categories: <?= json_encode(array_keys($pekerjaan)) ?>,
-            labels: { 
-                style: labelStyle,
-                formatter: (val) => val.toLocaleString()
-            },
-            title: { text: 'Jumlah Penduduk', style: { color: darkModeTextColor } }
-        },
-        yaxis: { 
-            labels: { style: labelStyle },
-            title: { text: 'Jenis Pekerjaan', style: { color: darkModeTextColor } }
+            legend: { layout: 'x1', 'background-color': 'none', 'border-width': 0, item: Object.assign({}, FONT) },
+            series: [
+                { text: 'BPJS PBI (Bantuan)',     values: [<?= intval($grafik['bpjs']['pbi']) ?>],     'background-color': C.cyan },
+                { text: 'BPJS Non-PBI (Mandiri)', values: [<?= intval($grafik['bpjs']['non_pbi']) ?>], 'background-color': C.teal },
+                { text: 'Tidak Ber-JKN',           values: [<?= intval($grafik['bpjs']['non_jkn']) ?>], 'background-color': C.amber }
+            ]
         }
-    }).render();
+    });
 
     // Chained Dropdown Logic
     <?php if (session()->get('role') == 'admin_dinas'): ?>
