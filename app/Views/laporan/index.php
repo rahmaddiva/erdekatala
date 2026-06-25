@@ -17,9 +17,12 @@
             <div class="card card-outline card-primary shadow">
                 <div class="card-body">
                     <div class="col-sm-12 text-right mb-2">
+                        <a href="/laporan/export-options" class="btn btn-primary mr-1">
+                            <i class="fas fa-sliders-h mr-1"></i> Cetak Kustom
+                        </a>
                         <div class="btn-group">
                             <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
-                                <i class="fas fa-file-export mr-1"></i> Export Data
+                                <i class="fas fa-file-export mr-1"></i> Export Semua
                             </button>
                             <div class="dropdown-menu dropdown-menu-right">
                                 <button class="dropdown-item" type="button" onclick="doExport('excel')">

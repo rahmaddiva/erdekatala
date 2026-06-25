@@ -35,7 +35,8 @@ class Filters extends BaseFilters
         'pagecache' => PageCache::class,
         'performance' => PerformanceMetrics::class,
         // App Filters
-        'loggedin' => \App\Filters\LoggedIn::class,
+        'loggedin'    => \App\Filters\LoggedIn::class,
+        'apikeyauth'  => \App\Filters\ApiKeyAuth::class,
     ];
 
     /**
@@ -78,7 +79,7 @@ class Filters extends BaseFilters
             // 'csrf',
             // 'invalidchars',
             // Require login for most pages; exclude pages needed for authentication and public assets
-            'loggedin' => ['except' => ['/', 'login', 'proses_login', 'public/*', 'assets/*', 'favicon.ico']],
+            'loggedin' => ['except' => ['/', 'login', 'proses_login', 'public/*', 'assets/*', 'favicon.ico', 'api/*']],
         ],
         'after' => [
             // 'honeypot',

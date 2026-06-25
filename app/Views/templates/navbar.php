@@ -12,6 +12,12 @@
 
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
+        <!-- Dark/Light Mode Toggle -->
+        <li class="nav-item">
+            <button id="themeToggle" class="btn nav-link border-0 px-3" title="Ganti tema" style="background:none;">
+                <i id="themeIcon" class="fas fa-sun"></i>
+            </button>
+        </li>
         <!-- user -->
         <li class="nav-item dropdown">
             <a class="nav-link" data-toggle="dropdown" href="#">

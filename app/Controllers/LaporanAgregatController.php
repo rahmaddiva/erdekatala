@@ -48,69 +48,178 @@ class LaporanAgregatController extends BaseController
         ];
     }
 
-    private function generatePdf($laporan, $user)
+    private function generatePdf($laporan, $user, array $sections = [])
     {
-        // Konfigurasi Dompdf
         $options = new Options();
         $options->set('isRemoteEnabled', true);
-        // Gunakan font standar Dompdf (Helvetica) untuk menghindari masalah jika Arial tidak tersedia
         $options->set('defaultFont', 'Helvetica');
         $dompdf = new Dompdf($options);
 
+        if (empty($sections)) {
+            $sections = ['pokok', 'pendidikan', 'pekerjaan', 'piramida', 'kawin', 'jkn', 'dokumen', 'kb'];
+        }
+
         $data = [
-            'title' => 'LAPORAN AGREGAT KEPENDUDUKAN',
-            'laporan' => $laporan,
-            'user' => $user,
-            'tanggal' => date('d F Y')
+            'title'    => 'LAPORAN AGREGAT KEPENDUDUKAN',
+            'laporan'  => $laporan,
+            'user'     => $user,
+            'tanggal'  => date('d F Y'),
+            'sections' => array_flip($sections), // flip agar cek dengan isset() lebih cepat
         ];
 
         $html = view('laporan/export_pdf', $data);
 
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');// Landscape karena kolom banyak
-        // ... (proses render tetap sama) ...
+        $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
 
         $filename = "Laporan_Agregat_" . date('Ymd_His') . ".pdf";
 
-        // Kirim response agar dibuka di browser
         return $this->response
             ->setHeader('Content-Type', 'application/pdf')
             ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
             ->setBody($dompdf->output());
     }
 
-    // Gunakan logika generateExcel yang sudah Anda miliki namun sesuaikan input $laporan-nya
-    private function generateExcel($laporan)
+    private function generateExcel($laporan, array $sections = [])
     {
+        if (empty($sections)) {
+            $sections = ['pokok', 'pendidikan', 'pekerjaan', 'piramida', 'kawin', 'jkn', 'dokumen', 'kb'];
+        }
+        $sec = array_flip($sections);
+
         $spreadsheet = new Spreadsheet();
+        $sheetIdx    = 0;
 
-        // -- Sheet 1: Data Pokok --
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Data Pokok');
-
-        $headers = ['No', 'Kecamatan', 'Desa', 'Dusun', 'RT', 'Bulan', 'Tahun', 'Jiwa L', 'Jiwa P', 'KK L', 'KK P'];
-        $this->writeHeader($sheet, $headers);
-
-        $rowIdx = 2;
-        foreach ($laporan as $row) {
-            $sheet->fromArray([
-                $rowIdx - 1,
-                $row['nama_kecamatan'],
-                $row['nama_desa'],
-                $row['nama_dusun'],
-                $row['no_rt'],
-                $this->bulanList[$row['bulan']] ?? $row['bulan'],
-                $row['tahun'],
-                $row['jiwa_l'],
-                $row['jiwa_p'],
-                $row['kk_l'],
-                $row['kk_p']
-            ], NULL, 'A' . $rowIdx);
-            $rowIdx++;
+        // Sheet: Data Pokok
+        if (isset($sec['pokok'])) {
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Data Pokok');
+            $headers = ['No', 'Kecamatan', 'Desa', 'Dusun', 'RT', 'Bulan', 'Tahun', 'Jiwa L', 'Jiwa P', 'KK L', 'KK P'];
+            $this->writeHeader($sheet, $headers);
+            $rowIdx = 2;
+            foreach ($laporan as $row) {
+                $sheet->fromArray([
+                    $rowIdx - 1, $row['nama_kecamatan'], $row['nama_desa'], $row['nama_dusun'],
+                    $row['no_rt'], $this->bulanList[$row['bulan']] ?? $row['bulan'], $row['tahun'],
+                    $row['jiwa_l'], $row['jiwa_p'], $row['kk_l'], $row['kk_p']
+                ], NULL, 'A' . $rowIdx++);
+            }
+            $sheetIdx++;
         }
 
+        // Sheet: Pendidikan
+        if (isset($sec['pendidikan'])) {
+            $sheet = $sheetIdx === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
+            $sheet->setTitle('Pendidikan KK');
+            $this->writeHeader($sheet, ['No','Wilayah','T.Sekolah','SD','SMP','SMA','Diploma','S1','S2/S3']);
+            $rowIdx = 2;
+            foreach ($laporan as $row) {
+                $sheet->fromArray([
+                    $rowIdx - 1, 'RT'.$row['no_rt'].'-'.$row['nama_dusun'],
+                    $row['kk_pend_tidak_sekolah'], $row['kk_pend_sd'], $row['kk_pend_smp'],
+                    $row['kk_pend_sma'], $row['kk_pend_diploma'], $row['kk_pend_s1'], $row['kk_pend_s2_s3']
+                ], NULL, 'A' . $rowIdx++);
+            }
+            $sheetIdx++;
+        }
 
+        // Sheet: Pekerjaan
+        if (isset($sec['pekerjaan'])) {
+            $sheet = $sheetIdx === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
+            $sheet->setTitle('Pekerjaan KK');
+            $this->writeHeader($sheet, ['No','Wilayah','Tani','Nelayan','PNS','Swasta','Pedagang','Wiraswasta','Buruh','Tdk Kerja']);
+            $rowIdx = 2;
+            foreach ($laporan as $row) {
+                $sheet->fromArray([
+                    $rowIdx - 1, 'RT'.$row['no_rt'].'-'.$row['nama_dusun'],
+                    $row['kk_ker_tani'], $row['kk_ker_nelayan'], $row['kk_ker_pns'],
+                    $row['kk_ker_swasta'], $row['kk_ker_pedagang'], $row['kk_ker_wiraswasta'],
+                    $row['kk_ker_buruh'], $row['kk_ker_tidak_kerja']
+                ], NULL, 'A' . $rowIdx++);
+            }
+            $sheetIdx++;
+        }
+
+        // Sheet: Piramida Penduduk
+        if (isset($sec['piramida'])) {
+            $sheet = $sheetIdx === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
+            $sheet->setTitle('Piramida Penduduk');
+            $headers = ['No','Wilayah'];
+            $ageGroups = ['0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54','55-59','60-64','65-69','70-74','75-79','80-84','85+'];
+            foreach ($ageGroups as $ag) { $headers[] = $ag.' L'; $headers[] = $ag.' P'; }
+            $this->writeHeader($sheet, $headers);
+            $rowIdx = 2;
+            $fields = ['u0_4','u5_9','u10_14','u15_19','u20_24','u25_29','u30_34','u35_39','u40_44','u45_49','u50_54','u55_59','u60_64','u65_69','u70_74','u75_79','u80_84','u85_atas'];
+            foreach ($laporan as $row) {
+                $r = [$rowIdx - 1, 'RT'.$row['no_rt']];
+                foreach ($fields as $f) { $r[] = $row[$f.'_l']; $r[] = $row[$f.'_p']; }
+                $sheet->fromArray($r, NULL, 'A' . $rowIdx++);
+            }
+            $sheetIdx++;
+        }
+
+        // Sheet: Status Perkawinan
+        if (isset($sec['kawin'])) {
+            $sheet = $sheetIdx === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
+            $sheet->setTitle('Status Perkawinan');
+            $this->writeHeader($sheet, ['No','Wilayah','Belum Kawin','Kawin','Cerai Hidup','Cerai Mati']);
+            $rowIdx = 2;
+            foreach ($laporan as $row) {
+                $sheet->fromArray([
+                    $rowIdx - 1, 'RT'.$row['no_rt'].'-'.$row['nama_dusun'],
+                    $row['kk_belum_kawin'], $row['kk_kawin'], $row['kk_cerai_hidup'], $row['kk_cerai_mati']
+                ], NULL, 'A' . $rowIdx++);
+            }
+            $sheetIdx++;
+        }
+
+        // Sheet: JKN/BPJS
+        if (isset($sec['jkn'])) {
+            $sheet = $sheetIdx === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
+            $sheet->setTitle('JKN-BPJS');
+            $this->writeHeader($sheet, ['No','Wilayah','BPJS PBI','BPJS Non-PBI','Tidak Ber-JKN','Total BPJS']);
+            $rowIdx = 2;
+            foreach ($laporan as $row) {
+                $sheet->fromArray([
+                    $rowIdx - 1, 'RT'.$row['no_rt'].'-'.$row['nama_dusun'],
+                    $row['pus_pbi'], $row['pus_non_pbi'], $row['non_jkn'],
+                    $row['pus_pbi'] + $row['pus_non_pbi']
+                ], NULL, 'A' . $rowIdx++);
+            }
+            $sheetIdx++;
+        }
+
+        // Sheet: Dokumen Adminduk
+        if (isset($sec['dokumen'])) {
+            $sheet = $sheetIdx === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
+            $sheet->setTitle('Dokumen Adminduk');
+            $this->writeHeader($sheet, ['No','Wilayah','Wajib KTP','Punya Akta Lahir','Punya Akta Nikah','KK Fisik','Blm KK Fisik']);
+            $rowIdx = 2;
+            foreach ($laporan as $row) {
+                $sheet->fromArray([
+                    $rowIdx - 1, 'RT'.$row['no_rt'].'-'.$row['nama_dusun'],
+                    $row['pend_wajib_ktp'], $row['pend_punya_akta_lahir'],
+                    $row['kk_punya_akta_nikah'], $row['kk_punya_kartu_fisik'], $row['kk_belum_punya_kartu_fisik']
+                ], NULL, 'A' . $rowIdx++);
+            }
+            $sheetIdx++;
+        }
+
+        // Sheet: KB & PUS
+        if (isset($sec['kb'])) {
+            $sheet = $sheetIdx === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
+            $sheet->setTitle('KB dan PUS');
+            $this->writeHeader($sheet, ['No','Wilayah','Balita','Remaja','Lansia','Jml PUS','KB Aktif','Alat Kontrasepsi']);
+            $rowIdx = 2;
+            foreach ($laporan as $row) {
+                $sheet->fromArray([
+                    $rowIdx - 1, 'RT'.$row['no_rt'].'-'.$row['nama_dusun'],
+                    $row['jml_balita'], $row['jml_remaja'], $row['jml_lansia'],
+                    $row['jml_pus'], $row['kb_aktif'], $row['jml_penggunaan_alat_kontrasepsi']
+                ], NULL, 'A' . $rowIdx++);
+            }
+        }
 
         $filename = "Export_Agregat_" . date('Ymd_His') . ".xlsx";
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -119,6 +228,7 @@ class LaporanAgregatController extends BaseController
         $writer->save('php://output');
         exit();
     }
+
     public function index()
     {
         $user = session()->get();
@@ -278,24 +388,97 @@ class LaporanAgregatController extends BaseController
         }
 
         // 2. Menampilkan Halaman Utama (Request Biasa)
-        $list_desa = [];
-        if ($user['role'] == 'admin_kecamatan') {
-            $desaModel = new \App\Models\DesaModel();
-            $list_desa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
-        } elseif ($user['role'] == 'admin_dinas') {
-            $desaModel = new \App\Models\DesaModel();
-            $list_desa = $desaModel->findAll();
+        $desaModel  = new \App\Models\DesaModel();
+        $dusunModel = new \App\Models\DusunModel();
+        $rtModel    = new \App\Models\RtModel();
+
+        // --- Tampilan khusus admin_desa: accordion timeline per bulan ---
+        if ($user['role'] == 'admin_desa') {
+            $allLaporan = $this->laporanModel
+                ->select('laporan_agregat.*, m_rt.no_rt, m_dusun.nama_dusun')
+                ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+                ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+                ->where('m_dusun.id_desa', $user['id_desa'])
+                ->orderBy('laporan_agregat.tahun', 'DESC')
+                ->orderBy('laporan_agregat.bulan', 'DESC')
+                ->findAll();
+
+            $allRt = $rtModel->select('m_rt.id_rt, m_rt.no_rt, m_dusun.nama_dusun')
+                ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+                ->where('m_dusun.id_desa', $user['id_desa'])
+                ->findAll();
+
+            $grouped = [];
+            foreach ($allLaporan as $l) {
+                $grouped[$l['tahun']][$l['bulan']][] = $l;
+            }
+            krsort($grouped);
+            foreach ($grouped as $tahun => &$bulanData) {
+                krsort($bulanData);
+            }
+            unset($bulanData);
+
+            $data = [
+                'title'     => 'Riwayat Laporan Agregat',
+                'bulanList' => $this->bulanList,
+                'grouped'   => $grouped,
+                'allRt'     => $allRt,
+                'totalRt'   => count($allRt),
+            ];
+            return view('laporan/index_desa', $data);
         }
 
+        // --- Tampilan khusus admin_kecamatan: card grid per desa ---
+        if ($user['role'] == 'admin_kecamatan') {
+            $filterBulan = $this->request->getGet('bulan') ?? date('n');
+            $filterTahun = $this->request->getGet('tahun') ?? date('Y');
+
+            $listDesa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
+
+            $desaStats = [];
+            foreach ($listDesa as $desa) {
+                $allRtDesa = $rtModel->select('m_rt.id_rt')
+                    ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+                    ->where('m_dusun.id_desa', $desa['id_desa'])
+                    ->findAll();
+
+                $rtIds = array_column($allRtDesa, 'id_rt');
+                $sudahLapor = 0;
+                if (!empty($rtIds)) {
+                    $sudahLapor = $this->laporanModel
+                        ->whereIn('id_rt', $rtIds)
+                        ->where('bulan', $filterBulan)
+                        ->where('tahun', $filterTahun)
+                        ->countAllResults();
+                }
+
+                $desaStats[] = [
+                    'desa'        => $desa,
+                    'total_rt'    => count($rtIds),
+                    'sudah_lapor' => $sudahLapor,
+                    'belum_lapor' => count($rtIds) - $sudahLapor,
+                    'persen'      => count($rtIds) > 0 ? round($sudahLapor / count($rtIds) * 100) : 0,
+                ];
+            }
+
+            $data = [
+                'title'       => 'Riwayat Laporan Agregat',
+                'bulanList'   => $this->bulanList,
+                'desaStats'   => $desaStats,
+                'filterBulan' => $filterBulan,
+                'filterTahun' => $filterTahun,
+                'list_desa'   => $listDesa,
+            ];
+            return view('laporan/index_kecamatan', $data);
+        }
+
+        // --- Tampilan default admin_dinas: datatable ---
         $data = [
-            'title' => 'Data Laporan Agregat',
-            'bulanList' => $this->bulanList,
-            'list_kecamatan' => ($user['role'] == 'admin_dinas') ? $this->kecamatanModel->findAll() : [],
-            // Jika admin kecamatan, ambil desa di kecamatannya saja
-            'list_desa' => ($user['role'] == 'admin_kecamatan') ? (new \App\Models\DesaModel())->where('id_kecamatan', $user['id_kecamatan'])->findAll() : []
-
+            'title'          => 'Data Laporan Agregat',
+            'bulanList'      => $this->bulanList,
+            'list_kecamatan' => $this->kecamatanModel->findAll(),
+            'list_desa'      => [],
         ];
-
         return view('laporan/index', $data);
     }
 
@@ -445,40 +628,93 @@ class LaporanAgregatController extends BaseController
         return redirect()->to('/laporan')->with('success', 'Laporan dihapus.');
     }
 
+    public function exportOptions()
+    {
+        $user    = session()->get();
+        $desaModel = new \App\Models\DesaModel();
+
+        if ($this->request->getMethod() === 'post') {
+            $format   = $this->request->getPost('format') ?? 'pdf';
+            $sections = $this->request->getPost('sections') ?? [];
+            $id_kecamatan = $this->request->getPost('id_kecamatan');
+            $id_desa      = $this->request->getPost('id_desa');
+            $bulan        = $this->request->getPost('bulan');
+            $tahun        = $this->request->getPost('tahun');
+
+            $builder = $this->laporanModel
+                ->select('laporan_agregat.*, m_desa.nama_desa, kecamatan.nama_kecamatan, m_rt.no_rt, m_dusun.nama_dusun')
+                ->join('m_rt',       'm_rt.id_rt = laporan_agregat.id_rt')
+                ->join('m_dusun',    'm_dusun.id_dusun = m_rt.id_dusun')
+                ->join('m_desa',     'm_desa.id_desa = m_dusun.id_desa')
+                ->join('kecamatan',  'kecamatan.id_kecamatan = m_desa.id_kecamatan');
+
+            if ($user['role'] == 'admin_dinas') {
+                if (!empty($id_kecamatan)) $builder->where('kecamatan.id_kecamatan', $id_kecamatan);
+                if (!empty($id_desa))      $builder->where('m_desa.id_desa', $id_desa);
+            } elseif ($user['role'] == 'admin_kecamatan') {
+                $builder->where('kecamatan.id_kecamatan', $user['id_kecamatan']);
+                if (!empty($id_desa)) $builder->where('m_desa.id_desa', $id_desa);
+            } else {
+                $builder->where('m_desa.id_desa', $user['id_desa']);
+            }
+
+            if ($bulan) $builder->where('laporan_agregat.bulan', $bulan);
+            if ($tahun) $builder->where('laporan_agregat.tahun', $tahun);
+
+            $dataLaporan = $builder->orderBy('laporan_agregat.tahun', 'DESC')
+                ->orderBy('laporan_agregat.bulan', 'DESC')
+                ->findAll();
+
+            if (empty($dataLaporan)) {
+                return redirect()->back()->with('error', 'Tidak ada data untuk periode yang dipilih.');
+            }
+
+            if ($format === 'pdf') {
+                return $this->generatePdf($dataLaporan, $user, $sections);
+            } else {
+                return $this->generateExcel($dataLaporan, $sections);
+            }
+        }
+
+        // GET: tampilkan form pilihan
+        $data = [
+            'title'          => 'Pilihan Cetak / Export',
+            'bulanList'      => $this->bulanList,
+            'role'           => $user['role'],
+            'list_kecamatan' => ($user['role'] == 'admin_dinas') ? $this->kecamatanModel->findAll() : [],
+            'list_desa'      => ($user['role'] == 'admin_kecamatan')
+                ? $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll()
+                : [],
+        ];
+        return view('laporan/export_options', $data);
+    }
+
     public function export($format = 'excel')
     {
         $user = session()->get();
         $id_kecamatan = $this->request->getGet('id_kecamatan');
-        $id_desa = $this->request->getGet('id_desa');
-        $bulan = $this->request->getGet('bulan'); // Tambahkan ini
-        $tahun = $this->request->getGet('tahun'); // Tambahkan ini
+        $id_desa      = $this->request->getGet('id_desa');
+        $bulan        = $this->request->getGet('bulan');
+        $tahun        = $this->request->getGet('tahun');
 
-        // 1. Inisialisasi Builder dengan Join Lengkap
         $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, kecamatan.nama_kecamatan, m_rt.no_rt, m_dusun.nama_dusun')
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->join('m_rt',      'm_rt.id_rt = laporan_agregat.id_rt')
+            ->join('m_dusun',   'm_dusun.id_dusun = m_rt.id_dusun')
+            ->join('m_desa',    'm_desa.id_desa = m_dusun.id_desa')
             ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
-        // 2. Filter Berdasarkan Role & Parameter GET
         if ($user['role'] == 'admin_dinas') {
-            if (!empty($id_kecamatan))
-                $builder->where('kecamatan.id_kecamatan', $id_kecamatan);
-            if (!empty($id_desa))
-                $builder->where('m_desa.id_desa', $id_desa);
+            if (!empty($id_kecamatan)) $builder->where('kecamatan.id_kecamatan', $id_kecamatan);
+            if (!empty($id_desa))      $builder->where('m_desa.id_desa', $id_desa);
         } elseif ($user['role'] == 'admin_kecamatan') {
             $builder->where('kecamatan.id_kecamatan', $user['id_kecamatan']);
-            if (!empty($id_desa))
-                $builder->where('m_desa.id_desa', $id_desa);
+            if (!empty($id_desa)) $builder->where('m_desa.id_desa', $id_desa);
         } else {
-            // admin_desa
             $builder->where('m_desa.id_desa', $user['id_desa']);
         }
 
-        if ($bulan)
-            $builder->where('laporan_agregat.bulan', $bulan);
-        if ($tahun)
-            $builder->where('laporan_agregat.tahun', $tahun);
+        if ($bulan) $builder->where('laporan_agregat.bulan', $bulan);
+        if ($tahun) $builder->where('laporan_agregat.tahun', $tahun);
 
         $dataLaporan = $builder->orderBy('laporan_agregat.tahun', 'DESC')
             ->orderBy('laporan_agregat.bulan', 'DESC')
@@ -488,13 +724,61 @@ class LaporanAgregatController extends BaseController
             return redirect()->back()->with('error', 'Tidak ada data untuk diexport.');
         }
 
-        // 3. Eksekusi Berdasarkan Format
+        // Export cepat tanpa pilihan section = semua section
+        $allSections = ['pokok', 'pendidikan', 'pekerjaan', 'piramida', 'kawin', 'jkn', 'dokumen', 'kb'];
+
         if ($format == 'pdf') {
-            return $this->generatePdf($dataLaporan, $user);
+            return $this->generatePdf($dataLaporan, $user, $allSections);
         } else {
-            return $this->generateExcel($dataLaporan);
+            return $this->generateExcel($dataLaporan, $allSections);
         }
     }
+    public function detailDesa($id_desa)
+    {
+        $bulan = $this->request->getGet('bulan') ?? date('n');
+        $tahun = $this->request->getGet('tahun') ?? date('Y');
+
+        $rtModel = new \App\Models\RtModel();
+
+        // Ambil semua RT di desa ini beserta dusunnya
+        $allRt = $rtModel->select('m_rt.id_rt, m_rt.no_rt, m_dusun.nama_dusun')
+            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
+            ->where('m_dusun.id_desa', $id_desa)
+            ->orderBy('m_dusun.nama_dusun', 'ASC')
+            ->orderBy('m_rt.no_rt', 'ASC')
+            ->findAll();
+
+        // Ambil laporan yang sudah ada untuk periode ini
+        $rtIds = array_column($allRt, 'id_rt');
+        $laporanAda = [];
+        if (!empty($rtIds)) {
+            $rows = $this->laporanModel
+                ->select('id_laporan, id_rt, bulan, tahun, jiwa_l, jiwa_p, kk_l, kk_p')
+                ->whereIn('id_rt', $rtIds)
+                ->where('bulan', $bulan)
+                ->where('tahun', $tahun)
+                ->findAll();
+            foreach ($rows as $r) {
+                $laporanAda[$r['id_rt']] = $r;
+            }
+        }
+
+        // Gabungkan data RT dengan status laporan
+        $data = [];
+        foreach ($allRt as $rt) {
+            $laporan = $laporanAda[$rt['id_rt']] ?? null;
+            $data[] = array_merge($rt, [
+                'id_laporan' => $laporan['id_laporan'] ?? null,
+                'jiwa_l'     => $laporan['jiwa_l'] ?? 0,
+                'jiwa_p'     => $laporan['jiwa_p'] ?? 0,
+                'kk_l'       => $laporan['kk_l'] ?? 0,
+                'kk_p'       => $laporan['kk_p'] ?? 0,
+            ]);
+        }
+
+        return $this->response->setJSON(['status' => 'success', 'data' => $data]);
+    }
+
     private function writeHeader($sheet, $headers)
     {
         $column = 'A';

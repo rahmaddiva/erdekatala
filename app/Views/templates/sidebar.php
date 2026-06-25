@@ -101,6 +101,40 @@
                         </a>
                     </li>
 
+                    <li class="nav-header">API PUBLIK</li>
+                    <li class="nav-item <?= ($s1 == 'apikeys') ? 'menu-open' : '' ?>">
+                        <a href="#" class="nav-link <?= ($s1 == 'apikeys') ? 'active' : '' ?>">
+                            <i class="nav-icon fas fa-key"></i>
+                            <p>API Key <i class="right fas fa-angle-left"></i></p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="<?= base_url('apikeys') ?>" class="nav-link <?= ($s1 == 'apikeys' && $s2 != 'docs') ? 'active' : '' ?>">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Manajemen API Key</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('api/guide') ?>" class="nav-link" target="_blank">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Panduan Integrasi <i class="fas fa-external-link-alt fa-xs ml-1"></i></p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('api/docs') ?>" class="nav-link" target="_blank">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Dokumentasi API <i class="fas fa-external-link-alt fa-xs ml-1"></i></p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('api/register') ?>" class="nav-link" target="_blank">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Form Registrasi Key <i class="fas fa-external-link-alt fa-xs ml-1"></i></p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
                     <li class="nav-item">
                         <a href="<?= base_url('logout') ?>" class="nav-link text-danger">
                             <i class="nav-icon fas fa-sign-out-alt"></i>
