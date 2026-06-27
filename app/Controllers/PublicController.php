@@ -29,7 +29,7 @@ class PublicController extends BaseController
         $id_kecamatan_filter = $this->request->getGet('id_kecamatan');
         $id_desa_filter      = $this->request->getGet('id_desa');
 
-        $list_kecamatan = $this->kecamatanModel->findAll();
+        $list_kecamatan = $this->kecamatanModel->where('is_public', 1)->findAll();
 
         $list_desa = [];
         if ($id_kecamatan_filter) {
@@ -81,14 +81,20 @@ class PublicController extends BaseController
         $all_kecamatan = $this->kecamatanModel->orderBy('nama_kecamatan', 'ASC')->findAll();
 
         $kec = null;
+        $slugLower = strtolower($slug);
         foreach ($all_kecamatan as $k) {
-            if ($this->slugify($k['nama_kecamatan']) === strtolower($slug)) {
+            $kSlug = $k['slug'] ?: $this->slugify($k['nama_kecamatan']);
+            if ($kSlug === $slugLower) {
                 $kec = $k;
                 break;
             }
         }
 
         if ($kec === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        if (!$kec['is_public']) {
             throw PageNotFoundException::forPageNotFound();
         }
 
@@ -131,12 +137,14 @@ class PublicController extends BaseController
             ? 'Desa ' . $selected_desa['nama_desa']
             : 'Kecamatan ' . $kec['nama_kecamatan'];
 
+        $public_kecamatan = array_filter($all_kecamatan, fn($k) => $k['is_public']);
+
         $data = [
-            'kecamatan'      => $kec,
-            'selected_desa'  => $selected_desa,
-            'list_desa'      => $list_desa,
-            'desa_stats'     => $desa_stats,
-            'all_kecamatan'  => $all_kecamatan,
+            'kecamatan'         => $kec,
+            'selected_desa'     => $selected_desa,
+            'list_desa'         => $list_desa,
+            'desa_stats'        => $desa_stats,
+            'all_kecamatan'     => array_values($public_kecamatan),
             'pendudukKey'    => $pendudukKey,
             'totals'         => $totals,
             'pendidikan'     => $pendidikan,
@@ -185,7 +193,11 @@ class PublicController extends BaseController
             'kk_l'   => 0,
             'kk_p'   => 0,
             'balita' => 0,
+            'remaja' => 0,
+            'lansia' => 0,
             'pus'    => 0,
+            'kb_aktif'         => 0,
+            'alat_kontrasepsi' => 0,
         ];
 
         $pendidikan = [
@@ -264,7 +276,11 @@ class PublicController extends BaseController
             $totals['kk_l']   += $l['kk_l']   ?? 0;
             $totals['kk_p']   += $l['kk_p']   ?? 0;
             $totals['balita'] += $l['jml_balita'] ?? 0;
+            $totals['remaja'] += $l['jml_remaja'] ?? 0;
+            $totals['lansia'] += $l['jml_lansia'] ?? 0;
             $totals['pus']    += $l['jml_pus']    ?? 0;
+            $totals['kb_aktif']         += $l['kb_aktif'] ?? 0;
+            $totals['alat_kontrasepsi'] += $l['jml_penggunaan_alat_kontrasepsi'] ?? 0;
 
             $pendidikan['Tidak Sekolah'] += $l['kk_pend_tidak_sekolah'] ?? 0;
             $pendidikan['SD']            += $l['kk_pend_sd']            ?? 0;

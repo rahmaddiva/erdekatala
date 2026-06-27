@@ -21,6 +21,14 @@ $routes->get('/profile', 'AuthController::profile');
 $routes->post('/profile/update', 'AuthController::update_profile');
 $routes->post('/profile/password', 'AuthController::change_password');
 
+// routes kecamatan
+$routes->get('/kecamatan', 'KecamatanController::index');
+$routes->get('/kecamatan/create', 'KecamatanController::create');
+$routes->post('/kecamatan/store', 'KecamatanController::store');
+$routes->get('/kecamatan/edit/(:num)', 'KecamatanController::edit/$1');
+$routes->post('/kecamatan/update/(:num)', 'KecamatanController::update/$1');
+$routes->post('/kecamatan/delete/(:num)', 'KecamatanController::delete/$1');
+
 // routes desa
 $routes->get('/desa', 'DesaController::index');
 $routes->post('/desa/store', 'DesaController::store');

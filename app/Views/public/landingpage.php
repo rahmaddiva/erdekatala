@@ -7,8 +7,20 @@ $kkL         = (int)($totals['kk_l'] ?? 0);
 $kkP         = (int)($totals['kk_p'] ?? 0);
 $kkTotal     = $kkL + $kkP;
 $balita      = (int)($totals['balita'] ?? 0);
+$remaja      = (int)($totals['remaja'] ?? 0);
+$lansia      = (int)($totals['lansia'] ?? 0);
 $pus         = (int)($totals['pus'] ?? 0);
+$kbAktif     = (int)($totals['kb_aktif'] ?? 0);
+$alatKontra  = (int)($totals['alat_kontrasepsi'] ?? 0);
 $pendudukKey = !empty($filter_kec) ? (esc($filter_desa ? 'Desa' : 'Kecamatan')) : 'Kabupaten';
+
+// Helper untuk format angka
+$fmt = function($n) { return number_format((int)$n, 0, ',', '.'); };
+$pendTotal = array_sum($pendidikan);
+$pekTotal  = array_sum($pekerjaan);
+$kawinTotal = array_sum($status_kawin);
+$jknTotal   = array_sum($jkn_bpjs);
+$dokTotal   = array_sum($dokumen);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -27,6 +39,10 @@ $pendudukKey = !empty($filter_kec) ? (esc($filter_desa ? 'Desa' : 'Kecamatan')) 
     <!-- Vendor CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- DataTables CSS (Bootstrap 5 + Responsive) -->
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
 
     <!-- ZingChart (CDN resmi, sama dengan dashboard) -->
     <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
@@ -499,6 +515,90 @@ $pendudukKey = !empty($filter_kec) ? (esc($filter_desa ? 'Desa' : 'Kecamatan')) 
         }
         .empty-state i { font-size: 2.5rem; color: var(--paper-3); margin-bottom: 0.75rem; display: block; }
 
+        /* ===== TABS ===== */
+        .sikada-tabs {
+            border-bottom: 2px solid var(--border);
+            gap: 0.25rem;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        .sikada-tabs .nav-link {
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.85rem 1.1rem;
+            border-radius: 0;
+            white-space: nowrap;
+            transition: all .2s ease;
+        }
+        .sikada-tabs .nav-link:hover {
+            color: var(--primary);
+            border-bottom-color: var(--paper-3);
+        }
+        .sikada-tabs .nav-link.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: transparent;
+        }
+        .tab-pane { padding-top: 1.5rem; }
+
+        /* ===== DATA TABLE ===== */
+        .dt-wrap {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem 0.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-top: 1.5rem;
+        }
+        .dt-wrap .dt-head {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .dt-wrap .dt-head h3 {
+            font-size: 1rem; font-weight: 700; color: var(--ink); margin: 0;
+        }
+        .dt-wrap .dt-head .crumb {
+            font-size: 0.8rem; color: var(--muted); font-weight: 600;
+        }
+        table.dataTable {
+            border-collapse: separate !important;
+            border-spacing: 0;
+        }
+        table.dataTable thead th {
+            background: var(--paper-2);
+            border-bottom: 1px solid var(--border) !important;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            padding: 0.7rem 1rem;
+        }
+        table.dataTable tbody td {
+            border-bottom: 1px solid var(--border) !important;
+            font-size: 0.9rem;
+            color: var(--ink);
+            padding: 0.6rem 1rem;
+        }
+        table.dataTable tbody tr:hover td {
+            background: rgba(221,72,20,.03) !important;
+        }
+        .dt-num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+        .dt-total { font-weight: 700; color: var(--primary); }
+        .dt-cat { font-weight: 600; color: var(--ink); }
+        .dt-sub { color: var(--ink-soft); }
+        .dt-pct { color: var(--muted); font-size: 0.82rem; }
+        div.dataTables_wrapper div.dataTables_filter input {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.35rem 0.7rem;
+            font-size: 0.85rem;
+        }
+
         /* ===== JELAJAHI KECAMATAN ===== */
         .kec-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -652,125 +752,308 @@ $pendudukKey = !empty($filter_kec) ? (esc($filter_desa ? 'Desa' : 'Kecamatan')) 
             </div>
         </section>
 
-        <!-- ===== PIRAMIDA PENDUDUK (full width) ===== -->
+        <!-- ===== TABS: CHART + DATATABLE ===== -->
         <section class="block" style="padding-top: 0;">
-            <div class="section-head">
-                <h2>Piramida Penduduk</h2>
-                <span class="crumb">Sebaran umur · <strong><?= esc($pendudukKey) ?></strong></span>
-            </div>
-            <div class="chart-card">
-                <div class="chart-head">
-                    <div>
-                        <h3>Distribusi Penduduk per Kelompok Umur</h3>
-                        <p>Batang kiri = Laki-laki, batang kanan = Perempuan (5 tahunan)</p>
-                    </div>
-                    <span class="badge-nde">18 kelompok</span>
-                </div>
-                <div class="chart-wrap"><div id="zc-piramida" class="zc zc-pyramid"></div></div>
-            </div>
-        </section>
+            <ul class="nav nav-tabs sikada-tabs" id="dataTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pokok" type="button" role="tab" aria-selected="true">
+                        <i class="bi bi-people-fill me-1"></i>Data Pokok
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-sosio" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-briefcase-fill me-1"></i>Sosio Ekonomi
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-piramida" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-graph-up me-1"></i>Piramida Penduduk
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-kesehatan" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-heart-pulse-fill me-1"></i>Kesehatan &amp; Dokumen
+                    </button>
+                </li>
+            </ul>
 
-        <!-- ===== PENDIDIKAN + JKN (2 kolom) ===== -->
-        <section class="block" style="padding-top: 1.5rem;">
-            <div class="section-head">
-                <h2>Pendidikan &amp; Kesehatan</h2>
-                <span class="crumb">Tingkat pendidikan KK · cakupan JKN</span>
-            </div>
-            <div class="row g-4">
-                <div class="col-lg-6">
+            <div class="tab-content">
+
+                <!-- ===== TAB 1: DATA POKOK ===== -->
+                <div class="tab-pane fade show active" id="tab-pokok" role="tabpanel">
                     <div class="chart-card">
                         <div class="chart-head">
                             <div>
-                                <h3>Pendidikan Kepala Keluarga</h3>
-                                <p>Distribusi tingkat pendidikan pada Kepala Keluarga</p>
+                                <h3>Perbandingan Laki-laki vs Perempuan</h3>
+                                <p>Total jiwa dan total KK berdasarkan jenis kelamin</p>
                             </div>
-                            <span class="badge-nde">7 tingkat</span>
+                            <span class="badge-nde">2 indikator</span>
                         </div>
-                        <div class="chart-wrap"><div id="zc-pendidikan" class="zc zc-tall"></div></div>
+                        <div class="chart-wrap"><div id="zc-gender" class="zc"></div></div>
+                    </div>
+                    <div class="dt-wrap">
+                        <div class="dt-head">
+                            <h3>Tabel Data Pokok</h3>
+                            <span class="crumb">Jiwa · KK · Kelompok khusus · PUS</span>
+                        </div>
+                        <table id="dt-pokok" class="table table-hover" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Kategori</th>
+                                    <th class="dt-num">Laki-laki</th>
+                                    <th class="dt-num">Perempuan</th>
+                                    <th class="dt-num">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="dt-cat">Jiwa</td>
+                                    <td class="dt-num"><?= $fmt($jiwaL) ?></td>
+                                    <td class="dt-num"><?= $fmt($jiwaP) ?></td>
+                                    <td class="dt-num dt-total"><?= $fmt($jiwaTotal) ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="dt-cat">Kartu Keluarga</td>
+                                    <td class="dt-num"><?= $fmt($kkL) ?></td>
+                                    <td class="dt-num"><?= $fmt($kkP) ?></td>
+                                    <td class="dt-num dt-total"><?= $fmt($kkTotal) ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="dt-cat">Balita</td>
+                                    <td class="dt-num">—</td>
+                                    <td class="dt-num">—</td>
+                                    <td class="dt-num dt-total"><?= $fmt($balita) ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="dt-cat">Remaja</td>
+                                    <td class="dt-num">—</td>
+                                    <td class="dt-num">—</td>
+                                    <td class="dt-num dt-total"><?= $fmt($remaja) ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="dt-cat">Lansia</td>
+                                    <td class="dt-num">—</td>
+                                    <td class="dt-num">—</td>
+                                    <td class="dt-num dt-total"><?= $fmt($lansia) ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="dt-cat">PUS</td>
+                                    <td class="dt-num">—</td>
+                                    <td class="dt-num">—</td>
+                                    <td class="dt-num dt-total"><?= $fmt($pus) ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="col-lg-6">
+
+                <!-- ===== TAB 2: SOSIO EKONOMI ===== -->
+                <div class="tab-pane fade" id="tab-sosio" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <div class="chart-card">
+                                <div class="chart-head">
+                                    <div>
+                                        <h3>Pendidikan Kepala Keluarga</h3>
+                                        <p>Distribusi tingkat pendidikan pada Kepala Keluarga</p>
+                                    </div>
+                                    <span class="badge-nde">7 tingkat</span>
+                                </div>
+                                <div class="chart-wrap"><div id="zc-pendidikan" class="zc zc-tall"></div></div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="chart-card">
+                                <div class="chart-head">
+                                    <div>
+                                        <h3>Status Perkawinan KK</h3>
+                                        <p>Distribusi status perkawinan pada Kepala Keluarga</p>
+                                    </div>
+                                    <span class="badge-nde">4 kategori</span>
+                                </div>
+                                <div class="chart-wrap"><div id="zc-kawin" class="zc zc-tall"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="margin-top: 1.5rem;">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Distribusi Pekerjaan Kepala Keluarga</h3>
+                                <p>Sebaran lapangan pekerjaan utama pada Kepala Keluarga</p>
+                            </div>
+                            <span class="badge-nde">8 jenis</span>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-pekerjaan" class="zc zc-tall"></div></div>
+                    </div>
+                    <div class="dt-wrap">
+                        <div class="dt-head">
+                            <h3>Tabel Sosio Ekonomi</h3>
+                            <span class="crumb">Pendidikan · Pekerjaan · Status Perkawinan</span>
+                        </div>
+                        <table id="dt-sosio" class="table table-hover" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Kategori</th>
+                                    <th>Sub-kategori</th>
+                                    <th class="dt-num">Jumlah</th>
+                                    <th class="dt-num">Persentase</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($pendidikan as $label => $val): ?>
+                                <tr>
+                                    <td class="dt-cat">Pendidikan KK</td>
+                                    <td class="dt-sub"><?= esc($label) ?></td>
+                                    <td class="dt-num"><?= $fmt($val) ?></td>
+                                    <td class="dt-num dt-pct"><?= $pendTotal > 0 ? number_format($val / $pendTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php foreach ($pekerjaan as $label => $val): ?>
+                                <tr>
+                                    <td class="dt-cat">Pekerjaan KK</td>
+                                    <td class="dt-sub"><?= esc($label) ?></td>
+                                    <td class="dt-num"><?= $fmt($val) ?></td>
+                                    <td class="dt-num dt-pct"><?= $pekTotal > 0 ? number_format($val / $pekTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php foreach ($status_kawin as $label => $val): ?>
+                                <tr>
+                                    <td class="dt-cat">Status Perkawinan</td>
+                                    <td class="dt-sub"><?= esc($label) ?></td>
+                                    <td class="dt-num"><?= $fmt($val) ?></td>
+                                    <td class="dt-num dt-pct"><?= $kawinTotal > 0 ? number_format($val / $kawinTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== TAB 3: PIRAMIDA PENDUDUK ===== -->
+                <div class="tab-pane fade" id="tab-piramida" role="tabpanel">
                     <div class="chart-card">
                         <div class="chart-head">
                             <div>
-                                <h3>Cakupan JKN / BPJS</h3>
-                                <p>Peserta PBI, non-PBI, dan tidak memiliki JKN</p>
+                                <h3>Distribusi Penduduk per Kelompok Umur</h3>
+                                <p>Batang kiri = Laki-laki, batang kanan = Perempuan (5 tahunan)</p>
                             </div>
-                            <span class="badge-nde">3 kategori</span>
+                            <span class="badge-nde">18 kelompok</span>
                         </div>
-                        <div class="chart-wrap"><div id="zc-jkn" class="zc zc-tall"></div></div>
+                        <div class="chart-wrap"><div id="zc-piramida" class="zc zc-pyramid"></div></div>
+                    </div>
+                    <div class="dt-wrap">
+                        <div class="dt-head">
+                            <h3>Tabel Piramida Penduduk</h3>
+                            <span class="crumb">18 kelompok umur · L vs P</span>
+                        </div>
+                        <table id="dt-piramida" class="table table-hover" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Kelompok Umur</th>
+                                    <th class="dt-num">Laki-laki</th>
+                                    <th class="dt-num">Perempuan</th>
+                                    <th class="dt-num">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($ageLabels as $i => $label):
+                                    $pl = (int)$piramidaL[$i];
+                                    $pp = (int)$piramidaP[$i];
+                                ?>
+                                <tr>
+                                    <td class="dt-cat"><?= esc($label) ?></td>
+                                    <td class="dt-num"><?= $fmt($pl) ?></td>
+                                    <td class="dt-num"><?= $fmt($pp) ?></td>
+                                    <td class="dt-num dt-total"><?= $fmt($pl + $pp) ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- ===== PEKERJAAN (full width) ===== -->
-        <section class="block" style="padding-top: 1.5rem;">
-            <div class="section-head">
-                <h2>Pekerjaan</h2>
-                <span class="crumb">Bidang pekerjaan KK</span>
-            </div>
-            <div class="chart-card">
-                <div class="chart-head">
-                    <div>
-                        <h3>Distribusi Pekerjaan Kepala Keluarga</h3>
-                        <p>Sebaran lapangan pekerjaan utama pada Kepala Keluarga</p>
-                    </div>
-                    <span class="badge-nde">8 jenis</span>
-                </div>
-                <div class="chart-wrap"><div id="zc-pekerjaan" class="zc zc-tall"></div></div>
-            </div>
-        </section>
-
-        <!-- ===== GENDER (full width) ===== -->
-        <section class="block" style="padding-top: 1.5rem; padding-bottom: 1rem;">
-            <div class="section-head">
-                <h2>Komposisi Gender</h2>
-                <span class="crumb">Jiwa &amp; KK per jenis kelamin</span>
-            </div>
-            <div class="chart-card">
-                <div class="chart-head">
-                    <div>
-                        <h3>Perbandingan Laki-laki vs Perempuan</h3>
-                        <p>Total jiwa dan total KK berdasarkan jenis kelamin</p>
-                    </div>
-                    <span class="badge-nde">2 indikator</span>
-                </div>
-                <div class="chart-wrap"><div id="zc-gender" class="zc"></div></div>
-            </div>
-        </section>
-
-        <!-- ===== STATUS KAWIN + DOKUMEN (2 kolom) ===== -->
-        <section class="block" style="padding-top: 1.5rem;">
-            <div class="section-head">
-                <h2>Status Perkawinan &amp; Dokumen</h2>
-                <span class="crumb">Status KK · kepemilikan dokumen kependudukan</span>
-            </div>
-            <div class="row g-4">
-                <div class="col-lg-6">
-                    <div class="chart-card">
-                        <div class="chart-head">
-                            <div>
-                                <h3>Status Perkawinan KK</h3>
-                                <p>Distribusi status perkawinan pada Kepala Keluarga</p>
+                <!-- ===== TAB 4: KESEHATAN & DOKUMEN ===== -->
+                <div class="tab-pane fade" id="tab-kesehatan" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <div class="chart-card">
+                                <div class="chart-head">
+                                    <div>
+                                        <h3>Cakupan JKN / BPJS</h3>
+                                        <p>Peserta PBI, non-PBI, dan tidak memiliki JKN</p>
+                                    </div>
+                                    <span class="badge-nde">3 kategori</span>
+                                </div>
+                                <div class="chart-wrap"><div id="zc-jkn" class="zc zc-tall"></div></div>
                             </div>
-                            <span class="badge-nde">4 kategori</span>
                         </div>
-                        <div class="chart-wrap"><div id="zc-kawin" class="zc zc-tall"></div></div>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="chart-card">
-                        <div class="chart-head">
-                            <div>
-                                <h3>Dokumen Kependudukan</h3>
-                                <p>Kepemilikan KTP-el, akta lahir, akta nikah, KK fisik</p>
+                        <div class="col-lg-6">
+                            <div class="chart-card">
+                                <div class="chart-head">
+                                    <div>
+                                        <h3>Dokumen Kependudukan</h3>
+                                        <p>Kepemilikan KTP-el, akta lahir, akta nikah, KK fisik</p>
+                                    </div>
+                                    <span class="badge-nde">4 jenis</span>
+                                </div>
+                                <div class="chart-wrap"><div id="zc-dokumen" class="zc zc-tall"></div></div>
                             </div>
-                            <span class="badge-nde">4 jenis</span>
                         </div>
-                        <div class="chart-wrap"><div id="zc-dokumen" class="zc zc-tall"></div></div>
+                    </div>
+                    <div class="dt-wrap">
+                        <div class="dt-head">
+                            <h3>Tabel Kesehatan &amp; Dokumen</h3>
+                            <span class="crumb">JKN/BPJS · Dokumen Kependudukan · KB &amp; PUS</span>
+                        </div>
+                        <table id="dt-kesehatan" class="table table-hover" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Kategori</th>
+                                    <th>Sub-kategori</th>
+                                    <th class="dt-num">Jumlah</th>
+                                    <th class="dt-num">Persentase</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($jkn_bpjs as $label => $val): ?>
+                                <tr>
+                                    <td class="dt-cat">JKN/BPJS</td>
+                                    <td class="dt-sub"><?= esc($label) ?></td>
+                                    <td class="dt-num"><?= $fmt($val) ?></td>
+                                    <td class="dt-num dt-pct"><?= $jknTotal > 0 ? number_format($val / $jknTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php foreach ($dokumen as $label => $val): ?>
+                                <tr>
+                                    <td class="dt-cat">Dokumen</td>
+                                    <td class="dt-sub"><?= esc($label) ?></td>
+                                    <td class="dt-num"><?= $fmt($val) ?></td>
+                                    <td class="dt-num dt-pct"><?= $jiwaTotal > 0 ? number_format($val / $jiwaTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <tr>
+                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-sub">KB Aktif</td>
+                                    <td class="dt-num"><?= $fmt($kbAktif) ?></td>
+                                    <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($kbAktif / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-sub">Jumlah PUS</td>
+                                    <td class="dt-num"><?= $fmt($pus) ?></td>
+                                    <td class="dt-num dt-pct">—</td>
+                                </tr>
+                                <tr>
+                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-sub">Penggunaan Alat Kontrasepsi</td>
+                                    <td class="dt-num"><?= $fmt($alatKontra) ?></td>
+                                    <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($alatKontra / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+
             </div>
         </section>
 
@@ -784,7 +1067,7 @@ $pendudukKey = !empty($filter_kec) ? (esc($filter_desa ? 'Desa' : 'Kecamatan')) 
             </div>
             <div class="kec-grid">
                 <?php foreach ($list_kecamatan as $k): 
-                    $k_slug = strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
+                    $k_slug = $k['slug'] ?: strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
                 ?>
                 <a href="<?= site_url('/' . $k_slug) ?>" class="kec-card">
                     <i class="bi bi-geo-fill"></i>
@@ -1128,8 +1411,88 @@ $pendudukKey = !empty($filter_kec) ? (esc($filter_desa ? 'Desa' : 'Kecamatan')) 
         });
     </script>
 
-    <!-- Bootstrap JS (minimal, untuk dropdown mobile only) -->
+    <!-- jQuery + DataTables + Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const DT_LANG = {
+            sEmptyTable: "Tidak ada data tersedia",
+            sInfo: "",
+            sInfoEmpty: "",
+            sInfoFiltered: "",
+            sInfoPostFix: "",
+            sInfoThousands: ".",
+            sLengthMenu: "",
+            sLoadingRecords: "Memuat...",
+            sProcessing: "Memproses...",
+            sSearch: "Cari:",
+            sZeroRecords: "Data tidak ditemukan",
+            oPaginate: { sFirst: "Awal", sLast: "Akhir", sNext: "Berikut", sPrevious: "Sebelumnya" },
+            oAria: { sSortAscending: ": urutkan naik", sSortDescending: ": urutkan turun" }
+        };
+        const dts = {};
+        dts.pokok = $('#dt-pokok').DataTable({
+            responsive: true, paging: false, searching: true, info: false,
+            language: DT_LANG,
+            columnDefs: [
+                { targets: [1, 2, 3], className: 'text-end dt-num' },
+                { targets: 0, className: 'dt-cat' }
+            ]
+        });
+        dts.sosio = $('#dt-sosio').DataTable({
+            responsive: true, paging: false, searching: true, info: false,
+            language: DT_LANG,
+            columnDefs: [
+                { targets: [2, 3], className: 'text-end dt-num' },
+                { targets: [0], className: 'dt-cat' }
+            ]
+        });
+        dts.piramida = $('#dt-piramida').DataTable({
+            responsive: true, paging: false, searching: true, info: false,
+            language: DT_LANG,
+            columnDefs: [
+                { targets: [1, 2, 3], className: 'text-end dt-num' },
+                { targets: 0, className: 'dt-cat' }
+            ]
+        });
+        dts.kesehatan = $('#dt-kesehatan').DataTable({
+            responsive: true, paging: false, searching: true, info: false,
+            language: DT_LANG,
+            columnDefs: [
+                { targets: [2, 3], className: 'text-end dt-num' },
+                { targets: [0], className: 'dt-cat' }
+            ]
+        });
+        const tabEl = document.getElementById('dataTabs');
+        if (tabEl) {
+            tabEl.addEventListener('shown.bs.tab', function (e) {
+                const targetId = e.target.getAttribute('data-bs-target');
+                const key = targetId.replace('#tab-', '');
+                if (dts[key]) {
+                    dts[key].columns.adjust();
+                    if (dts[key].responsive) dts[key].responsive.rebuild();
+                }
+                const charts = { pokok: 'zc-gender', sosio: null, piramida: 'zc-piramida', kesehatan: null };
+                if (key === 'sosio') {
+                    ['zc-pendidikan', 'zc-kawin', 'zc-pekerjaan'].forEach(function (id) {
+                        try { zingchart.exec(id, 'resize'); } catch (err) {}
+                    });
+                } else if (key === 'kesehatan') {
+                    ['zc-jkn', 'zc-dokumen'].forEach(function (id) {
+                        try { zingchart.exec(id, 'resize'); } catch (err) {}
+                    });
+                } else if (charts[key]) {
+                    try { zingchart.exec(charts[key], 'resize'); } catch (err) {}
+                }
+            });
+        }
+    });
+    </script>
 </body>
 
 </html>

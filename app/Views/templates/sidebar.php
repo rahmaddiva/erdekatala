@@ -46,13 +46,19 @@
                 <!-- MENU ADMIN DESA dan ADMIN DINAS-->
                 <?php if (in_array(session()->get('role'), ['admin_desa', 'admin_dinas'])): ?>
                     <li class="nav-header">MANAJEMEN WILAYAH</li>
-                    <li class="nav-item <?= (in_array($s1, ['desa', 'dusun', 'rt']) ? 'menu-open' : '') ?>">
-                        <a href="#" class="nav-link <?= (in_array($s1, ['desa', 'dusun', 'rt']) ? 'active' : '') ?>">
+                    <li class="nav-item <?= (in_array($s1, ['kecamatan', 'desa', 'dusun', 'rt']) ? 'menu-open' : '') ?>">
+                        <a href="#" class="nav-link <?= (in_array($s1, ['kecamatan', 'desa', 'dusun', 'rt']) ? 'active' : '') ?>">
                             <i class="nav-icon fas fa-map-marked-alt"></i>
                             <p>Master Wilayah <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
                             <?php if (session()->get('role') == 'admin_dinas'): ?>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('kecamatan') ?>" class="nav-link <?= ($s1 == 'kecamatan') ? 'active' : '' ?>">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Data Kecamatan</p>
+                                    </a>
+                                </li>
                                 <li class="nav-item">
                                     <a href="<?= base_url('desa') ?>" class="nav-link <?= ($s1 == 'desa') ? 'active' : '' ?>">
                                         <i class="far fa-circle nav-icon"></i>
