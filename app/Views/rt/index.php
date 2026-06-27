@@ -70,12 +70,14 @@
                                                             title="Edit Data">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <a href="/rt/delete/<?= $d['id_rt'] ?>"
-                                                            class="btn btn-danger btn-sm btn-flat"
-                                                            onclick="return confirm('Apakah Anda yakin ingin menghapus RT ini?')"
-                                                            title="Hapus Data">
-                                                            <i class="fas fa-trash"></i>
-                                                        </a>
+                                                        <form action="/rt/delete/<?= $d['id_rt'] ?>" method="post" style="display:inline">
+                                                            <?= csrf_field() ?>
+                                                            <button type="submit" class="btn btn-danger btn-sm btn-flat"
+                                                                onclick="return confirm('Apakah Anda yakin ingin menghapus RT ini?')"
+                                                                title="Hapus Data">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
                                                     </div>
                                                 </td>
                                             </tr>

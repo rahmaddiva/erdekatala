@@ -6,7 +6,7 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1><i class="fas fa-file-alt mr-2"></i><?= $title ?></h1>
+                    <h1><i class="fas fa-file-alt mr-2"></i><?= esc($title) ?></h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
@@ -231,6 +231,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         $.get('<?= base_url('laporan/detailDesa') ?>/' + idDesa + '?bulan=' + bulan + '&tahun=' + tahun, function (res) {
             if (res.status === 'success') {
+                // Escape untrusted strings from API response before inserting into HTML
+                function esc(str) {
+                    return $('<span>').text(str).html();
+                }
+
                 let html = '<table class="table table-sm table-bordered">';
                 html += '<thead class="bg-light"><tr><th>Dusun</th><th>RT</th><th class="text-center">Status</th><th class="text-center">Jiwa</th><th class="text-center">KK</th><th class="text-center">Aksi</th></tr></thead><tbody>';
 
@@ -242,13 +247,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     const jiwa = row.id_laporan ? (parseInt(row.jiwa_l) + parseInt(row.jiwa_p)).toLocaleString('id-ID') : '-';
                     const kk   = row.id_laporan ? (parseInt(row.kk_l)   + parseInt(row.kk_p)).toLocaleString('id-ID')   : '-';
 
-                    const aksi = row.id_laporan
-                        ? `<a href="/laporan/edit/${row.id_laporan}" class="btn btn-xs btn-warning" title="Edit"><i class="fas fa-edit"></i></a>`
+                    const idLaporan = parseInt(row.id_laporan) || 0;
+                    const aksi = idLaporan
+                        ? `<a href="/laporan/edit/${idLaporan}" class="btn btn-xs btn-warning" title="Edit"><i class="fas fa-edit"></i></a>`
                         : `<a href="/laporan/input" class="btn btn-xs btn-primary" title="Input"><i class="fas fa-plus"></i></a>`;
 
-                    html += `<tr class="${row.id_laporan ? '' : 'table-danger'}">`;
-                    html += `<td>${row.nama_dusun}</td>`;
-                    html += `<td><span class="badge badge-secondary">RT ${row.no_rt}</span></td>`;
+                    html += `<tr class="${idLaporan ? '' : 'table-danger'}">`;
+                    html += `<td>${esc(row.nama_dusun)}</td>`;
+                    html += `<td><span class="badge badge-secondary">RT ${esc(String(row.no_rt))}</span></td>`;
                     html += `<td class="text-center">${statusBadge}</td>`;
                     html += `<td class="text-center">${jiwa}</td>`;
                     html += `<td class="text-center">${kk}</td>`;

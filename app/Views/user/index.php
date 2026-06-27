@@ -52,8 +52,11 @@
                                     </td>
                                     <td>
                                         <a href="/users/edit/<?= $u['id_user'] ?>" class="btn btn-sm btn-primary">Edit</a>
-                                        <a href="#" data-url="/users/delete/<?= $u['id_user'] ?>"
-                                            class="btn btn-sm btn-danger btn-delete-user">Hapus</a>
+                                        <form action="/users/delete/<?= $u['id_user'] ?>" method="post" style="display:inline">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="btn btn-sm btn-danger btn-delete-user"
+                                                data-url="/users/delete/<?= $u['id_user'] ?>">Hapus</button>
+                                        </form>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -55,7 +55,6 @@
 </div>
 
 <script>
-    localStorage.setItem('erdekatala_api_key', '<?= esc($key_value) ?>');
     function copyKey() {
         const key = document.getElementById('apiKey').textContent;
         navigator.clipboard.writeText(key).then(() => {

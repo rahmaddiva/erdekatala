@@ -55,9 +55,10 @@ class ApiKeyAdminController extends BaseController
         }
 
         $keyValue = $this->model->generateKey();
+        $keyHash  = $this->model->hashKey($keyValue);
 
         $this->model->insert([
-            'api_key'    => $keyValue,
+            'api_key'    => $keyHash,
             'name'       => $this->request->getPost('label'),
             'email'      => $this->request->getPost('owner_email'),
             'rate_limit' => $this->request->getPost('rate_limit'),

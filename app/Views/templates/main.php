@@ -479,7 +479,7 @@
             <?php if (session()->getFlashdata('error')): ?>
                 Toast.fire({
                     icon: 'error',
-                    title: '<?= session()->getFlashdata('error') ?>'
+                    title: <?= json_encode(session()->getFlashdata('error')) ?>
                 });
             <?php endif; ?>
 
@@ -487,7 +487,7 @@
             <?php if (session()->getFlashdata('success')): ?>
                 Toast.fire({
                     icon: 'success',
-                    title: '<?= session()->getFlashdata('success') ?>'
+                    title: <?= json_encode(session()->getFlashdata('success')) ?>
                 });
             <?php endif; ?>
 

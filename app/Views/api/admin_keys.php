@@ -6,7 +6,7 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1 class="m-0 font-weight-bold"><?= $title ?></h1>
+                    <h1 class="m-0 font-weight-bold"><?= esc($title) ?></h1>
                 </div>
                 <div class="col-sm-6 text-right">
                     <a href="<?= base_url('apikeys/create') ?>" class="btn btn-primary">
@@ -128,22 +128,28 @@
                                         </td>
                                         <td class="text-center">
                                             <?php if ($k['is_active'] == 1): ?>
-                                                <a href="<?= base_url('apikeys/revoke/' . $k['id']) ?>"
-                                                   class="btn btn-warning btn-xs"
-                                                   onclick="return confirm('Nonaktifkan key ini?')">
-                                                    <i class="fas fa-ban"></i>
-                                                </a>
+                                                <form action="<?= base_url('apikeys/revoke/' . $k['id']) ?>" method="post" style="display:inline">
+                                                    <?= csrf_field() ?>
+                                                    <button type="submit" class="btn btn-warning btn-xs"
+                                                        onclick="return confirm('Nonaktifkan key ini?')">
+                                                        <i class="fas fa-ban"></i>
+                                                    </button>
+                                                </form>
                                             <?php else: ?>
-                                                <a href="<?= base_url('apikeys/activate/' . $k['id']) ?>"
-                                                   class="btn btn-success btn-xs">
-                                                    <i class="fas fa-check"></i>
-                                                </a>
+                                                <form action="<?= base_url('apikeys/activate/' . $k['id']) ?>" method="post" style="display:inline">
+                                                    <?= csrf_field() ?>
+                                                    <button type="submit" class="btn btn-success btn-xs">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                </form>
                                             <?php endif; ?>
-                                            <a href="<?= base_url('apikeys/delete/' . $k['id']) ?>"
-                                               class="btn btn-danger btn-xs ml-1"
-                                               onclick="return confirm('Hapus permanen key ini?')">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
+                                            <form action="<?= base_url('apikeys/delete/' . $k['id']) ?>" method="post" style="display:inline">
+                                                <?= csrf_field() ?>
+                                                <button type="submit" class="btn btn-danger btn-xs ml-1"
+                                                    onclick="return confirm('Hapus permanen key ini?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>

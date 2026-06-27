@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?= $title ?></title>
+    <title><?= esc($title) ?></title>
     <style>
         @page { margin: 1.2cm; }
         body { font-family: 'Helvetica', sans-serif; font-size: 7pt; color: #333; line-height: 1.2; }

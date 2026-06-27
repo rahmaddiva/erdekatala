@@ -25,19 +25,19 @@ $routes->post('/profile/password', 'AuthController::change_password');
 $routes->get('/desa', 'DesaController::index');
 $routes->post('/desa/store', 'DesaController::store');
 $routes->post('/desa/update/(:num)', 'DesaController::update/$1');
-$routes->get('/desa/delete/(:num)', 'DesaController::delete/$1');
+$routes->post('/desa/delete/(:num)', 'DesaController::delete/$1');
 
 // routes dusun
 $routes->get('/dusun', 'DusunController::index');
 $routes->post('/dusun/store', 'DusunController::store');
 $routes->post('/dusun/update/(:num)', 'DusunController::update/$1');
-$routes->get('/dusun/delete/(:num)', 'DusunController::delete/$1');
+$routes->post('/dusun/delete/(:num)', 'DusunController::delete/$1');
 
 // routes rt
 $routes->get('/rt', 'RtController::index');
 $routes->post('/rt/store', 'RtController::store');
 $routes->post('/rt/update/(:num)', 'RtController::update/$1');
-$routes->get('/rt/delete/(:num)', 'RtController::delete/$1');
+$routes->post('/rt/delete/(:num)', 'RtController::delete/$1');
 
 // routes laporan agregat
 $routes->get('/laporan', 'LaporanAgregatController::index');
@@ -46,7 +46,7 @@ $routes->get('/laporan/input', 'LaporanAgregatController::create');
 $routes->post('/laporan/store', 'LaporanAgregatController::store');
 $routes->get('/laporan/edit/(:num)', 'LaporanAgregatController::edit/$1');
 $routes->post('/laporan/update/(:num)', 'LaporanAgregatController::update/$1');
-$routes->get('/laporan/delete/(:num)', 'LaporanAgregatController::delete/$1');
+$routes->post('/laporan/delete/(:num)', 'LaporanAgregatController::delete/$1');
 $routes->get('laporan/export-options', 'LaporanAgregatController::exportOptions');
 $routes->post('laporan/export-options', 'LaporanAgregatController::exportOptions');
 $routes->get('laporan/export/(:any)', 'LaporanAgregatController::export/$1');
@@ -64,7 +64,7 @@ $routes->get('/users/create', 'UserController::create');
 $routes->post('/users/store', 'UserController::store');
 $routes->get('/users/edit/(:num)', 'UserController::edit/$1');
 $routes->post('/users/update/(:num)', 'UserController::update/$1');
-$routes->get('/users/delete/(:num)', 'UserController::delete/$1');
+$routes->post('/users/delete/(:num)', 'UserController::delete/$1');
 
 // -------------------------------------------------------
 // API Public Routes (filter: apikeyauth)
@@ -91,6 +91,6 @@ $routes->group('api', function ($routes) {
 $routes->get('/apikeys',                 'ApiKeyAdminController::index');
 $routes->get('/apikeys/create',          'ApiKeyAdminController::create');
 $routes->post('/apikeys/store',          'ApiKeyAdminController::store');
-$routes->get('/apikeys/revoke/(:num)',    'ApiKeyAdminController::revoke/$1');
-$routes->get('/apikeys/activate/(:num)', 'ApiKeyAdminController::activate/$1');
-$routes->get('/apikeys/delete/(:num)',   'ApiKeyAdminController::delete/$1');
+$routes->post('/apikeys/revoke/(:num)',   'ApiKeyAdminController::revoke/$1');
+$routes->post('/apikeys/activate/(:num)','ApiKeyAdminController::activate/$1');
+$routes->post('/apikeys/delete/(:num)',  'ApiKeyAdminController::delete/$1');

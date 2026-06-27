@@ -6,7 +6,7 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1 class="m-0 font-weight-bold"><?= $title ?></h1>
+                    <h1 class="m-0 font-weight-bold"><?= esc($title) ?></h1>
                 </div>
             </div>
         </div>
@@ -57,12 +57,14 @@
                                                             title="Edit Data">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <a href="/desa/delete/<?= $d['id_desa'] ?>"
-                                                            class="btn btn-danger btn-sm btn-flat"
-                                                            onclick="return confirm('Apakah Anda yakin ingin menghapus desa ini?')"
-                                                            title="Hapus Data">
-                                                            <i class="fas fa-trash"></i>
-                                                        </a>
+                                                        <form action="/desa/delete/<?= $d['id_desa'] ?>" method="post" style="display:inline">
+                                                            <?= csrf_field() ?>
+                                                            <button type="submit" class="btn btn-danger btn-sm btn-flat"
+                                                                onclick="return confirm('Apakah Anda yakin ingin menghapus desa ini?')"
+                                                                title="Hapus Data">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
                                                     </div>
                                                 </td>
                                             </tr>

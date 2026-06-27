@@ -43,9 +43,10 @@ class ApiDocsController extends BaseController
 
         $model    = new ApiKeyModel();
         $keyValue = $model->generateKey();
+        $keyHash  = $model->hashKey($keyValue);
 
         $model->insert([
-            'api_key'    => $keyValue,
+            'api_key'    => $keyHash,
             'name'       => $this->request->getPost('owner_name') . ' - ' . $this->request->getPost('label'),
             'email'      => $this->request->getPost('owner_email'),
             'is_active'  => 1,

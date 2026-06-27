@@ -17,23 +17,31 @@ class ApiKeyModel extends Model
         'created_by', 'last_used_at',
     ];
 
-    // Validasi ditangani di controller, bukan di model
     protected $validationRules = [];
 
+    // Generate plaintext key (64-char hex) -- caller hashes before storing
     public function generateKey(): string
     {
-        return bin2hex(random_bytes(32)); // 64-char hex
+        return bin2hex(random_bytes(32));
     }
 
-    // Validasi key: cek aktif, lalu rate limit harian via cache file
+    // Hash key for storage/lookup -- use SHA-256
+    public function hashKey(string $plaintext): string
+    {
+        return hash('sha256', $plaintext);
+    }
+
+    // Validate key: lookup by hash, check active, then atomic rate limit
     public function validateKey(string $keyValue): ?array
     {
-        // Sanitasi: hanya hex string yang valid
+        // Sanitasi format
         if (!preg_match('/^[a-f0-9]{32,64}$/', $keyValue)) {
             return null;
         }
 
-        $key = $this->where('api_key', $keyValue)
+        $keyHash = $this->hashKey($keyValue);
+
+        $key = $this->where('api_key', $keyHash)
                     ->where('is_active', 1)
                     ->first();
 
@@ -41,30 +49,40 @@ class ApiKeyModel extends Model
             return null;
         }
 
-        // Rate limiting harian via file cache (karena tabel tidak punya counter)
+        // Atomic rate limit check + increment via exclusive file lock
         $today     = date('Ymd');
-        $cacheFile = WRITEPATH . 'cache/api_rl_' . md5($keyValue) . '_' . $today . '.txt';
-        $count     = file_exists($cacheFile) ? (int) file_get_contents($cacheFile) : 0;
+        $cacheFile = WRITEPATH . 'cache/api_rl_' . md5($keyHash) . '_' . $today . '.txt';
 
-        if ($count >= (int) $key['rate_limit']) {
-            $key['_rate_exceeded'] = true;
-            $key['_requests_today'] = $count;
-            return $key; // kembalikan dengan flag exceeded
+        $fp = fopen($cacheFile, 'c+');
+        if (!$fp) {
+            return $key; // jika file tidak bisa dibuka, izinkan request
         }
 
-        $key['_requests_today'] = $count;
+        flock($fp, LOCK_EX);
+        $count = (int) stream_get_contents($fp);
+
+        if ($count >= (int) $key['rate_limit']) {
+            flock($fp, LOCK_UN);
+            fclose($fp);
+            $key['_rate_exceeded']  = true;
+            $key['_requests_today'] = $count;
+            return $key;
+        }
+
+        // Increment atomically
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, $count + 1);
+        flock($fp, LOCK_UN);
+        fclose($fp);
+
+        $key['_requests_today'] = $count + 1;
         return $key;
     }
 
-    public function incrementUsage(int $id, string $keyValue): void
+    public function incrementUsage(int $id): void
     {
-        // Update last_used_at di DB
         $this->db->query('UPDATE api_keys SET last_used_at = NOW() WHERE id = ?', [$id]);
-
-        // Increment file counter
-        $today     = date('Ymd');
-        $cacheFile = WRITEPATH . 'cache/api_rl_' . md5($keyValue) . '_' . $today . '.txt';
-        $count     = file_exists($cacheFile) ? (int) file_get_contents($cacheFile) : 0;
-        file_put_contents($cacheFile, $count + 1, LOCK_EX);
     }
 }
+

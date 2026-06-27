@@ -110,6 +110,8 @@ class AuthController extends BaseController
         $password = $this->request->getPost('password');
         $user = $this->userModel->where('username', $username)->first();
         if ($user && password_verify($password, $user['password'])) {
+            // regenerate session ID to prevent session fixation
+            $this->session->regenerate(true);
             // set session
             $this->session->set('id_user', $user['id_user']);
             $this->session->set('id_kecamatan', $user['id_kecamatan']);

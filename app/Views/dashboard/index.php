@@ -6,7 +6,7 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1 class="m-0"><i class="fas fa-chart-line mr-2"></i><?= $title ?></h1>
+                    <h1 class="m-0"><i class="fas fa-chart-line mr-2"></i><?= esc($title) ?></h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">

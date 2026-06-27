@@ -75,15 +75,14 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
-            // 'honeypot',
-            // 'csrf',
-            // 'invalidchars',
+            'honeypot',
+            'csrf'      => ['except' => ['api/v1/*']],
             // Require login for most pages; exclude pages needed for authentication and public assets
             'loggedin' => ['except' => ['/', 'login', 'proses_login', 'public/*', 'assets/*', 'favicon.ico', 'api/*']],
         ],
         'after' => [
             // 'honeypot',
-            // 'secureheaders',
+            'secureheaders',
         ],
     ];
 

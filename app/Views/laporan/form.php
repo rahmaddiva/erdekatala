@@ -4,7 +4,7 @@
 <div class="content-wrapper">
     <section class="content-header">
         <div class="container-fluid">
-            <h1><?= $title ?></h1>
+            <h1><?= esc($title) ?></h1>
             <!-- peringatan -->
             <div class="alert alert-info alert-dismissible mt-1">
                 <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>

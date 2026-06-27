@@ -217,7 +217,16 @@
 
                         function confirmDelete(id) {
                             if (confirm('Hapus data laporan ini?')) {
-                                window.location.href = '/laporan/delete/' + id;
+                                const form = document.createElement('form');
+                                form.method = 'POST';
+                                form.action = '/laporan/delete/' + id;
+                                const csrf = document.createElement('input');
+                                csrf.type = 'hidden';
+                                csrf.name = '<?= csrf_token() ?>';
+                                csrf.value = '<?= csrf_hash() ?>';
+                                form.appendChild(csrf);
+                                document.body.appendChild(form);
+                                form.submit();
                             }
                         }
                     </script>

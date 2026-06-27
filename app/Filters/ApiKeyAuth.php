@@ -45,7 +45,7 @@ class ApiKeyAuth implements FilterInterface
         }
 
         // Increment usage
-        $model->incrementUsage($key['id'], $key['api_key']);
+        $model->incrementUsage($key['id']);
         $request->apiKey = $key;
 
         return $request;
@@ -62,8 +62,9 @@ class ApiKeyAuth implements FilterInterface
 
         // Rate limit info headers
         if (isset($request->apiKey)) {
-            $key   = $request->apiKey;
-            $today = date('Ymd');
+            $key      = $request->apiKey;
+            $today    = date('Ymd');
+            // cache file menggunakan hash dari api_key (yang sudah di-hash di DB)
             $cache = WRITEPATH . 'cache/api_rl_' . md5($key['api_key']) . '_' . $today . '.txt';
             $used  = file_exists($cache) ? (int) file_get_contents($cache) : 0;
 

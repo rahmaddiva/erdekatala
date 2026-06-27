@@ -6,7 +6,7 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1><i class="fas fa-file-alt mr-2"></i><?= $title ?></h1>
+                    <h1><i class="fas fa-file-alt mr-2"></i><?= esc($title) ?></h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
@@ -245,7 +245,16 @@
 <script>
 function confirmDelete(id) {
     if (confirm('Hapus data laporan ini?')) {
-        window.location.href = '/laporan/delete/' + id;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/laporan/delete/' + id;
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = '<?= csrf_token() ?>';
+        csrf.value = '<?= csrf_hash() ?>';
+        form.appendChild(csrf);
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 </script>
