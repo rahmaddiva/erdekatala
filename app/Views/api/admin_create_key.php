@@ -42,6 +42,13 @@
                                 <?= csrf_field() ?>
 
                                 <div class="form-group">
+                                    <label>Nama Pemilik</label>
+                                    <input type="text" name="owner_name" class="form-control"
+                                           placeholder="Nama lengkap pemilik key"
+                                           value="<?= esc($old['owner_name'] ?? '') ?>">
+                                </div>
+
+                                <div class="form-group">
                                     <label>Nama / Label <span class="text-danger">*</span></label>
                                     <input type="text" name="label" class="form-control"
                                            placeholder="Misal: Website Desa Kurau"

@@ -1,7 +1,7 @@
 <!-- Main Footer -->
 <footer class="main-footer">
     <strong>Copyright &copy;
-        <?= date('Y'); ?> <a href="https://example.com">ErdekaTala</a>.
+        <?= date('Y'); ?> <a href="https://example.com">Sikada Tala</a>.
     </strong>
     All rights reserved.
     <div class="float-right d-none d-sm-inline-block">

@@ -1,14 +1,14 @@
-# AGENTS.md — Erdekatala Project
+# AGENTS.md — Sikada Tala Project
 
-Dokumen ini menjelaskan konteks lengkap project Erdekatala untuk model AI atau agent yang bekerja di repository ini.
+Dokumen ini menjelaskan konteks lengkap project Sikada Tala untuk model AI atau agent yang bekerja di repository ini.
 
 ---
 
 ## Gambaran Umum
 
-**Erdekatala** adalah sistem informasi kependudukan berbasis web untuk pemerintah daerah Kabupaten Tanah Laut, Kalimantan Selatan. Aplikasi ini digunakan untuk pencatatan, pelaporan, dan visualisasi data agregat kependudukan tingkat RT, mulai dari data jiwa, KK, pendidikan, pekerjaan, kesehatan (JKN/BPJS), hingga KB dan PUS.
+**Sikada Tala** adalah sistem informasi kependudukan berbasis web untuk pemerintah daerah Kabupaten Tanah Laut, Kalimantan Selatan. Aplikasi ini digunakan untuk pencatatan, pelaporan, dan visualisasi data agregat kependudukan tingkat RT, mulai dari data jiwa, KK, pendidikan, pekerjaan, kesehatan (JKN/BPJS), hingga KB dan PUS.
 
-Nama "Erdekatala" berasal dari singkatan RT-RW-Desa-Kecamatan-Laporan-Agregat.
+Nama "Sikada Tala" berasal dari singkatan RT-RW-Desa-Kecamatan-Laporan-Agregat.
 
 ---
 
@@ -30,7 +30,7 @@ Nama "Erdekatala" berasal dari singkatan RT-RW-Desa-Kecamatan-Laporan-Agregat.
 ## Struktur Direktori Penting
 
 ```
-erdekatala/
+sikadatala/
 ├── app/
 │   ├── Config/
 │   │   ├── Routes.php          # Semua route aplikasi

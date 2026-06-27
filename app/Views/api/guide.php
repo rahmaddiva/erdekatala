@@ -1,29 +1,76 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panduan Integrasi API - Erdekatala</title>
+<title>Panduan Integrasi API - Sikada Tala</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-body{background:#f4f6f9;font-family:"Segoe UI",sans-serif;}
-.guide-header{background:linear-gradient(135deg,#1a73e8,#0d47a1);color:#fff;padding:32px 0;}
-.guide-header h1{font-size:2rem;font-weight:700;}
-.guide-header p{opacity:.85;}
-.step-badge{background:#1a73e8;color:#fff;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;margin-right:10px;flex-shrink:0;}
-.step-card{border:none;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:24px;}
-.step-card .card-header{background:#fff;border-bottom:2px solid #e8eaf6;border-radius:10px 10px 0 0!important;padding:16px 20px;display:flex;align-items:center;}
-.step-card .card-header h5{margin:0;font-weight:700;color:#1a237e;}
+:root{
+    --ink:#0f1923; --ink-2:#1a2733;
+    --primary:#dd4814; --primary-d:#b83a10;
+    --paper:#f7f5f1; --paper-2:#ffffff;
+    --line:#e5e1d8; --muted:#6b7280;
+}
+body{background:var(--paper);font-family:"Source Sans 3",sans-serif;color:var(--ink);}
+h1,h2,h3,h4,h5{font-family:"Libre Baskerville",serif;}
+
+.guide-header{
+    background:var(--ink);color:#fff;padding:28px 0;
+    border-bottom:3px solid var(--primary);
+    box-shadow:0 2px 12px rgba(0,0,0,0.2);
+}
+.guide-header .brand{display:flex;align-items:center;gap:14px;}
+.guide-header .brand-mark{
+    width:44px;height:44px;background:var(--primary);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Libre Baskerville",serif;font-weight:700;font-size:1.5rem;color:#fff;flex-shrink:0;
+}
+.guide-header h1{font-size:1.7rem;font-weight:700;margin:0;}
+.guide-header p{opacity:0.7;font-weight:300;margin-bottom:0;}
+.guide-header .btn-light{background:#fff;color:var(--ink);border:none;font-weight:600;}
+.guide-header .btn-light:hover{background:#eee;}
+.guide-header .btn-warning{background:var(--primary);color:#fff;border:none;font-weight:600;}
+.guide-header .btn-warning:hover{background:var(--primary-d);color:#fff;}
+
+.step-badge{
+    background:var(--primary);color:#fff;width:32px;height:32px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:.9rem;margin-right:10px;flex-shrink:0;
+}
+.step-card{border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 4px rgba(15,25,35,.06);margin-bottom:24px;background:var(--paper-2);}
+.step-card .card-header{background:var(--paper-2);border-bottom:2px solid var(--line);border-radius:10px 10px 0 0!important;padding:16px 20px;display:flex;align-items:center;}
+.step-card .card-header h5{margin:0;font-weight:700;color:var(--ink);}
 pre code{font-size:.82rem;border-radius:6px;}
-.nav-lang .nav-link{color:#1a73e8;border-radius:6px 6px 0 0;}
-.nav-lang .nav-link.active{background:#1a73e8;color:#fff;}
+.nav-lang .nav-link{color:var(--primary);border-radius:6px 6px 0 0;font-weight:600;}
+.nav-lang .nav-link.active{background:var(--primary);color:#fff;}
 .sidebar{position:sticky;top:20px;}
-.sidebar .nav-link{color:#555;padding:6px 12px;border-left:2px solid transparent;}
-.sidebar .nav-link:hover,.sidebar .nav-link.active{color:#1a73e8;border-left:2px solid #1a73e8;}
-.base-url-box{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:12px 16px;font-family:monospace;font-size:.9rem;color:#1b5e20;}
-.key-box{background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;padding:12px 16px;font-family:monospace;font-size:.88rem;}
+.sidebar .nav-link{color:#555;padding:6px 12px;border-left:2px solid transparent;font-weight:500;}
+.sidebar .nav-link:hover,.sidebar .nav-link.active{color:var(--primary);border-left:2px solid var(--primary);}
+.base-url-box{background:rgba(15,25,35,0.04);border:1px solid var(--line);border-radius:6px;padding:12px 16px;font-family:monospace;font-size:.9rem;color:var(--ink);}
+.key-box{background:rgba(221,72,20,0.06);border:1px solid rgba(221,72,20,0.25);border-radius:6px;padding:12px 16px;font-family:monospace;font-size:.88rem;color:var(--ink);}
+.card{background:var(--paper-2);border:1px solid var(--line);}
+.table-bordered{border:1px solid var(--line);}
+.table thead th{background:rgba(15,25,35,0.04);color:var(--muted);border-bottom:2px solid var(--line);font-weight:600;}
+.table td,.table th{border-top:1px solid var(--line);}
+.alert-warning{background:rgba(221,72,20,0.08);border:1px solid rgba(221,72,20,0.25);color:var(--ink);}
+.alert-warning hr{border-top-color:rgba(221,72,20,0.2);}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}
+.btn-primary:hover{background:var(--primary-d);border-color:var(--primary-d);}
+.btn-success{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}
+.btn-success:hover{background:var(--primary-d);border-color:var(--primary-d);}
+.badge-success{background:var(--primary);color:#fff;}
+.guide-footer{
+    background:var(--ink);color:rgba(255,255,255,0.55);text-align:center;
+    padding:22px;font-size:0.83rem;border-top:3px solid var(--primary);line-height:1.7;margin-top:40px;
+}
+.guide-footer a{color:var(--primary);text-decoration:none;font-weight:600;}
+.guide-footer a:hover{text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -32,8 +79,13 @@ pre code{font-size:.82rem;border-radius:6px;}
 <div class="container">
 <div class="row align-items-center">
 <div class="col-md-8">
-<h1><i class="fas fa-code mr-3"></i>Panduan Integrasi API Erdekatala</h1>
+<div class="brand">
+<div class="brand-mark">S</div>
+<div>
+<h1>Panduan Integrasi API Sikada Tala</h1>
 <p class="mb-0">Panduan lengkap mengambil dan menampilkan data kependudukan Tanah Laut ke website Anda</p>
+</div>
+</div>
 </div>
 <div class="col-md-4 text-md-right mt-3 mt-md-0">
 <a href="/api/docs" class="btn btn-light btn-sm mr-2"><i class="fas fa-book mr-1"></i>Dokumentasi API</a>
@@ -86,7 +138,7 @@ pre code{font-size:.82rem;border-radius:6px;}
 <div class="step-card card" id="step2">
 <div class="card-header"><span class="step-badge">2</span><h5>Base URL dan Endpoint</h5></div>
 <div class="card-body">
-<div class="base-url-box mb-3"><strong>Base URL:</strong> https://erdekatala.test/api/v1</div>
+<div class="base-url-box mb-3"><strong>Base URL:</strong> https://sikadatala.test/api/v1</div>
 <table class="table table-bordered table-sm">
 <thead class="thead-light"><tr><th>Method</th><th>Endpoint</th><th>Keterangan</th></tr></thead>
 <tbody>
@@ -121,7 +173,7 @@ pre code{font-size:.82rem;border-radius:6px;}
 <div class="tab-pane active" id="php-curl">
 <pre><code class="language-php">&lt;?php
 define('API_KEY', 'YOUR_API_KEY');
-define('API_BASE', 'https://erdekatala.test/api/v1');
+define('API_BASE', 'https://sikadatala.test/api/v1');
 
 function apiGet(string $endpoint, array $params = []): array {
     $url = API_BASE . $endpoint;
@@ -158,7 +210,7 @@ require 'vendor/autoload.php';
 use GuzzleHttp\Client;
 
 $client = new Client([
-    'base_uri' =&gt; 'https://erdekatala.test/api/v1/',
+    'base_uri' =&gt; 'https://sikadatala.test/api/v1/',
     'headers'  =&gt; ['Authorization' =&gt; 'Bearer YOUR_API_KEY'],
     'timeout'  =&gt; 10,
 ]);
@@ -181,7 +233,7 @@ echo "Total data: " . $data['total'];
 <pre><code class="language-php">&lt;?php
 // Ambil dan tampilkan rekap kecamatan dalam tabel HTML
 define('API_KEY', 'YOUR_API_KEY');
-define('API_BASE', 'https://erdekatala.test/api/v1');
+define('API_BASE', 'https://sikadatala.test/api/v1');
 
 $ch = curl_init(API_BASE . '/laporan/rekap/kecamatan');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -218,7 +270,7 @@ curl_close($ch);
 <div class="tab-content">
 <div class="tab-pane active" id="js-fetch">
 <pre><code class="language-javascript">const API_KEY  = 'YOUR_API_KEY';
-const API_BASE = 'https://erdekatala.test/api/v1';
+const API_BASE = 'https://sikadatala.test/api/v1';
 
 async function apiGet(endpoint, params = {}) {
     const url = new URL(API_BASE + endpoint);
@@ -256,7 +308,7 @@ async function loadRekap() {
         type: 'bar',
         data: {
             labels,
-            datasets: [{ label: 'Total Jiwa', data: values, backgroundColor: '#1a73e8' }]
+            datasets: [{ label: 'Total Jiwa', data: values, backgroundColor: '#dd4814' }]
         }
     });
 }
@@ -266,7 +318,7 @@ loadRekap();</code></pre>
 </div>
 <div class="tab-pane" id="js-jquery">
 <pre><code class="language-javascript">const API_KEY  = 'YOUR_API_KEY';
-const API_BASE = 'https://erdekatala.test/api/v1';
+const API_BASE = 'https://sikadatala.test/api/v1';
 
 // Ambil rekap kecamatan
 $.ajax({
@@ -309,7 +361,7 @@ function loadDesa(idKecamatan) {
 <pre><code class="language-python">import requests
 
 API_KEY  = "YOUR_API_KEY"
-API_BASE = "https://erdekatala.test/api/v1"
+API_BASE = "https://sikadatala.test/api/v1"
 HEADERS  = {"Authorization": f"Bearer {API_KEY}"}
 
 def api_get(endpoint, params=None):
@@ -345,8 +397,8 @@ print("Data disimpan ke rekap_kependudukan.csv")</code></pre>
 <div class="card-body">
 <pre><code class="language-jsx">import { useState, useEffect } from "react";
 
-const API_KEY  = process.env.REACT_APP_ERDEKATALA_KEY;
-const API_BASE = "https://erdekatala.test/api/v1";
+const API_KEY  = process.env.REACT_APP_SIKADA_KEY;
+const API_BASE = "https://sikadatala.test/api/v1";
 
 async function apiGet(endpoint, params = {}) {
     const url = new URL(API_BASE + endpoint);
@@ -389,7 +441,7 @@ export function TabelKecamatan() {
     );
 }</code></pre>
 <div class="alert alert-info mb-0 mt-3">
-<i class="fas fa-info-circle mr-2"></i>Simpan API key di file <code>.env</code>: <code>REACT_APP_ERDEKATALA_KEY=your_key_here</code>
+<i class="fas fa-info-circle mr-2"></i>Simpan API key di file <code>.env</code>: <code>REACT_APP_SIKADA_KEY=your_key_here</code>
 </div>
 </div>
 </div>
@@ -421,7 +473,7 @@ export default {
   },
   async created() {
     try {
-      const res = await fetch("https://erdekatala.test/api/v1/laporan/rekap/kecamatan", {
+      const res = await fetch("https://sikadatala.test/api/v1/laporan/rekap/kecamatan", {
         headers: { Authorization: "Bearer " + import.meta.env.VITE_API_KEY }
       });
       const json = await res.json();
@@ -456,7 +508,7 @@ export default {
 <pre><code class="language-javascript">// Contoh error handling lengkap
 async function safeApiGet(endpoint, params = {}) {
     try {
-        const url = new URL("https://erdekatala.test/api/v1" + endpoint);
+        const url = new URL("https://sikadatala.test/api/v1" + endpoint);
         Object.entries(params).forEach(([k, v]) =&gt; url.searchParams.set(k, v));
 
         const res = await fetch(url, {
@@ -488,6 +540,11 @@ async function safeApiGet(endpoint, params = {}) {
 
 </div>
 </div>
+</div>
+
+<div class="guide-footer">
+    Sikada Tala &middot; Sistem Informasi Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan<br>
+    <a href="/api/docs">Dokumentasi</a> &middot; <a href="/api/guide">Panduan</a> &middot; <a href="/api/register">Daftar API Key</a> &middot; <a href="/">Beranda</a>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>

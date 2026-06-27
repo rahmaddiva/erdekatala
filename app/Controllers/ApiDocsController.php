@@ -47,7 +47,9 @@ class ApiDocsController extends BaseController
 
         $model->insert([
             'api_key'    => $keyHash,
-            'name'       => $this->request->getPost('owner_name') . ' - ' . $this->request->getPost('label'),
+            'name'       => $this->request->getPost('label'),
+            'owner_name' => $this->request->getPost('owner_name'),
+            'owner_org'  => $this->request->getPost('owner_org'),
             'email'      => $this->request->getPost('owner_email'),
             'is_active'  => 1,
             'rate_limit' => 1000,

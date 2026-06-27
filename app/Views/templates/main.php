@@ -4,11 +4,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ERDEKATALA |
-        <?= $title ?>
+    <title>SIKADA TALA |
+        <?= esc($title) ?>
     </title>
 
-    <link rel="icon" type="image/png" href="<?= base_url('assets/') ?>dist/img/erdekataladark.png">
+    <link rel="icon" type="image/png" href="<?= base_url('assets/') ?>dist/img/sikadataladark.png">
 
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet"
@@ -342,7 +342,7 @@
 
         <!-- Preloader -->
         <div id="preloader" aria-hidden="true">
-            <img class="preloader-logo" src="<?= base_url('assets/') ?>dist/img/erdekatala.png" alt="ERDEKATALA Logo">
+            <img class="preloader-logo" src="<?= base_url('assets/') ?>dist/img/sikadatala.png" alt="SIKADA TALA Logo">
             <div class="preloader-spinner" role="status" aria-label="Loading"></div>
             <div class="preloader-text">Memuat…</div>
         </div>
@@ -519,7 +519,7 @@
         // ============================================================
         (function () {
             // Terapkan tema sesegera mungkin sebelum render untuk hindari flash
-            var saved = localStorage.getItem('erdekatala_theme') || 'dark';
+            var saved = localStorage.getItem('sikada_theme') || 'dark';
             if (saved === 'dark') {
                 document.body.classList.add('dark-mode');
             } else {
@@ -535,16 +535,16 @@
                 if (mode === 'dark') {
                     $body.addClass('dark-mode');
                     $icon.removeClass('fa-moon').addClass('fa-sun');
-                    localStorage.setItem('erdekatala_theme', 'dark');
+                    localStorage.setItem('sikada_theme', 'dark');
                 } else {
                     $body.removeClass('dark-mode');
                     $icon.removeClass('fa-sun').addClass('fa-moon');
-                    localStorage.setItem('erdekatala_theme', 'light');
+                    localStorage.setItem('sikada_theme', 'light');
                 }
             }
 
             // Inisialisasi ikon sesuai mode tersimpan
-            var currentTheme = localStorage.getItem('erdekatala_theme') || 'dark';
+            var currentTheme = localStorage.getItem('sikada_theme') || 'dark';
             applyTheme(currentTheme);
 
             // Klik toggle

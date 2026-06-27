@@ -15,6 +15,7 @@ class ApiKeyModel extends Model
     protected $allowedFields = [
         'api_key', 'name', 'email', 'is_active', 'rate_limit',
         'created_by', 'last_used_at',
+        'owner_name', 'owner_org',
     ];
 
     protected $validationRules = [];

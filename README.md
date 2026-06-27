@@ -1,8 +1,8 @@
-# erdekatala
+# sikadatala
 
 ## Deskripsi
 
-**erdekatala** adalah aplikasi berbasis **CodeIgniter 4** yang disiapkan untuk pengembangan lokal sistem informasi pendataan statistik pada DP3AP2KB, baik dalam lingkup kabupaten Tanah Laut, Kecamatan bahkan sampai Desa, yang tujuannya untuk pendataan penduduk secara berkala pada wilayah kabupaten Tanah Laut
+**sikadatala** adalah aplikasi berbasis **CodeIgniter 4** yang disiapkan untuk pengembangan lokal sistem informasi pendataan statistik pada DP3AP2KB, baik dalam lingkup kabupaten Tanah Laut, Kecamatan bahkan sampai Desa, yang tujuannya untuk pendataan penduduk secara berkala pada wilayah kabupaten Tanah Laut
 ## Fitur Utama
 
 - Struktur proyek CodeIgniter 4 siap pakai
@@ -19,11 +19,11 @@
 
 1. Clone repository:
    ```bash
-   git clone <repo-url> erdekatala
+   git clone <repo-url> sikadatala
    ```
 2. Masuk ke folder proyek:
    ```bash
-   cd erdekatala
+   cd sikadatala
    ```
 3. Install dependensi:
    ```bash

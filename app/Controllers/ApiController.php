@@ -33,7 +33,7 @@ class ApiController extends BaseController
     {
         return $this->json([
             'status'      => 'ok',
-            'api'         => 'Erdekatala Public API',
+            'api'         => 'Sikada Tala Public API',
             'version'     => 'v1',
             'description' => 'Data agregat kependudukan Kabupaten Tanah Laut, Kalimantan Selatan',
             'docs'        => base_url('api/docs'),

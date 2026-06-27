@@ -94,3 +94,9 @@ $routes->post('/apikeys/store',          'ApiKeyAdminController::store');
 $routes->post('/apikeys/revoke/(:num)',   'ApiKeyAdminController::revoke/$1');
 $routes->post('/apikeys/activate/(:num)','ApiKeyAdminController::activate/$1');
 $routes->post('/apikeys/delete/(:num)',  'ApiKeyAdminController::delete/$1');
+
+// -------------------------------------------------------
+// Dynamic Kecamatan Pages (harus di AKHIR agar tidak bentrok)
+// URL: /kurau, /pelaihari, /tambang-ulang, dll
+// -------------------------------------------------------
+$routes->get('/(:segment)', 'PublicController::kecamatan/$1');

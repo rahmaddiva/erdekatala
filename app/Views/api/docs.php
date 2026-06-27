@@ -3,67 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erdekatala API Docs</title>
+    <title>Sikada Tala API Docs</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #f4f6f9; font-family: sans-serif; }
-
-        .api-header {
-            background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
-            color: #fff;
-            padding: 18px 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        :root{
+            --ink:#0f1923; --ink-2:#1a2733;
+            --primary:#dd4814; --primary-d:#b83a10;
+            --paper:#f7f5f1; --paper-2:#ffffff;
+            --line:#e5e1d8; --muted:#6b7280;
         }
-        .api-header h1 { margin: 0; font-size: 1.35rem; }
-        .api-header p  { margin: 3px 0 0; font-size: 0.83rem; opacity: 0.85; }
-        .api-header .btn-group a {
-            display: inline-block; margin-left: 10px;
-            padding: 7px 16px; border-radius: 4px;
-            text-decoration: none; font-size: 0.85rem; font-weight: 600;
-        }
-        .btn-white  { background: #fff; color: #1a73e8; }
-        .btn-outline { border: 1px solid rgba(255,255,255,0.7); color: #fff; }
-        .btn-outline:hover { background: rgba(255,255,255,0.15); }
+        *{box-sizing:border-box;}
+        body{margin:0;background:var(--paper);font-family:"Source Sans 3",sans-serif;color:var(--ink);}
+        h1,h2,h3{font-family:"Libre Baskerville",serif;}
 
-        /* Swagger UI light overrides */
-        .swagger-ui { background: #f4f6f9; }
-        .swagger-ui .topbar { display: none; }
-        .swagger-ui .info { background: #fff; border-radius: 8px; padding: 20px 24px; margin: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-        .swagger-ui .info .title { color: #1a73e8; }
-        .swagger-ui .scheme-container { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 12px 20px; }
-        .swagger-ui .opblock-tag { color: #1a237e; font-weight: 700; border-bottom: 2px solid #e8eaf6; }
-        .swagger-ui .opblock.opblock-get .opblock-summary-method { background: #1a73e8; }
-        .swagger-ui .opblock.opblock-get { border-color: #1a73e8; background: rgba(26,115,232,0.04); }
-        .swagger-ui .btn.authorize { border-color: #1a73e8; color: #1a73e8; }
-        .swagger-ui .btn.authorize svg { fill: #1a73e8; }
-        .swagger-ui section.models { background: #fff; border-radius: 8px; margin: 0 20px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .api-header{
+            background:var(--ink);color:#fff;padding:16px 40px;
+            display:flex;align-items:center;justify-content:space-between;
+            border-bottom:3px solid var(--primary);
+            position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.25);
+        }
+        .api-header .brand{display:flex;align-items:center;gap:14px;}
+        .api-header .brand-mark{
+            width:40px;height:40px;background:var(--primary);border-radius:8px;
+            display:flex;align-items:center;justify-content:center;
+            font-family:"Libre Baskerville",serif;font-weight:700;font-size:1.4rem;color:#fff;flex-shrink:0;
+        }
+        .api-header h1{margin:0;font-size:1.3rem;font-weight:700;}
+        .api-header p{margin:2px 0 0;font-size:0.83rem;opacity:0.7;font-weight:300;}
+        .api-header .btn-group a{
+            display:inline-block;margin-left:10px;padding:8px 18px;border-radius:6px;
+            text-decoration:none;font-size:0.85rem;font-weight:600;transition:all .15s;
+        }
+        .btn-primary{background:var(--primary);color:#fff;}
+        .btn-primary:hover{background:var(--primary-d);}
+        .btn-outline{border:1px solid rgba(255,255,255,0.35);color:#fff;}
+        .btn-outline:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.6);}
+
+        .api-footer{
+            background:var(--ink);color:rgba(255,255,255,0.55);text-align:center;
+            padding:22px 40px;font-size:0.83rem;border-top:3px solid var(--primary);line-height:1.7;
+        }
+        .api-footer a{color:var(--primary);text-decoration:none;font-weight:600;}
+        .api-footer a:hover{text-decoration:underline;}
+
+        .swagger-ui{background:var(--paper);font-family:"Source Sans 3",sans-serif;}
+        .swagger-ui .topbar{display:none;}
+        .swagger-ui .information-container{padding:20px 20px 0;}
+        .swagger-ui .info{
+            background:var(--paper-2);border-radius:10px;padding:24px 28px;
+            box-shadow:0 1px 4px rgba(15,25,35,0.07);border:1px solid var(--line);
+        }
+        .swagger-ui .info .title{color:var(--ink);font-family:"Libre Baskerville",serif;}
+        .swagger-ui .info .base-url{color:var(--muted);}
+        .swagger-ui .scheme-container{
+            background:var(--paper-2);box-shadow:0 1px 4px rgba(15,25,35,0.07);
+            padding:14px 20px;border-bottom:1px solid var(--line);
+        }
+        .swagger-ui .opblock-tag{
+            color:var(--ink);font-weight:700;border-bottom:2px solid var(--line);
+            font-family:"Libre Baskerville",serif;
+        }
+        .swagger-ui .opblock.opblock-get .opblock-summary-method{background:var(--primary);}
+        .swagger-ui .opblock.opblock-get{border-color:var(--primary);background:rgba(221,72,20,0.04);}
+        .swagger-ui .opblock.opblock-get .opblock-summary{border-color:var(--line);}
+        .swagger-ui .btn.authorize{border-color:var(--primary);color:var(--primary);}
+        .swagger-ui .btn.authorize svg{fill:var(--primary);}
+        .swagger-ui .btn.authorize.unlocked svg{fill:var(--primary);}
+        .swagger-ui section.models{
+            background:var(--paper-2);border-radius:10px;border:1px solid var(--line);
+            box-shadow:0 1px 4px rgba(15,25,35,0.07);
+        }
+        .swagger-ui .model-box{background:var(--paper);}
+        .swagger-ui .opblock .opblock-section-header{background:var(--paper);border-bottom:1px solid var(--line);}
+        .swagger-ui .opblock-body pre{background:var(--ink);border-radius:6px;}
+        .swagger-ui table thead tr td{color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);}
+        .swagger-ui .parameter__name{color:var(--ink);font-weight:600;}
+        .swagger-ui .scheme-container .schemes-server-container label{color:var(--ink);font-weight:600;}
     </style>
 </head>
 <body>
 
 <div class="api-header">
-    <div>
-        <h1>Erdekatala Public API</h1>
-        <p>Data Agregat Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan</p>
+    <div class="brand">
+        <div class="brand-mark">S</div>
+        <div>
+            <h1>Sikada Tala Public API</h1>
+            <p>Data Agregat Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan</p>
+        </div>
     </div>
     <div class="btn-group">
-        <a href="/api/guide" class="btn-white mr-1">Panduan Integrasi</a>
-        <a href="/api/register" class="btn-white">Dapatkan API Key</a>
+        <a href="/api/guide" class="btn-outline">Panduan Integrasi</a>
+        <a href="/api/register" class="btn-primary">Dapatkan API Key</a>
         <a href="/" class="btn-outline">Kembali ke Website</a>
     </div>
 </div>
 
 <div id="swagger-ui"></div>
 
+<div class="api-footer">
+    Sikada Tala &middot; Sistem Informasi Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan<br>
+    <a href="/api/docs">Dokumentasi</a> &middot; <a href="/api/guide">Panduan</a> &middot; <a href="/api/register">Daftar API Key</a> &middot; <a href="/">Beranda</a>
+</div>
+
 <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
 <script>
     const spec = {
         openapi: "3.0.3",
         info: {
-            title: "Erdekatala Public API",
+            title: "Sikada Tala Public API",
             version: "1.0.0",
             description: "API publik untuk mengakses data agregat kependudukan Kabupaten Tanah Laut, Kalimantan Selatan.\n\n**Cara Penggunaan:**\n1. [Daftarkan diri](/api/register) untuk mendapatkan API key gratis\n2. Gunakan API key sebagai Bearer token: `Authorization: Bearer <api_key>`\n3. Atau sebagai query param: `?api_key=<api_key>`\n\n**Rate Limit:** 1000 request per hari per API key. Header `X-RateLimit-Remaining` menunjukkan sisa kuota.",
             contact: {
@@ -297,7 +347,7 @@
         tryItOutEnabled: true,
         requestInterceptor: (req) => {
             // Auto-inject api_key from localStorage if present
-            const key = localStorage.getItem('erdekatala_api_key');
+            const key = localStorage.getItem('sikada_api_key');
             if (key && !req.headers['Authorization']) {
                 req.headers['Authorization'] = 'Bearer ' + key;
             }

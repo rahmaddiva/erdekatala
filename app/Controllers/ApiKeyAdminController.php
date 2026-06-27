@@ -21,9 +21,18 @@ class ApiKeyAdminController extends BaseController
     // GET /apikeys
     public function index()
     {
+        $allKeys = $this->model->orderBy('created_at', 'DESC')->findAll();
+        $publikCount = 0;
+        foreach ($allKeys as $k) {
+            if ($k['created_by'] === null) {
+                $publikCount++;
+            }
+        }
+
         return view('api/admin_keys', [
-            'title'   => 'Manajemen API Key',
-            'apikeys' => $this->model->orderBy('created_at', 'DESC')->findAll(),
+            'title'       => 'Manajemen API Key',
+            'apikeys'     => $allKeys,
+            'publikCount' => $publikCount,
         ]);
     }
 
@@ -60,6 +69,7 @@ class ApiKeyAdminController extends BaseController
         $this->model->insert([
             'api_key'    => $keyHash,
             'name'       => $this->request->getPost('label'),
+            'owner_name' => $this->request->getPost('owner_name'),
             'email'      => $this->request->getPost('owner_email'),
             'rate_limit' => $this->request->getPost('rate_limit'),
             'is_active'  => 1,

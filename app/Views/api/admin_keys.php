@@ -33,10 +33,10 @@
             <!-- Stat Cards -->
             <div class="row mb-3">
                             <?php
-                $total    = count($apikeys);
-                $active   = count(array_filter($apikeys, fn($k) => $k['is_active'] == 1));
-                $revoked  = $total - $active;
-                $totalReq = 0; // kolom tidak ada di tabel
+                $total   = count($apikeys);
+                $active  = count(array_filter($apikeys, fn($k) => $k['is_active'] == 1));
+                $revoked = $total - $active;
+                $publik  = $publikCount ?? 0;
                 ?>
                 <div class="col-sm-3">
                     <div class="info-box">
@@ -60,17 +60,17 @@
                     <div class="info-box">
                         <span class="info-box-icon bg-secondary"><i class="fas fa-ban"></i></span>
                         <div class="info-box-content">
-                            <span class="info-box-text">Revoked</span>
+                            <span class="info-box-text">Nonaktif</span>
                             <span class="info-box-number"><?= $revoked ?></span>
                         </div>
                     </div>
                 </div>
                 <div class="col-sm-3">
                     <div class="info-box">
-                        <span class="info-box-icon bg-warning"><i class="fas fa-chart-line"></i></span>
+                        <span class="info-box-icon bg-primary"><i class="fas fa-user-plus"></i></span>
                         <div class="info-box-content">
-                            <span class="info-box-text">Total Requests</span>
-                            <span class="info-box-number"><?= number_format($totalReq) ?></span>
+                            <span class="info-box-text">Registrasi Publik</span>
+                            <span class="info-box-number"><?= $publik ?></span>
                         </div>
                     </div>
                 </div>
@@ -87,10 +87,11 @@
                             <thead class="thead-light">
                                 <tr>
                                     <th width="40">No</th>
-                                    <th>Nama / Label</th>
+                                    <th>Nama Pemilik</th>
+                                    <th>Instansi</th>
                                     <th>Email</th>
-                                    <th class="text-center">Rate Limit/Hari</th>
-                                    <th>Terakhir Digunakan</th>
+                                    <th>Label Key</th>
+                                    <th class="text-center">Sumber</th>
                                     <th class="text-center">Status</th>
                                     <th class="text-center">Dibuat</th>
                                     <th class="text-center" width="130">Aksi</th>
@@ -99,7 +100,7 @@
                             <tbody>
                                 <?php if (empty($apikeys)): ?>
                                     <tr>
-                                        <td colspan="8" class="text-center py-5 text-muted">
+                                        <td colspan="9" class="text-center py-5 text-muted">
                                             <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                             Belum ada API key terdaftar.
                                         </td>
@@ -108,13 +109,28 @@
                                     <?php $no = 1; foreach ($apikeys as $k): ?>
                                     <tr>
                                         <td class="text-center"><?= $no++ ?></td>
-                                        <td><strong><?= esc($k['name']) ?></strong></td>
-                                        <td><small><?= esc($k['email']) ?></small></td>
-                                        <td class="text-center"><?= number_format($k['rate_limit']) ?></td>
                                         <td>
-                                            <small class="text-muted">
-                                                <?= $k['last_used_at'] ? date('d M Y H:i', strtotime($k['last_used_at'])) : '-' ?>
-                                            </small>
+                                            <?php if (!empty($k['owner_name'])): ?>
+                                                <strong><?= esc($k['owner_name']) ?></strong>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($k['owner_org'])): ?>
+                                                <small><?= esc($k['owner_org']) ?></small>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><small><?= esc($k['email']) ?></small></td>
+                                        <td><small class="text-muted"><?= esc($k['name']) ?></small></td>
+                                        <td class="text-center">
+                                            <?php if ($k['created_by'] === null): ?>
+                                                <span class="badge badge-primary"><i class="fas fa-globe mr-1"></i>Publik</span>
+                                            <?php else: ?>
+                                                <span class="badge badge-secondary"><i class="fas fa-user-shield mr-1"></i>Admin</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-center">
                                             <?php if ($k['is_active'] == 1): ?>

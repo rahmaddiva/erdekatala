@@ -1,631 +1,1135 @@
+<?php
+// Normalisasi data untuk tampilan
+$jiwaL       = (int)($totals['jiwa_l'] ?? 0);
+$jiwaP       = (int)($totals['jiwa_p'] ?? 0);
+$jiwaTotal   = $jiwaL + $jiwaP;
+$kkL         = (int)($totals['kk_l'] ?? 0);
+$kkP         = (int)($totals['kk_p'] ?? 0);
+$kkTotal     = $kkL + $kkP;
+$balita      = (int)($totals['balita'] ?? 0);
+$pus         = (int)($totals['pus'] ?? 0);
+$pendudukKey = !empty($filter_kec) ? (esc($filter_desa ? 'Desa' : 'Kecamatan')) : 'Kabupaten';
+?>
 <!DOCTYPE html>
 <html lang="id">
 
 <head>
-    <meta charset="utf-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>ERDEKATALA - Statistik Kependudukan</title>
-    <meta name="description" content="Sistem Informasi Statistik Kependudukan Tanah Laut">
-    <meta name="keywords" content="kependudukan, statistik, tanah laut">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sikada Tala — Sistem Informasi Kependudukan Kabupaten Tanah Laut</title>
+    <meta name="description" content="Portal data agregat kependudukan tingkat RT-RW-Desa-Kecamatan di Kabupaten Tanah Laut, Kalimantan Selatan.">
 
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com" rel="preconnect">
-    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-    <!-- icon -->
-    <link rel="icon" type="image/x-icon" href="/assets/dist/img/erdekatala.png">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;600;700&display=swap"
-        rel="stylesheet">
+    <!-- Font: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Vendor CSS Files -->
+    <!-- Vendor CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- ApexCharts -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.css">
+    <!-- ZingChart (CDN resmi, sama dengan dashboard) -->
+    <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
 
     <style>
         :root {
-            --primary-color: #dd4814;
-            --secondary-color: #2c3e50;
-            --accent-color: #3498db;
-            --dark-bg: #1a1a1a;
-            --light-bg: #f8f9fa;
+            --primary:   #dd4814;
+            --primary-d: #b0380f;
+            --ink:       #0f1923;
+            --ink-soft:  #1e2d3a;
+            --paper:     #ffffff;
+            --paper-2:   #f7f5f1;
+            --paper-3:   #efece6;
+            --muted:     #6b7280;
+            --border:    #e5e1d8;
+            --accent-l:  #2d6cdf;
+            --accent-p:  #d6336c;
+            --good:      #2f9e44;
+            --shadow-sm: 0 1px 2px rgba(15,25,35,.04), 0 1px 1px rgba(15,25,35,.03);
+            --shadow-md: 0 4px 16px rgba(15,25,35,.06), 0 2px 4px rgba(15,25,35,.04);
+            --shadow-lg: 0 24px 48px -12px rgba(15,25,35,.14);
         }
+
+        * { box-sizing: border-box; }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e8f0f7 100%);
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 0.75rem 0;
-        }
-
-        .navbar-brand {
             font-family: 'Poppins', sans-serif;
-            font-weight: 700;
-            font-size: 1.5rem;
-            color: var(--primary-color) !important;
+            background: var(--paper-2);
+            color: var(--ink);
+            margin: 0;
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .hero-section {
-            padding: 80px 0 40px;
-            color: white;
-            text-align: center;
-            background: #e8f0f7 margin-bottom: 2rem;
-            margin-top: 70px;
-        }
-
-        .hero-section h1 {
+        h1, h2, h3, h4, h5, .display {
             font-family: 'Poppins', sans-serif;
-            font-weight: 700;
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            color: var(--ink);
+            letter-spacing: -0.01em;
         }
 
-        .hero-section p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { color: var(--primary-d); }
 
-        .filter-card {
-            background: white;
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            margin-bottom: 2.5rem;
-        }
+        .container { max-width: 1240px; }
 
-        .stats-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        /* ===== NAVBAR ===== */
+        .navbar-sikada {
+            background: var(--paper);
+            border-bottom: 1px solid var(--border);
+            padding: 0.85rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
         }
-
-        .stats-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .stats-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+        .navbar-sikada .brand {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        .stats-number {
-            font-size: 2.5rem;
-            font-weight: 700;
+            gap: 0.65rem;
             font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 1.35rem;
+            color: var(--ink);
+            text-decoration: none;
         }
-
-        .stats-label {
-            color: #6c757d;
+        .navbar-sikada .brand-mark {
+            width: 38px;
+            height: 38px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            box-shadow: 0 2px 8px rgba(221,72,20,.35);
+        }
+        .navbar-sikada .brand small {
+            display: block;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 400;
+            font-size: 0.72rem;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .navbar-sikada .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .navbar-sikada .nav-link-sikada {
+            font-weight: 600;
+            color: var(--ink-soft);
             font-size: 0.95rem;
         }
-
-        .chart-card {
-            background: white;
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-        }
-
-        .chart-title {
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
-            font-size: 1.3rem;
-            margin-bottom: 1.5rem;
-            color: var(--secondary-color);
-        }
-
-        footer {
-            background: var(--secondary-color);
-            color: white;
-            padding: 2rem 0;
-            margin-top: 4rem;
-        }
-
-        .btn-filter {
-            background: linear-gradient(135deg, var(--primary-color), #e67e22);
-            border: none;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-filter:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(221, 72, 20, 0.4);
-            color: white;
-        }
-
-        .form-select,
-        .form-control {
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 0.75rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-select:focus,
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(221, 72, 20, 0.25);
-        }
-
-        .navbar-nav .nav-link {
-            font-weight: 500;
-            margin: 0 0.5rem;
-            transition: all 0.3s ease;
-            color: #2c3e50 !important;
+        .navbar-sikada .nav-link-sikada:hover { color: var(--primary); }
+        .btn-login {
+            background: var(--ink);
+            color: #fff;
+            padding: 0.55rem 1.25rem;
             border-radius: 6px;
-            padding: 0.5rem 1rem !important;
+            font-weight: 600;
+            font-size: 0.92rem;
+            border: none;
+            transition: all .2s ease;
+        }
+        .btn-login:hover { background: var(--primary); color: #fff; transform: translateY(-1px); }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: var(--ink);
+            color: #fff;
+            padding: 4.5rem 0 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: 0; right: 0;
+            width: 55%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 80% 20%, rgba(221,72,20,.22), transparent 55%),
+                radial-gradient(circle at 95% 75%, rgba(45,108,223,.15), transparent 50%);
+            pointer-events: none;
+        }
+        .hero::after {
+            content: "";
+            position: absolute;
+            bottom: -1px; left: 0;
+            width: 100%;
+            height: 64px;
+            background: var(--paper-2);
+            clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);
+        }
+        .hero .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        .hero .eyebrow::before {
+            content: "";
+            width: 28px;
+            height: 2px;
+            background: var(--primary);
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 4.2vw, 3.1rem);
+            line-height: 1.1;
+            color: #fff;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        .hero h1 em {
+            font-style: italic;
+            color: var(--primary);
+        }
+        .hero p.lead {
+            font-size: 1.12rem;
+            color: rgba(255,255,255,.78);
+            max-width: 640px;
+            font-weight: 300;
+        }
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.75rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,.12);
+        }
+        .hero-meta .item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .hero-meta .item .v {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+        .hero-meta .item .l {
+            font-size: 0.76rem;
+            color: rgba(255,255,255,.6);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
         }
 
-        .navbar-nav .nav-link:hover {
-            background-color: rgba(221, 72, 20, 0.1);
-            color: var(--primary-color) !important;
-            transform: translateY(-2px);
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin-top: -2rem;
+            position: relative;
+            z-index: 5;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 1rem;
+        }
+        .filter-bar .field { flex: 1 1 220px; min-width: 200px; }
+        .filter-bar label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }
+        .filter-bar select,
+        .filter-bar input {
+            width: 100%;
+            padding: 0.6rem 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--paper-2);
+            font-family: inherit;
+            font-size: 0.95rem;
+            color: var(--ink);
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .filter-bar select:focus,
+        .filter-bar input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(221,72,20,.12);
+            background: var(--paper);
+        }
+        .filter-bar .btn-filter {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            transition: all .2s ease;
+            height: fit-content;
+        }
+        .filter-bar .btn-filter:hover { background: var(--primary-d); transform: translateY(-1px); }
+        .filter-bar .btn-reset {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            height: fit-content;
+        }
+        .filter-bar .btn-reset:hover { color: var(--ink); border-color: var(--ink); }
+
+        /* ===== SECTION SHELL ===== */
+        section.block { padding: 3rem 0; }
+        .section-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.75rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 2px solid var(--ink);
+        }
+        .section-head h2 {
+            font-size: 1.6rem;
+            margin: 0;
+            font-weight: 700;
+        }
+        .section-head .crumb {
+            font-size: 0.82rem;
+            color: var(--muted);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+        .section-head .crumb strong { color: var(--primary); }
+
+        /* ===== STAT CARDS ===== */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+        @media (max-width: 992px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 576px) { .stat-grid { grid-template-columns: 1fr; } }
+
+        .stat-card {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 1.25rem 1.4rem;
+            position: relative;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+        .stat-card .icon {
+            position: absolute;
+            top: 1rem;
+            right: 1.1rem;
+            font-size: 1.4rem;
+            color: var(--paper-3);
+        }
+        .stat-card .label {
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-bottom: 0.4rem;
+        }
+        .stat-card .value {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1;
+            margin-bottom: 0.35rem;
+        }
+        .stat-card .sub {
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+        .stat-card .sub b { color: var(--accent-l); }
+        .stat-card .sub i { color: var(--accent-p); font-style: normal; }
+        .stat-card.alt-blue { border-left-color: var(--accent-l); }
+        .stat-card.alt-pink { border-left-color: var(--accent-p); }
+        .stat-card.alt-green { border-left-color: var(--good); }
+        .stat-card.alt-blue .icon { color: #dbe7fb; }
+        .stat-card.alt-pink .icon { color: #fbdcec; }
+        .stat-card.alt-green .icon { color: #d4f0da; }
+
+        /* ===== CHART CARD ===== */
+        .chart-card {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem 1.6rem 1.75rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .chart-card .chart-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px dashed var(--border);
+        }
+        .chart-card .chart-head h3 {
+            font-size: 1.12rem;
+            margin: 0 0 0.2rem;
+            font-weight: 700;
+        }
+        .chart-card .chart-head p {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin: 0;
+        }
+        .chart-card .chart-head .badge-nde {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.3rem 0.6rem;
+            background: var(--paper-3);
+            color: var(--ink-soft);
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .chart-wrap { width: 100%; }
+        .zc { width: 100%; min-height: 260px; }
+        .zc-pyramid { min-height: 450px; }
+        .zc-tall { min-height: 300px; }
+
+        /* ===== LEGEND ===== */
+        .legend-inline {
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+            font-size: 0.82rem;
+            color: var(--ink-soft);
+        }
+        .legend-inline .dot {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border-radius: 2px;
+            margin-right: 0.4rem;
+            vertical-align: middle;
         }
 
-        .navbar-nav .nav-link.active {
-            background-color: var(--primary-color);
-            color: white !important;
+        /* ===== INFO STRIP ===== */
+        .info-strip {
+            background: var(--ink);
+            color: #fff;
+            border-radius: 10px;
+            padding: 1.5rem 1.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            margin: 2rem 0;
+        }
+        .info-strip .info-icon {
+            font-size: 1.8rem;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+        .info-strip h4 { color: #fff; margin: 0 0 0.2rem; font-size: 1.05rem; }
+        .info-strip p { margin: 0; color: rgba(255,255,255,.7); font-size: 0.9rem; }
+
+        /* ===== FOOTER ===== */
+        footer.sikada-footer {
+            background: var(--ink);
+            color: rgba(255,255,255,.65);
+            padding: 3rem 0 1.5rem;
+            margin-top: 3rem;
+        }
+        footer.sikada-footer h5 {
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        footer.sikada-footer a { color: rgba(255,255,255,.65); }
+        footer.sikada-footer a:hover { color: var(--primary); }
+        footer.sikada-footer .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,.1);
+            padding-top: 1.25rem;
+            margin-top: 2rem;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,.45);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        footer.sikada-footer .brand-mark {
+            width: 32px; height: 32px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 6px;
+            display: inline-grid;
+            place-items: center;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
         }
 
-        .navbar-brand img {
-            transition: transform 0.3s ease;
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--muted);
         }
+        .empty-state i { font-size: 2.5rem; color: var(--paper-3); margin-bottom: 0.75rem; display: block; }
 
-        .navbar-brand:hover img {
-            transform: scale(1.05);
+        /* ===== JELAJAHI KECAMATAN ===== */
+        .kec-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.85rem; margin-top: 1.5rem;
         }
+        .kec-card {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; text-align: center;
+            background: var(--paper); border: 1px solid var(--border);
+            border-radius: 8px; padding: 1.25rem 0.75rem;
+            color: var(--ink); font-weight: 600; font-size: 0.9rem;
+            transition: all .2s ease; text-decoration: none;
+        }
+        .kec-card:hover {
+            border-color: var(--primary); color: var(--primary);
+            transform: translateY(-3px); box-shadow: var(--shadow-md);
+        }
+        .kec-card i { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--paper-3); }
+        .kec-card:hover i { color: var(--primary); }
 
         @media (max-width: 768px) {
-            .hero-section h1 {
-                font-size: 2rem;
-            }
-
-            .stats-number {
-                font-size: 1.8rem;
-            }
+            .hero { padding: 3rem 0 2.5rem; }
+            .hero-meta { gap: 1rem; }
+            .section-head { flex-direction: column; align-items: flex-start; }
+            .stat-grid { gap: 0.75rem; }
         }
     </style>
 </head>
 
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="/">
-                <img src="/assets/dist/img/erdekataladark.png" alt="ERDEKATALA" width="150" height="50"
-                    class="d-inline-block align-text-top">
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar-sikada">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a href="<?= site_url('/') ?>" class="brand">
+                <span class="brand-mark">S</span>
+                <span>
+                    Sikada Tala
+                    <small>Kabupaten Tanah Laut</small>
+                </span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#statistik">
-                            <i class="bi bi-graph-up"></i> Statistik
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-sm"
-                            style="background: linear-gradient(135deg, var(--primary-color), #e67e22); color: white; border: none; font-weight: 600;"
-                            href="/login">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
-                        </a>
-                    </li>
-                </ul>
+            <div class="nav-right d-none d-md-flex">
+                <a href="<?= site_url('/api/docs') ?>" class="nav-link-sikada"><i class="bi bi-code-slash me-1"></i>API</a>
+                <a href="<?= site_url('/login') ?>" class="btn-login"><i class="bi bi-box-arrow-in-right me-1"></i>Masuk</a>
             </div>
+            <a href="<?= site_url('/login') ?>" class="btn-login d-md-none"><i class="bi bi-box-arrow-in-right"></i></a>
         </div>
     </nav>
 
-    <section>
-        <div class="hero-section">
-            <div class="container">
-                <img src="/assets/dist/img/erdekataladark.png" alt="ERDEKATALA" width="200" height="70"
-                    class="d-inline-block align-text-top mb-3">
-            </div>
-        </div>
-    </section>
-
-    <!-- Main Content -->
-    <div class="container pb-5" style="padding-top: 2rem;">
-        <!-- Filter Section -->
-        <div class="filter-card">
-            <h4 class="mb-4"><i class="bi bi-funnel-fill text-primary"></i> Filter Wilayah</h4>
-            <form method="get" action="/" id="filterForm">
-                <div class="row g-3">
-                    <div class="col-md-5">
-                        <label class="form-label fw-bold">Kecamatan</label>
-                        <select name="id_kecamatan" id="filter_kecamatan" class="form-select">
-                            <option value="">-- Semua Kecamatan --</option>
-                            <?php foreach ($list_kecamatan as $k): ?>
-                                <option value="<?= $k['id_kecamatan'] ?>" <?= ($filter_kec == $k['id_kecamatan']) ? 'selected' : '' ?>>
-                                    <?= esc($k['nama_kecamatan']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label fw-bold">Desa</label>
-                        <select name="id_desa" id="filter_desa" class="form-select">
-                            <option value="">-- Semua Desa --</option>
-                            <?php foreach ($list_desa as $d): ?>
-                                <option value="<?= $d['id_desa'] ?>" <?= ($filter_desa == $d['id_desa']) ? 'selected' : '' ?>>
-                                    <?= esc($d['nama_desa']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-filter w-100">
-                            <i class="bi bi-search"></i> Tampilkan
-                        </button>
-                    </div>
+    <!-- ===== HERO ===== -->
+    <header class="hero">
+        <div class="container position-relative">
+            <span class="eyebrow">Portal Data Kependudukan</span>
+            <h1>Sikada Tala — <em>Agregat Data</em><br>tingkat RT di Kabupaten Tanah Laut</h1>
+            <p class="lead">Pemantauan terpadu data jiwa, kartu keluarga, pendidikan, pekerjaan, piramida penduduk, serta cakupan JKN/BPJS dan KB-PUS dari hulu ke hilir, langsung dari lapangan.</p>
+            <div class="hero-meta">
+                <div class="item">
+                    <span class="v">11</span>
+                    <span class="l">Kecamatan</span>
                 </div>
-            </form>
-        </div>
-
-        <!-- Statistics Cards -->
-        <div class="row" id="statistik">
-            <div class="col-md-3 col-sm-6">
-                <div class="stats-card">
-                    <div class="stats-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-                        <i class="bi bi-people-fill text-white"></i>
-                    </div>
-                    <div class="stats-number text-primary">
-                        <?= number_format($totals['jiwa_l'] + $totals['jiwa_p']) ?>
-                    </div>
-                    <div class="stats-label">Total Penduduk</div>
-                    <small class="text-muted">
-                        <i class="bi bi-gender-male text-info"></i> <?= number_format($totals['jiwa_l']) ?> |
-                        <i class="bi bi-gender-female text-danger"></i> <?= number_format($totals['jiwa_p']) ?>
-                    </small>
+                <div class="item">
+                    <span class="v">RT-RW</span>
+                    <span class="l">Unit Terkecil</span>
                 </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stats-card">
-                    <div class="stats-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
-                        <i class="bi bi-house-fill text-white"></i>
-                    </div>
-                    <div class="stats-number text-success">
-                        <?= number_format($totals['kk_l'] + $totals['kk_p']) ?>
-                    </div>
-                    <div class="stats-label">Kepala Keluarga</div>
+                <div class="item">
+                    <span class="v"><?= number_format($jiwaTotal, 0, ',', '.') ?></span>
+                    <span class="l">Total Jiwa tercatat</span>
                 </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stats-card">
-                    <div class="stats-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
-                        <i class="bi bi-emoji-smile-fill text-white"></i>
-                    </div>
-                    <div class="stats-number text-warning">
-                        <?= number_format($totals['balita']) ?>
-                    </div>
-                    <div class="stats-label">Balita (0-5 Tahun)</div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stats-card">
-                    <div class="stats-icon" style="background: linear-gradient(135deg, #fa709a, #fee140);">
-                        <i class="bi bi-heart-fill text-white"></i>
-                    </div>
-                    <div class="stats-number text-danger">
-                        <?= number_format($totals['pus']) ?>
-                    </div>
-                    <div class="stats-label">Pasangan Usia Subur</div>
+                <div class="item">
+                    <span class="v"><?= number_format($kkTotal, 0, ',', '.') ?></span>
+                    <span class="l">Kartu Keluarga</span>
                 </div>
             </div>
         </div>
+    </header>
 
-        <!-- Charts Section -->
-        <div class="row">
-            <!-- Pendidikan Chart -->
-            <div class="col-lg-6">
-                <div class="chart-card">
-                    <h5 class="chart-title">
-                        <i class="bi bi-mortarboard-fill text-info"></i> Tingkat Pendidikan
-                    </h5>
-                    <div id="chartPendidikan"></div>
+    <main class="container">
+
+        <!-- ===== FILTER BAR ===== -->
+        <form method="GET" action="<?= site_url('/') ?>" class="filter-bar">
+            <div class="field">
+                <label for="id_kecamatan">Kecamatan</label>
+                <select name="id_kecamatan" id="id_kecamatan" onchange="document.getElementById('form-desa').value=''; this.form.submit()">
+                    <option value="">— Semua Kecamatan —</option>
+                    <?php foreach ($list_kecamatan as $k): ?>
+                        <option value="<?= esc($k['id_kecamatan']) ?>" <?= (string)$filter_kec === (string)$k['id_kecamatan'] ? 'selected' : '' ?>>
+                            <?= esc($k['nama_kecamatan']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="field">
+                <label for="id_desa">Desa</label>
+                <select name="id_desa" id="form-desa" onchange="this.form.submit()" <?= empty($filter_kec) ? 'disabled' : '' ?>>
+                    <option value="">— Semua Desa —</option>
+                    <?php foreach ($list_desa as $d): ?>
+                        <option value="<?= esc($d['id_desa']) ?>" <?= (string)$filter_desa === (string)$d['id_desa'] ? 'selected' : '' ?>>
+                            <?= esc($d['nama_desa']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <button type="submit" class="btn-filter"><i class="bi bi-funnel me-1"></i>Terapkan</button>
+            <a href="<?= site_url('/') ?>" class="btn-reset"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+        </form>
+
+        <?php if ($jiwaTotal === 0 && $kkTotal === 0): ?>
+            <div class="empty-state">
+                <i class="bi bi-inboxes"></i>
+                <h3>Belum ada data laporan</h3>
+                <p>Tidak ada laporan agregat pada wilayah yang dipilih. Silakan pilih kecamatan/desa lain atau hubungi admin desa untuk melakukan input laporan.</p>
+            </div>
+        <?php else: ?>
+
+        <!-- ===== STAT CARDS ===== -->
+        <section class="block" style="padding-top: 2rem;">
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <i class="bi bi-people-fill icon"></i>
+                    <div class="label">Total Jiwa</div>
+                    <div class="value"><?= number_format($jiwaTotal, 0, ',', '.') ?></div>
+                    <div class="sub"><b><?= number_format($jiwaL, 0, ',', '.') ?> L</b> · <i><?= number_format($jiwaP, 0, ',', '.') ?> P</i></div>
+                </div>
+                <div class="stat-card alt-blue">
+                    <i class="bi bi-house-heart-fill icon"></i>
+                    <div class="label">Kartu Keluarga</div>
+                    <div class="value"><?= number_format($kkTotal, 0, ',', '.') ?></div>
+                    <div class="sub"><b><?= number_format($kkL, 0, ',', '.') ?> L</b> · <i><?= number_format($kkP, 0, ',', '.') ?> P</i></div>
+                </div>
+                <div class="stat-card alt-pink">
+                    <i class="bi bi-baby icon"></i>
+                    <div class="label">Balita</div>
+                    <div class="value"><?= number_format($balita, 0, ',', '.') ?></div>
+                    <div class="sub">Usia 0–5 tahun</div>
+                </div>
+                <div class="stat-card alt-green">
+                    <i class="bi bi-heart-pulse-fill icon"></i>
+                    <div class="label">PUS</div>
+                    <div class="value"><?= number_format($pus, 0, ',', '.') ?></div>
+                    <div class="sub">Pasangan Usia Subur</div>
                 </div>
             </div>
 
-            <!-- JKN/BPJS Chart -->
-            <div class="col-lg-6">
-                <div class="chart-card">
-                    <h5 class="chart-title">
-                        <i class="bi bi-heart-pulse-fill text-danger"></i> Kepesertaan JKN/BPJS
-                    </h5>
-                    <div id="chartJKN"></div>
+            <!-- Info strip -->
+            <div class="info-strip">
+                <i class="bi bi-info-circle-fill info-icon"></i>
+                <div>
+                    <h4>Skop data saat ini: <?= esc($pendudukKey) ?><?= !empty($filter_kec) ? ' — ' . esc($filter_desa ? 'Desa terpilih' : 'Kecamatan terpilih') : ' (seluruh Kabupaten)' ?></h4>
+                    <p>Data diturunkan dari laporan agregat RT yang telah diinput oleh admin desa. Filter menyesuaikan tampilan seluruh chart di bawah.</p>
                 </div>
             </div>
+        </section>
 
-            <!-- Pekerjaan Chart -->
-            <div class="col-lg-12">
-                <div class="chart-card">
-                    <h5 class="chart-title">
-                        <i class="bi bi-briefcase-fill text-success"></i> Jenis Pekerjaan
-                    </h5>
-                    <div id="chartPekerjaan"></div>
+        <!-- ===== PIRAMIDA PENDUDUK (full width) ===== -->
+        <section class="block" style="padding-top: 0;">
+            <div class="section-head">
+                <h2>Piramida Penduduk</h2>
+                <span class="crumb">Sebaran umur · <strong><?= esc($pendudukKey) ?></strong></span>
+            </div>
+            <div class="chart-card">
+                <div class="chart-head">
+                    <div>
+                        <h3>Distribusi Penduduk per Kelompok Umur</h3>
+                        <p>Batang kiri = Laki-laki, batang kanan = Perempuan (5 tahunan)</p>
+                    </div>
+                    <span class="badge-nde">18 kelompok</span>
+                </div>
+                <div class="chart-wrap"><div id="zc-piramida" class="zc zc-pyramid"></div></div>
+            </div>
+        </section>
+
+        <!-- ===== PENDIDIKAN + JKN (2 kolom) ===== -->
+        <section class="block" style="padding-top: 1.5rem;">
+            <div class="section-head">
+                <h2>Pendidikan &amp; Kesehatan</h2>
+                <span class="crumb">Tingkat pendidikan KK · cakupan JKN</span>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Pendidikan Kepala Keluarga</h3>
+                                <p>Distribusi tingkat pendidikan pada Kepala Keluarga</p>
+                            </div>
+                            <span class="badge-nde">7 tingkat</span>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-pendidikan" class="zc zc-tall"></div></div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Cakupan JKN / BPJS</h3>
+                                <p>Peserta PBI, non-PBI, dan tidak memiliki JKN</p>
+                            </div>
+                            <span class="badge-nde">3 kategori</span>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-jkn" class="zc zc-tall"></div></div>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Gender Chart -->
-            <div class="col-lg-12">
-                <div class="chart-card">
-                    <h5 class="chart-title">
-                        <i class="bi bi-gender-ambiguous text-primary"></i> Komposisi Jenis Kelamin
-                    </h5>
-                    <div id="chartGender"></div>
+        <!-- ===== PEKERJAAN (full width) ===== -->
+        <section class="block" style="padding-top: 1.5rem;">
+            <div class="section-head">
+                <h2>Pekerjaan</h2>
+                <span class="crumb">Bidang pekerjaan KK</span>
+            </div>
+            <div class="chart-card">
+                <div class="chart-head">
+                    <div>
+                        <h3>Distribusi Pekerjaan Kepala Keluarga</h3>
+                        <p>Sebaran lapangan pekerjaan utama pada Kepala Keluarga</p>
+                    </div>
+                    <span class="badge-nde">8 jenis</span>
+                </div>
+                <div class="chart-wrap"><div id="zc-pekerjaan" class="zc zc-tall"></div></div>
+            </div>
+        </section>
+
+        <!-- ===== GENDER (full width) ===== -->
+        <section class="block" style="padding-top: 1.5rem; padding-bottom: 1rem;">
+            <div class="section-head">
+                <h2>Komposisi Gender</h2>
+                <span class="crumb">Jiwa &amp; KK per jenis kelamin</span>
+            </div>
+            <div class="chart-card">
+                <div class="chart-head">
+                    <div>
+                        <h3>Perbandingan Laki-laki vs Perempuan</h3>
+                        <p>Total jiwa dan total KK berdasarkan jenis kelamin</p>
+                    </div>
+                    <span class="badge-nde">2 indikator</span>
+                </div>
+                <div class="chart-wrap"><div id="zc-gender" class="zc"></div></div>
+            </div>
+        </section>
+
+        <!-- ===== STATUS KAWIN + DOKUMEN (2 kolom) ===== -->
+        <section class="block" style="padding-top: 1.5rem;">
+            <div class="section-head">
+                <h2>Status Perkawinan &amp; Dokumen</h2>
+                <span class="crumb">Status KK · kepemilikan dokumen kependudukan</span>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Status Perkawinan KK</h3>
+                                <p>Distribusi status perkawinan pada Kepala Keluarga</p>
+                            </div>
+                            <span class="badge-nde">4 kategori</span>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-kawin" class="zc zc-tall"></div></div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Dokumen Kependudukan</h3>
+                                <p>Kepemilikan KTP-el, akta lahir, akta nikah, KK fisik</p>
+                            </div>
+                            <span class="badge-nde">4 jenis</span>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-dokumen" class="zc zc-tall"></div></div>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Piramida Penduduk Chart -->
-            <div class="col-lg-12">
-                <div class="chart-card">
-                    <h5 class="chart-title">
-                        <i class="bi bi-diagram-3-fill text-success"></i> Piramida Penduduk
-                    </h5>
-                    <div id="chartPiramida"></div>
+        <?php endif; ?>
+
+        <!-- ===== JELAJAHI KECAMATAN ===== -->
+        <section class="block" style="padding-top: 1.5rem;">
+            <div class="section-head">
+                <h2>Jelajahi Kecamatan</h2>
+                <span class="crumb">11 kecamatan di Kabupaten Tanah Laut</span>
+            </div>
+            <div class="kec-grid">
+                <?php foreach ($list_kecamatan as $k): 
+                    $k_slug = strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
+                ?>
+                <a href="<?= site_url('/' . $k_slug) ?>" class="kec-card">
+                    <i class="bi bi-geo-fill"></i>
+                    <?= esc($k['nama_kecamatan']) ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="sikada-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <span class="brand-mark">S</span>
+                    <h5>Sikada Tala</h5>
+                    <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
+                        Sistem informasi kependudukan agregat berbasis RT-RW-Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
+                    </p>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <h5>Navigasi</h5>
+                    <ul class="list-unstyled" style="font-size: 0.9rem; line-height: 2;">
+                        <li><a href="<?= site_url('/') ?>">Beranda</a></li>
+                        <li><a href="<?= site_url('/login') ?>">Masuk Sistem</a></li>
+                        <li><a href="<?= site_url('/api/docs') ?>">Dokumentasi API</a></li>
+                        <li><a href="<?= site_url('/api/register') ?>">Daftar API Key</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-6">
+                    <h5>Tentang Data</h5>
+                    <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
+                        Data pada portal ini bersifat agregat dan diperbarui oleh admin desa setiap periode pelaporan. Untuk data mikro per individu, silakan hubungi Dinas Kependudukan dan Pencatatan Sipil.
+                    </p>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container text-center">
-            <p class="mb-0">&copy; <?= date('Y') ?> ERDEKATALA - DP3AP2KB Kabupaten Tanah Laut</p>
+            <div class="footer-bottom">
+                <span>&copy; <?= date('Y') ?> Pemerintah Kabupaten Tanah Laut — Dinas Kependudukan &amp; Pencatatan Sipil.</span>
+                <span>RT-RW-Desa-Kecamatan-Laporan-Agregat</span>
+            </div>
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
-
+    <!-- ===== ZINGCHART CONFIGS ===== -->
     <script>
-        // Chained Dropdown Logic
-        $('#filter_kecamatan').change(function () {
-            const idKecamatan = $(this).val();
-            $('#filter_desa').html('<option value="">Memuat...</option>');
+        document.addEventListener("DOMContentLoaded", function () {
+        // Palette konsisten
+        const C = {
+            primary: "#dd4814",
+            ink:     "#0f1923",
+            blue:    "#2d6cdf",
+            pink:    "#d6336c",
+            green:   "#2f9e44",
+            muted:   "#6b7280",
+            paper:   "#f7f5f1",
+            border:  "#e5e1d8"
+        };
+        const PALETTE7 = ["#dd4814","#2d6cdf","#2f9e44","#d6336c","#8b5cf6","#f59e0b","#0d9488"];
+        const GUIDE = { "line-color": C.border, "line-style": "dotted" };
+        const AX = { "font-color": C.ink, "font-size": 11 };
+        const TIP = { borderRadius: 4, padding: 8, "background-color": C.ink, "font-color": "#fff" };
 
-            if (idKecamatan) {
-                $.get('/getDesaByKecamatan/' + idKecamatan, function (data) {
-                    let html = '<option value="">-- Semua Desa --</option>';
-                    data.forEach(function (desa) {
-                        html += `<option value="${desa.id_desa}">${desa.nama_desa}</option>`;
-                    });
-                    $('#filter_desa').html(html);
-                });
-            } else {
-                $('#filter_desa').html('<option value="">-- Semua Desa --</option>');
+        // ============ 1. PIRAMIDA PENDUDUK (hbar, L negatif kiri / P positif kanan) ============
+        const ageLabels  = <?= json_encode($ageLabels) ?>;
+        const piramidaL  = <?= json_encode(array_map('intval', $piramidaL)) ?>;
+        const piramidaP  = <?= json_encode(array_map('intval', $piramidaP)) ?>;
+        const piramidaLneg = piramidaL.map(v => -1 * v);
+
+        zingchart.render({
+            id: "zc-piramida",
+            height: 450,
+            width: "100%",
+            data: {
+                type: "hbar",
+                "background-color": "transparent",
+                stacked: true,
+                legend: {
+                    layout: "x2", position: "4% 2%",
+                    "background-color": "none", "border-width": 0,
+                    marker: { "border-radius": 3 },
+                    item: Object.assign({}, AX)
+                },
+                plot: {
+                    "bar-width": "82%",
+                    "border-radius": 3,
+                    tooltip: Object.assign({ text: "%t — Umur %scale-key-text: %node-value orang" }, TIP),
+                    animation: { effect: 2, speed: 600 }
+                },
+                plotarea: { margin: "dynamic 45 dynamic 70" },
+                "scale-x": {
+                    values: ageLabels,
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                "scale-y": {
+                    label: { text: "Jumlah Penduduk", "font-color": C.muted },
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border },
+                    format: "%v"
+                },
+                series: [
+                    { text: "Laki-laki",  values: piramidaLneg, "background-color": C.blue, "legend-marker": { "background-color": C.blue } },
+                    { text: "Perempuan", values: piramidaP,    "background-color": C.pink, "legend-marker": { "background-color": C.pink } }
+                ]
             }
         });
 
-        // ApexCharts Configuration
-        const chartOptions = {
-            chart: {
-                fontFamily: 'Roboto, sans-serif',
-                toolbar: {
-                    show: true,
-                    tools: {
-                        download: true,
-                        selection: true,
-                        zoom: true,
-                        zoomin: true,
-                        zoomout: true,
-                        pan: true,
-                        reset: true
+        // ============ 2. PENDIDIKAN (bar vertikal + label nilai) ============
+        const pendLabels = <?= json_encode(array_keys($pendidikan)) ?>;
+        const pendValues = <?= json_encode(array_map('intval', array_values($pendidikan))) ?>;
+
+        zingchart.render({
+            id: "zc-pendidikan",
+            height: 300,
+            width: "100%",
+            data: {
+                type: "bar",
+                "background-color": "transparent",
+                plot: {
+                    "bar-width": "55%",
+                    "border-radius": 4,
+                    tooltip: Object.assign({ text: "%k: <strong>%v</strong> KK" }, TIP),
+                    "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top" },
+                    animation: { effect: 2, speed: 500 }
+                },
+                plotarea: { margin: "dynamic 40 50 45" },
+                "scale-x": {
+                    values: pendLabels,
+                    item: Object.assign({ angle: -20, "offset-y": -3 }, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                "scale-y": {
+                    format: "%v",
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                series: [{
+                    text: "KK",
+                    values: pendValues,
+                    styles: PALETTE7.map(c => ({ "background-color": c }))
+                }]
+            }
+        });
+
+        // ============ 3. JKN / BPJS (donut) ============
+        const jknLabels = <?= json_encode(array_keys($jkn_bpjs)) ?>;
+        const jknValues = <?= json_encode(array_map('intval', array_values($jkn_bpjs))) ?>;
+
+        zingchart.render({
+            id: "zc-jkn",
+            height: 300,
+            width: "100%",
+            data: {
+                type: "pie",
+                "background-color": "transparent",
+                plot: {
+                    "border-radius": 6,
+                    "slice": 60,
+                    tooltip: Object.assign({ text: "%t: <strong>%v</strong> (%npv%)" }, TIP),
+                    "value-box": {
+                        text: "%npv%", "font-color": C.ink, "font-size": 11,
+                        placement: "out", "font-weight": "bold"
                     },
-                    export: {
-                        csv: {
-                            filename: 'data.csv'
-                        },
-                        svg: {
-                            filename: 'chart.svg'
-                        },
-                        png: {
-                            filename: 'chart.png'
-                        }
-                    }
+                    animation: { effect: 2, speed: 600 }
                 },
-                animations: { enabled: true, speed: 800 }
-            },
-            theme: { mode: 'light' },
-            dataLabels: {
-                enabled: true,
-                style: { fontSize: '12px', fontWeight: 600 }
-            }
-        };
-
-        // Chart Pendidikan (Donut)
-        new ApexCharts(document.querySelector("#chartPendidikan"), {
-            ...chartOptions,
-            series: <?= json_encode(array_values($pendidikan)) ?>,
-            chart: { ...chartOptions.chart, type: 'donut', height: 350 },
-            labels: <?= json_encode(array_keys($pendidikan)) ?>,
-            colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#06b6d4'],
-            legend: { position: 'bottom' },
-            plotOptions: {
-                pie: {
-                    donut: {
-                        size: '65%',
-                        labels: {
-                            show: true,
-                            total: {
-                                show: true,
-                                label: 'Total',
-                                formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString()
-                            }
-                        }
-                    }
-                }
-            }
-        }).render();
-
-        // Chart JKN/BPJS (Donut)
-        new ApexCharts(document.querySelector("#chartJKN"), {
-            ...chartOptions,
-            series: <?= json_encode(array_values($jkn_bpjs)) ?>,
-            chart: { ...chartOptions.chart, type: 'donut', height: 350 },
-            labels: <?= json_encode(array_keys($jkn_bpjs)) ?>,
-            colors: ['#06b6d4', '#14b8a6', '#f59e0b'],
-            legend: { position: 'bottom' },
-            plotOptions: {
-                pie: {
-                    donut: {
-                        size: '65%',
-                        labels: {
-                            show: true,
-                            total: {
-                                show: true,
-                                label: 'Total',
-                                formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString()
-                            }
-                        }
-                    }
-                }
-            }
-        }).render();
-
-        // Chart Pekerjaan (Bar)
-        new ApexCharts(document.querySelector("#chartPekerjaan"), {
-            ...chartOptions,
-            series: [{
-                name: 'Jumlah Penduduk',
-                data: <?= json_encode(array_values($pekerjaan)) ?>
-            }],
-            chart: { ...chartOptions.chart, type: 'bar', height: 400 },
-            plotOptions: {
-                bar: {
-                    horizontal: true,
-                    borderRadius: 8,
-                    dataLabels: { position: 'top' }
-                }
-            },
-            colors: ['#10b981'],
-            xaxis: {
-                categories: <?= json_encode(array_keys($pekerjaan)) ?>,
-                labels: { formatter: (val) => val.toLocaleString() }
-            },
-            yaxis: { labels: { style: { fontSize: '13px' } } }
-        }).render();
-
-        // Chart Gender (Bar)
-        new ApexCharts(document.querySelector("#chartGender"), {
-            ...chartOptions,
-            series: [
-                { name: 'Laki-laki', data: [<?= $totals['jiwa_l'] ?>, <?= $totals['kk_l'] ?>] },
-                { name: 'Perempuan', data: [<?= $totals['jiwa_p'] ?>, <?= $totals['kk_p'] ?>] }
-            ],
-            chart: { ...chartOptions.chart, type: 'bar', height: 350 },
-            plotOptions: {
-                bar: {
-                    horizontal: false,
-                    columnWidth: '55%',
-                    borderRadius: 8
-                }
-            },
-            colors: ['#3b82f6', '#ec4899'],
-            xaxis: {
-                categories: ['Jumlah Jiwa', 'Jumlah KK']
-            },
-            yaxis: {
-                labels: { formatter: (val) => val.toLocaleString() }
-            },
-            legend: { position: 'top' }
-        }).render();
-
-        // Chart Piramida Penduduk (Horizontal Bar)
-        new ApexCharts(document.querySelector("#chartPiramida"), {
-            ...chartOptions,
-            dataLabels: {
-                enabled: false
-            },
-            series: [
-                {
-                    name: 'Laki-laki',
-                    data: <?= json_encode(array_map(function ($v) {
-                        return -$v;
-                    }, $piramidaL)) ?>
+                plotarea: { margin: "10 10 45 10" },
+                legend: {
+                    layout: "x3", position: "50% 92%",
+                    "background-color": "none", "border-width": 0,
+                    marker: { "border-radius": 3 },
+                    item: Object.assign({}, AX)
                 },
-                {
-                    name: 'Perempuan',
-                    data: <?= json_encode($piramidaP) ?>
-                }
-            ],
-            chart: { ...chartOptions.chart, type: 'bar', height: 450 },
-            plotOptions: {
-                bar: {
-                    horizontal: true,
-                    borderRadius: 4,
-                    dataLabels: { position: 'top' }
-                }
-            },
-            colors: ['#3b82f6', '#ec4899'],
-            xaxis: {
-                categories: <?= json_encode($ageLabels) ?>,
-                labels: {
-                    formatter: (val) => Math.abs(val).toLocaleString()
-                }
-            },
-            yaxis: {
-                labels: { style: { fontSize: '12px' } }
-            },
-            legend: { position: 'top', horizontalAlign: 'center' },
-            tooltip: {
-                shared: true,
-                intersect: false,
-                theme: 'light',
-                custom: function ({ series, seriesIndex, dataPointIndex, w }) {
-                    const category = w.globals.labels[dataPointIndex];
-                    const value1 = Math.abs(Math.round(series[0][dataPointIndex]));
-                    const value2 = Math.round(series[1][dataPointIndex]);
-                    const total = value1 + value2;
-                    return `
-                        <div style="padding: 12px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                            <div style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">Kelompok Usia: ${category} tahun</div>
-                            <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px;">
-                                <span style="color: #3b82f6;"><strong>Laki-laki:</strong></span>
-                                <span style="color: #3b82f6; font-weight: 600;">${value1.toLocaleString()}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px;">
-                                <span style="color: #ec4899;"><strong>Perempuan:</strong></span>
-                                <span style="color: #ec4899; font-weight: 600;">${value2.toLocaleString()}</span>
-                            </div>
-                            <div style="border-top: 1px solid #e5e7eb; padding-top: 6px; color: #6b7280; font-size: 12px;">
-                                <strong>Total: ${total.toLocaleString()}</strong>
-                            </div>
-                        </div>
-                    `;
-                }
+                series: [
+                    { text: jknLabels[0], values: [jknValues[0]], "background-color": C.primary },
+                    { text: jknLabels[1], values: [jknValues[1]], "background-color": C.blue },
+                    { text: jknLabels[2], values: [jknValues[2]], "background-color": C.muted }
+                ]
             }
-        }).render();
+        });
+
+        // ============ 4. PEKERJAAN (hbar horizontal + label nilai) ============
+        const pkrLabels = <?= json_encode(array_keys($pekerjaan)) ?>;
+        const pkrValues = <?= json_encode(array_map('intval', array_values($pekerjaan))) ?>;
+
+        zingchart.render({
+            id: "zc-pekerjaan",
+            height: 320,
+            width: "100%",
+            data: {
+                type: "hbar",
+                "background-color": "transparent",
+                plot: {
+                    "bar-width": "60%",
+                    "border-radius": 4,
+                    tooltip: Object.assign({ text: "%scale-key-text: <strong>%v</strong> KK" }, TIP),
+                    "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top-out" },
+                    animation: { effect: 2, speed: 500 }
+                },
+                plotarea: { margin: "dynamic 50 dynamic 60" },
+                "scale-x": {
+                    values: pkrLabels,
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                "scale-y": {
+                    format: "%v",
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                series: [{
+                    text: "KK",
+                    values: pkrValues,
+                    "background-color": C.primary
+                }]
+            }
+        });
+
+        // ============ 5. GENDER (grouped bar + label nilai) ============
+        zingchart.render({
+            id: "zc-gender",
+            height: 260,
+            width: "100%",
+            data: {
+                type: "bar",
+                "background-color": "transparent",
+                plot: {
+                    "bar-width": "45%",
+                    "border-radius": 4,
+                    tooltip: Object.assign({ text: "%t · %k: <strong>%v</strong>" }, TIP),
+                    "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top" },
+                    animation: { effect: 2, speed: 500 }
+                },
+                plotarea: { margin: "dynamic 45 45 50" },
+                "scale-x": {
+                    values: ["Total Jiwa", "Total KK"],
+                    item: Object.assign({ "font-size": 12 }, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                "scale-y": {
+                    format: "%v",
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                legend: {
+                    layout: "x2", position: "85% 4%",
+                    "background-color": "none", "border-width": 0,
+                    marker: { "border-radius": 3 },
+                    item: Object.assign({}, AX)
+                },
+                series: [
+                    { text: "Laki-laki",  values: [<?= (int)$jiwaL ?>, <?= (int)$kkL ?>], "background-color": C.blue },
+                    { text: "Perempuan", values: [<?= (int)$jiwaP ?>, <?= (int)$kkP ?>], "background-color": C.pink }
+                ]
+            }
+        });
+
+        // ============ 6. STATUS PERKAWINAN (donut) ============
+        const kawinLabels = <?= json_encode(array_keys($status_kawin)) ?>;
+        const kawinValues = <?= json_encode(array_map('intval', array_values($status_kawin))) ?>;
+        const kawinColors = [C.green, C.blue, C.amber, C.primary];
+
+        zingchart.render({
+            id: "zc-kawin",
+            height: 300,
+            width: "100%",
+            data: {
+                type: "pie",
+                "background-color": "transparent",
+                plot: {
+                    "border-radius": 6,
+                    "slice": 60,
+                    tooltip: Object.assign({ text: "%t: <strong>%v</strong> KK (%npv%)" }, TIP),
+                    "value-box": {
+                        text: "%npv%", "font-color": C.ink, "font-size": 11,
+                        placement: "out", "font-weight": "bold"
+                    },
+                    animation: { effect: 2, speed: 600 }
+                },
+                plotarea: { margin: "10 10 45 10" },
+                legend: {
+                    layout: "x2", position: "50% 92%",
+                    "background-color": "none", "border-width": 0,
+                    marker: { "border-radius": 3 },
+                    item: Object.assign({}, AX)
+                },
+                series: kawinValues.map((v, i) => ({
+                    text: kawinLabels[i], values: [v],
+                    "background-color": kawinColors[i % kawinColors.length]
+                }))
+            }
+        });
+
+        // ============ 7. DOKUMEN ADMINDUK (hbar) ============
+        const dokLabels = <?= json_encode(array_keys($dokumen)) ?>;
+        const dokValues = <?= json_encode(array_map('intval', array_values($dokumen))) ?>;
+
+        zingchart.render({
+            id: "zc-dokumen",
+            height: 300,
+            width: "100%",
+            data: {
+                type: "hbar",
+                "background-color": "transparent",
+                plot: {
+                    "bar-width": "60%",
+                    "border-radius": 4,
+                    tooltip: Object.assign({ text: "%scale-key-text: <strong>%v</strong>" }, TIP),
+                    "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top-out" },
+                    animation: { effect: 2, speed: 500 }
+                },
+                plotarea: { margin: "dynamic 50 dynamic 60" },
+                "scale-x": {
+                    values: dokLabels,
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                "scale-y": {
+                    format: "%v",
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                series: [{
+                    text: "Pemilik Dokumen",
+                    values: dokValues,
+                    "background-color": C.primary
+                }]
+            }
+        });
+        });
     </script>
+
+    <!-- Bootstrap JS (minimal, untuk dropdown mobile only) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

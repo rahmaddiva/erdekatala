@@ -3,29 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar API Key - Erdekatala</title>
+    <title>Daftar API Key - Sikada Tala</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #0f3460; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .register-card { background: #16213e; border-radius: 12px; padding: 40px; max-width: 560px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-        .register-card h2 { color: #fff; font-size: 1.5rem; margin-bottom: 6px; }
-        .register-card p.sub { color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-bottom: 28px; }
-        .form-control { background: #1a1a2e; border-color: rgba(255,255,255,0.15); color: #fff; }
-        .form-control:focus { background: #1a1a2e; border-color: #e94560; color: #fff; box-shadow: none; }
-        .form-control::placeholder { color: rgba(255,255,255,0.3); }
-        label { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
-        .btn-register { background: #e94560; border: none; color: #fff; font-weight: 600; padding: 10px 28px; border-radius: 6px; width: 100%; font-size: 1rem; }
-        .btn-register:hover { background: #c73652; color: #fff; }
-        .text-danger { font-size: 0.8rem; }
-        .back-link { color: rgba(255,255,255,0.5); font-size: 0.85rem; display: block; text-align: center; margin-top: 18px; }
-        .back-link:hover { color: #fff; }
-        .info-box { background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.3); border-radius: 6px; padding: 12px 16px; margin-bottom: 24px; color: rgba(255,255,255,0.7); font-size: 0.85rem; }
+        :root{
+            --ink:#0f1923; --ink-2:#1a2733;
+            --primary:#dd4814; --primary-d:#b83a10;
+            --paper:#f7f5f1; --paper-2:#ffffff;
+            --line:#e5e1d8; --muted:#6b7280;
+        }
+        *{box-sizing:border-box;}
+        body{background:var(--paper);font-family:"Source Sans 3",sans-serif;color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+        h2,h3{font-family:"Libre Baskerville",serif;}
+
+        .register-card{
+            background:var(--paper-2);border:1px solid var(--line);border-radius:14px;
+            padding:40px;max-width:560px;width:100%;
+            box-shadow:0 4px 24px rgba(15,25,35,0.08);
+        }
+        .register-card .brand{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+        .register-card .brand-mark{
+            width:44px;height:44px;background:var(--primary);border-radius:8px;
+            display:flex;align-items:center;justify-content:center;
+            font-family:"Libre Baskerville",serif;font-weight:700;font-size:1.5rem;color:#fff;flex-shrink:0;
+        }
+        .register-card h2{color:var(--ink);font-size:1.5rem;margin:0;}
+        .register-card p.sub{color:var(--muted);font-size:0.9rem;margin:4px 0 28px;font-weight:300;}
+        .form-control{background:var(--paper);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:10px 14px;}
+        .form-control:focus{background:#fff;border-color:var(--primary);color:var(--ink);box-shadow:0 0 0 3px rgba(221,72,20,0.12);}
+        .form-control::placeholder{color:#a8a39b;}
+        label{color:var(--ink);font-size:0.88rem;font-weight:600;margin-bottom:4px;}
+        .btn-register{background:var(--primary);border:none;color:#fff;font-weight:600;padding:12px 28px;border-radius:6px;width:100%;font-size:1rem;transition:background .15s;}
+        .btn-register:hover{background:var(--primary-d);color:#fff;}
+        .text-danger{font-size:0.8rem;}
+        .back-link{color:var(--muted);font-size:0.85rem;display:block;text-align:center;margin-top:18px;text-decoration:none;}
+        .back-link:hover{color:var(--primary);}
+        .info-box{background:rgba(221,72,20,0.06);border:1px solid rgba(221,72,20,0.25);border-radius:6px;padding:12px 16px;margin-bottom:24px;color:var(--ink);font-size:0.85rem;}
+        .alert-danger{background:rgba(221,72,20,0.08);border:1px solid rgba(221,72,20,0.25);color:var(--ink);}
     </style>
 </head>
 <body>
 <div class="register-card">
-    <h2><i class="fas fa-key mr-2" style="color:#e94560"></i> Daftar API Key</h2>
+    <div class="brand">
+        <div class="brand-mark">S</div>
+        <h2>Daftar API Key</h2>
+    </div>
     <p class="sub">Gratis. 1000 request/hari. Akses semua data agregat kependudukan.</p>
 
     <div class="info-box">
@@ -66,7 +92,7 @@
             <label>Label API Key *</label>
             <input type="text" name="label" class="form-control" placeholder="Misal: Website Desa Kurau"
                    value="<?= esc($old['label'] ?? '') ?>" required>
-            <small style="color:rgba(255,255,255,0.4)">Nama pengingat untuk key ini</small>
+            <small style="color:var(--muted)">Nama pengingat untuk key ini</small>
         </div>
 
         <button type="submit" class="btn btn-register mt-2">
