@@ -241,7 +241,6 @@ class LaporanAgregatController extends BaseController
             $search = $this->request->getVar('search')['value'] ?? null;
             $id_desa_filter = $this->request->getVar('id_desa'); // Filter khusus admin kecamatan
             $id_kecamatan_filter = $this->request->getVar('id_kecamatan');
-            $id_desa_filter = $this->request->getVar('id_desa');
             $bulan = $this->request->getVar('bulan'); // Ambil input bulan
             $tahun = $this->request->getVar('tahun'); // Ambil input tahun
 
@@ -435,29 +434,29 @@ class LaporanAgregatController extends BaseController
 
             $listDesa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
 
+            // Single query: RT count + laporan count per desa untuk periode ini
+            $db = \Config\Database::connect();
+            $statsRows = $db->table('m_desa d')
+                ->select('d.id_desa, COUNT(DISTINCT r.id_rt) as total_rt, COUNT(DISTINCT la.id_laporan) as sudah_lapor')
+                ->join('m_dusun du', 'du.id_desa = d.id_desa', 'left')
+                ->join('m_rt r', 'r.id_dusun = du.id_dusun', 'left')
+                ->join('laporan_agregat la', "la.id_rt = r.id_rt AND la.bulan = {$filterBulan} AND la.tahun = {$filterTahun}", 'left')
+                ->where('d.id_kecamatan', $user['id_kecamatan'])
+                ->groupBy('d.id_desa')
+                ->get()->getResultArray();
+            $statsMap = array_column($statsRows, null, 'id_desa');
+
             $desaStats = [];
             foreach ($listDesa as $desa) {
-                $allRtDesa = $rtModel->select('m_rt.id_rt')
-                    ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-                    ->where('m_dusun.id_desa', $desa['id_desa'])
-                    ->findAll();
-
-                $rtIds = array_column($allRtDesa, 'id_rt');
-                $sudahLapor = 0;
-                if (!empty($rtIds)) {
-                    $sudahLapor = $this->laporanModel
-                        ->whereIn('id_rt', $rtIds)
-                        ->where('bulan', $filterBulan)
-                        ->where('tahun', $filterTahun)
-                        ->countAllResults();
-                }
-
+                $s = $statsMap[$desa['id_desa']] ?? ['total_rt' => 0, 'sudah_lapor' => 0];
+                $total = (int)$s['total_rt'];
+                $sudah = (int)$s['sudah_lapor'];
                 $desaStats[] = [
                     'desa'        => $desa,
-                    'total_rt'    => count($rtIds),
-                    'sudah_lapor' => $sudahLapor,
-                    'belum_lapor' => count($rtIds) - $sudahLapor,
-                    'persen'      => count($rtIds) > 0 ? round($sudahLapor / count($rtIds) * 100) : 0,
+                    'total_rt'    => $total,
+                    'sudah_lapor' => $sudah,
+                    'belum_lapor' => $total - $sudah,
+                    'persen'      => $total > 0 ? round($sudah / $total * 100) : 0,
                 ];
             }
 
@@ -586,14 +585,13 @@ class LaporanAgregatController extends BaseController
 
         // SECURITY CHECK: Pastikan Admin Kecamatan hanya bisa edit data di wilayahnya
         if ($user['role'] == 'admin_kecamatan') {
-            $cekWilayah = $this->laporanModel->select('m_desa.id_kecamatan')
-                ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
+            $rtRow = $this->rtModel->select('m_rt.id_dusun, m_dusun.id_desa, m_desa.id_kecamatan')
                 ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
                 ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
-                ->where('laporan_agregat.id_laporan', $id)
+                ->where('m_rt.id_rt', $laporan['id_rt'])
                 ->first();
 
-            if ($cekWilayah['id_kecamatan'] != $user['id_kecamatan']) {
+            if (!$rtRow || $rtRow['id_kecamatan'] != $user['id_kecamatan']) {
                 return redirect()->to('/laporan')->with('error', 'Anda tidak memiliki akses ke data di luar wilayah kecamatan Anda.');
             }
         }

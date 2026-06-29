@@ -1102,12 +1102,12 @@ $dokTotal   = array_sum($dokumen);
                 <div class="col-lg-4 col-6">
                     <h5>Tentang Data</h5>
                     <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
-                        Data pada portal ini bersifat agregat dan diperbarui oleh admin desa setiap periode pelaporan. Untuk data mikro per individu, silakan hubungi Dinas Kependudukan dan Pencatatan Sipil.
+                        Data pada portal ini bersifat agregat dan diperbarui oleh admin desa setiap periode pelaporan.
                     </p>
                 </div>
             </div>
             <div class="footer-bottom">
-                <span>&copy; <?= date('Y') ?> Pemerintah Kabupaten Tanah Laut — Dinas Kependudukan &amp; Pencatatan Sipil.</span>
+                <span>&copy; <?= date('Y') ?> Pemerintah Kabupaten Tanah Laut.</span>
                 <span>RT-RW-Desa-Kecamatan-Laporan-Agregat</span>
             </div>
         </div>
