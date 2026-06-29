@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Normalisasi data untuk tampilan
 $jiwaL      = (int)($totals['jiwa_l'] ?? 0);
 $jiwaP      = (int)($totals['jiwa_p'] ?? 0);
@@ -1018,6 +1018,10 @@ $slugify = function($name) {
 
     <!-- ===== ZINGCHART CONFIGS ===== -->
     <script>
+        // ponytail: window-scope so DT ready() block can call these
+        const rendered = new Set();
+        let renderPiramida, renderSosio, renderKesehatan;
+
         document.addEventListener("DOMContentLoaded", function () {
         const C = {
             primary: "#dd4814", ink: "#0f1923", blue: "#2d6cdf", pink: "#d6336c",
@@ -1029,168 +1033,24 @@ $slugify = function($name) {
         const AX = { "font-color": C.ink, "font-size": 11 };
         const TIP = { borderRadius: 4, padding: 8, "background-color": C.ink, "font-color": "#fff" };
 
-        // ===== 1. PIRAMIDA PENDUDUK =====
-        const ageLabels  = <?= json_encode($ageLabels) ?>;
-        const piramidaL  = <?= json_encode(array_map('intval', $piramidaL)) ?>;
-        const piramidaP  = <?= json_encode(array_map('intval', $piramidaP)) ?>;
+        // Data for deferred charts — declared here so render fns can close over them
+        const ageLabels    = <?= json_encode($ageLabels) ?>;
+        const piramidaL    = <?= json_encode(array_map('intval', $piramidaL)) ?>;
+        const piramidaP    = <?= json_encode(array_map('intval', $piramidaP)) ?>;
         const piramidaLneg = piramidaL.map(v => -1 * v);
+        const pendLabels   = <?= json_encode(array_keys($pendidikan)) ?>;
+        const pendValues   = <?= json_encode(array_map('intval', array_values($pendidikan))) ?>;
+        const jknLabels    = <?= json_encode(array_keys($jkn_bpjs)) ?>;
+        const jknValues    = <?= json_encode(array_map('intval', array_values($jkn_bpjs))) ?>;
+        const pkrLabels    = <?= json_encode(array_keys($pekerjaan)) ?>;
+        const pkrValues    = <?= json_encode(array_map('intval', array_values($pekerjaan))) ?>;
+        const kawinLabels  = <?= json_encode(array_keys($status_kawin)) ?>;
+        const kawinValues  = <?= json_encode(array_map('intval', array_values($status_kawin))) ?>;
+        const kawinColors  = [C.green, C.blue, C.amber, C.primary];
+        const dokLabels    = <?= json_encode(array_keys($dokumen)) ?>;
+        const dokValues    = <?= json_encode(array_map('intval', array_values($dokumen))) ?>;
 
-        zingchart.render({
-            id: "zc-piramida",
-            height: 450,
-            width: "100%",
-            data: {
-                type: "hbar",
-                "background-color": "transparent",
-                stacked: true,
-                legend: {
-                    layout: "x2", position: "4% 2%",
-                    "background-color": "none", "border-width": 0,
-                    marker: { "border-radius": 3 },
-                    item: Object.assign({}, AX)
-                },
-                plot: {
-                    "bar-width": "82%",
-                    "border-radius": 3,
-                    tooltip: Object.assign({ text: "%t — Umur %scale-key-text: %node-value orang" }, TIP),
-                    animation: { effect: 2, speed: 600 }
-                },
-                plotarea: { margin: "dynamic 45 dynamic 70" },
-                "scale-x": {
-                    values: ageLabels,
-                    item: Object.assign({}, AX),
-                    guide: GUIDE,
-                    tick: { "line-color": C.border }
-                },
-                "scale-y": {
-                    label: { text: "Jumlah Penduduk", "font-color": C.muted },
-                    format: "%v",
-                    item: Object.assign({}, AX),
-                    guide: GUIDE,
-                    tick: { "line-color": C.border }
-                },
-                series: [
-                    { text: "Laki-laki",  values: piramidaLneg, "background-color": C.blue },
-                    { text: "Perempuan", values: piramidaP,    "background-color": C.pink }
-                ]
-            }
-        });
-
-        // ===== 2. PENDIDIKAN (bar) =====
-        const pendLabels = <?= json_encode(array_keys($pendidikan)) ?>;
-        const pendValues = <?= json_encode(array_map('intval', array_values($pendidikan))) ?>;
-
-        zingchart.render({
-            id: "zc-pendidikan",
-            height: 300,
-            width: "100%",
-            data: {
-                type: "bar",
-                "background-color": "transparent",
-                plot: {
-                    "bar-width": "55%",
-                    "border-radius": 4,
-                    tooltip: Object.assign({ text: "%scale-key-text: <strong>%v</strong> KK" }, TIP),
-                    "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top" },
-                    animation: { effect: 2, speed: 500 }
-                },
-                plotarea: { margin: "dynamic 45 45 50" },
-                "scale-x": {
-                    values: pendLabels,
-                    item: Object.assign({ "font-size": 10 }, AX),
-                    guide: GUIDE,
-                    tick: { "line-color": C.border }
-                },
-                "scale-y": {
-                    format: "%v",
-                    item: Object.assign({}, AX),
-                    guide: GUIDE,
-                    tick: { "line-color": C.border }
-                },
-                series: [{
-                    text: "KK",
-                    values: pendValues,
-                    styles: PALETTE7.map(c => ({ "background-color": c }))
-                }]
-            }
-        });
-
-        // ===== 3. JKN / BPJS (donut) =====
-        const jknLabels = <?= json_encode(array_keys($jkn_bpjs)) ?>;
-        const jknValues = <?= json_encode(array_map('intval', array_values($jkn_bpjs))) ?>;
-
-        zingchart.render({
-            id: "zc-jkn",
-            height: 300,
-            width: "100%",
-            data: {
-                type: "pie",
-                "background-color": "transparent",
-                plot: {
-                    "border-radius": 6,
-                    "slice": 60,
-                    tooltip: Object.assign({ text: "%t: <strong>%v</strong> (%npv%)" }, TIP),
-                    "value-box": {
-                        text: "%npv%", "font-color": C.ink, "font-size": 11,
-                        placement: "out", "font-weight": "bold"
-                    },
-                    animation: { effect: 2, speed: 600 }
-                },
-                plotarea: { margin: "10 10 45 10" },
-                legend: {
-                    layout: "x3", position: "50% 92%",
-                    "background-color": "none", "border-width": 0,
-                    marker: { "border-radius": 3 },
-                    item: Object.assign({}, AX)
-                },
-                series: [
-                    { text: jknLabels[0], values: [jknValues[0]], "background-color": C.primary },
-                    { text: jknLabels[1], values: [jknValues[1]], "background-color": C.blue },
-                    { text: jknLabels[2], values: [jknValues[2]], "background-color": C.muted }
-                ]
-            }
-        });
-
-        // ===== 4. PEKERJAAN (hbar) =====
-        const pkrLabels = <?= json_encode(array_keys($pekerjaan)) ?>;
-        const pkrValues = <?= json_encode(array_map('intval', array_values($pekerjaan))) ?>;
-
-        zingchart.render({
-            id: "zc-pekerjaan",
-            height: 320,
-            width: "100%",
-            data: {
-                type: "hbar",
-                "background-color": "transparent",
-                plot: {
-                    "bar-width": "60%",
-                    "border-radius": 4,
-                    tooltip: Object.assign({ text: "%scale-key-text: <strong>%v</strong> KK" }, TIP),
-                    "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top-out" },
-                    animation: { effect: 2, speed: 500 }
-                },
-                plotarea: { margin: "dynamic 50 dynamic 60" },
-                "scale-x": {
-                    values: pkrLabels,
-                    item: Object.assign({}, AX),
-                    guide: GUIDE,
-                    tick: { "line-color": C.border }
-                },
-                "scale-y": {
-                    format: "%v",
-                    item: Object.assign({}, AX),
-                    guide: GUIDE,
-                    tick: { "line-color": C.border }
-                },
-                series: [{
-                    text: "KK",
-                    values: pkrValues,
-                    "background-color": C.primary
-                }]
-            }
-        });
-
-        // ===== 5. GENDER (grouped bar) =====
+        // ===== TAB POKOK — render immediately (active tab) =====
         zingchart.render({
             id: "zc-gender",
             height: 260,
@@ -1231,82 +1091,165 @@ $slugify = function($name) {
             }
         });
 
-        // ===== 6. STATUS PERKAWINAN (donut) =====
-        const kawinLabels = <?= json_encode(array_keys($status_kawin)) ?>;
-        const kawinValues = <?= json_encode(array_map('intval', array_values($status_kawin))) ?>;
-        const kawinColors = [C.green, C.blue, C.amber, C.primary];
-
-        zingchart.render({
-            id: "zc-kawin",
-            height: 300,
-            width: "100%",
-            data: {
-                type: "pie",
-                "background-color": "transparent",
-                plot: {
-                    "border-radius": 6,
-                    "slice": 60,
-                    tooltip: Object.assign({ text: "%t: <strong>%v</strong> KK (%npv%)" }, TIP),
-                    "value-box": {
-                        text: "%npv%", "font-color": C.ink, "font-size": 11,
-                        placement: "out", "font-weight": "bold"
+        // ===== LAZY RENDER FUNCTIONS =====
+        renderPiramida = function () {
+            zingchart.render({
+                id: "zc-piramida",
+                height: 450,
+                width: "100%",
+                data: {
+                    type: "hbar",
+                    "background-color": "transparent",
+                    stacked: true,
+                    legend: {
+                        layout: "x2", position: "4% 2%",
+                        "background-color": "none", "border-width": 0,
+                        marker: { "border-radius": 3 },
+                        item: Object.assign({}, AX)
                     },
-                    animation: { effect: 2, speed: 600 }
-                },
-                plotarea: { margin: "10 10 45 10" },
-                legend: {
-                    layout: "x4", position: "50% 92%",
-                    "background-color": "none", "border-width": 0,
-                    marker: { "border-radius": 3 },
-                    item: Object.assign({}, AX)
-                },
-                series: kawinLabels.map((label, i) => ({
-                    text: label,
-                    values: [kawinValues[i]],
-                    "background-color": kawinColors[i]
-                }))
-            }
-        });
+                    plot: {
+                        "bar-width": "82%",
+                        "border-radius": 3,
+                        tooltip: Object.assign({ text: "%t — Umur %scale-key-text: %node-value orang" }, TIP),
+                        animation: { effect: 2, speed: 600 }
+                    },
+                    plotarea: { margin: "dynamic 45 dynamic 70" },
+                    "scale-x": {
+                        values: ageLabels,
+                        item: Object.assign({}, AX),
+                        guide: GUIDE,
+                        tick: { "line-color": C.border }
+                    },
+                    "scale-y": {
+                        label: { text: "Jumlah Penduduk", "font-color": C.muted },
+                        format: "%v",
+                        item: Object.assign({}, AX),
+                        guide: GUIDE,
+                        tick: { "line-color": C.border }
+                    },
+                    series: [
+                        { text: "Laki-laki",  values: piramidaLneg, "background-color": C.blue },
+                        { text: "Perempuan", values: piramidaP,    "background-color": C.pink }
+                    ]
+                }
+            });
+        };
 
-        // ===== 7. DOKUMEN KEPENDUDUKAN (hbar) =====
-        const dokLabels = <?= json_encode(array_keys($dokumen)) ?>;
-        const dokValues = <?= json_encode(array_map('intval', array_values($dokumen))) ?>;
+        renderSosio = function () {
+            zingchart.render({
+                id: "zc-pendidikan",
+                height: 300,
+                width: "100%",
+                data: {
+                    type: "bar",
+                    "background-color": "transparent",
+                    plot: {
+                        "bar-width": "55%",
+                        "border-radius": 4,
+                        tooltip: Object.assign({ text: "%scale-key-text: <strong>%v</strong> KK" }, TIP),
+                        "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top" },
+                        animation: { effect: 2, speed: 500 }
+                    },
+                    plotarea: { margin: "dynamic 45 45 50" },
+                    "scale-x": {
+                        values: pendLabels,
+                        item: Object.assign({ "font-size": 10 }, AX),
+                        guide: GUIDE,
+                        tick: { "line-color": C.border }
+                    },
+                    "scale-y": {
+                        format: "%v",
+                        item: Object.assign({}, AX),
+                        guide: GUIDE,
+                        tick: { "line-color": C.border }
+                    },
+                    series: [{ text: "KK", values: pendValues, styles: PALETTE7.map(c => ({ "background-color": c })) }]
+                }
+            });
+            zingchart.render({
+                id: "zc-kawin",
+                height: 300,
+                width: "100%",
+                data: {
+                    type: "pie",
+                    "background-color": "transparent",
+                    plot: {
+                        "border-radius": 6, "slice": 60,
+                        tooltip: Object.assign({ text: "%t: <strong>%v</strong> KK (%npv%)" }, TIP),
+                        "value-box": { text: "%npv%", "font-color": C.ink, "font-size": 11, placement: "out", "font-weight": "bold" },
+                        animation: { effect: 2, speed: 600 }
+                    },
+                    plotarea: { margin: "10 10 45 10" },
+                    legend: { layout: "x4", position: "50% 92%", "background-color": "none", "border-width": 0, marker: { "border-radius": 3 }, item: Object.assign({}, AX) },
+                    series: kawinLabels.map((label, i) => ({ text: label, values: [kawinValues[i]], "background-color": kawinColors[i] }))
+                }
+            });
+            zingchart.render({
+                id: "zc-pekerjaan",
+                height: 320,
+                width: "100%",
+                data: {
+                    type: "hbar",
+                    "background-color": "transparent",
+                    plot: {
+                        "bar-width": "60%",
+                        "border-radius": 4,
+                        tooltip: Object.assign({ text: "%scale-key-text: <strong>%v</strong> KK" }, TIP),
+                        "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top-out" },
+                        animation: { effect: 2, speed: 500 }
+                    },
+                    plotarea: { margin: "dynamic 50 dynamic 60" },
+                    "scale-x": { values: pkrLabels, item: Object.assign({}, AX), guide: GUIDE, tick: { "line-color": C.border } },
+                    "scale-y": { format: "%v", item: Object.assign({}, AX), guide: GUIDE, tick: { "line-color": C.border } },
+                    series: [{ text: "KK", values: pkrValues, "background-color": C.primary }]
+                }
+            });
+        };
 
-        zingchart.render({
-            id: "zc-dokumen",
-            height: 300,
-            width: "100%",
-            data: {
-                type: "hbar",
-                "background-color": "transparent",
-                plot: {
-                    "bar-width": "60%",
-                    "border-radius": 4,
-                    tooltip: Object.assign({ text: "%scale-key-text: <strong>%v</strong> jiwa" }, TIP),
-                    "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top-out" },
-                    animation: { effect: 2, speed: 500 }
-                },
-                plotarea: { margin: "dynamic 50 dynamic 60" },
-                "scale-x": {
-                    values: dokLabels,
-                    item: Object.assign({}, AX),
-                    guide: GUIDE,
-                    tick: { "line-color": C.border }
-                },
-                "scale-y": {
-                    format: "%v",
-                    item: Object.assign({}, AX),
-                    guide: GUIDE,
-                    tick: { "line-color": C.border }
-                },
-                series: [{
-                    text: "Pemilik Dokumen",
-                    values: dokValues,
-                    "background-color": C.primary
-                }]
-            }
-        });
-        });
+        renderKesehatan = function () {
+            zingchart.render({
+                id: "zc-jkn",
+                height: 300,
+                width: "100%",
+                data: {
+                    type: "pie",
+                    "background-color": "transparent",
+                    plot: {
+                        "border-radius": 6, "slice": 60,
+                        tooltip: Object.assign({ text: "%t: <strong>%v</strong> (%npv%)" }, TIP),
+                        "value-box": { text: "%npv%", "font-color": C.ink, "font-size": 11, placement: "out", "font-weight": "bold" },
+                        animation: { effect: 2, speed: 600 }
+                    },
+                    plotarea: { margin: "10 10 45 10" },
+                    legend: { layout: "x3", position: "50% 92%", "background-color": "none", "border-width": 0, marker: { "border-radius": 3 }, item: Object.assign({}, AX) },
+                    series: [
+                        { text: jknLabels[0], values: [jknValues[0]], "background-color": C.primary },
+                        { text: jknLabels[1], values: [jknValues[1]], "background-color": C.blue },
+                        { text: jknLabels[2], values: [jknValues[2]], "background-color": C.muted }
+                    ]
+                }
+            });
+            zingchart.render({
+                id: "zc-dokumen",
+                height: 300,
+                width: "100%",
+                data: {
+                    type: "hbar",
+                    "background-color": "transparent",
+                    plot: {
+                        "bar-width": "60%",
+                        "border-radius": 4,
+                        tooltip: Object.assign({ text: "%scale-key-text: <strong>%v</strong> jiwa" }, TIP),
+                        "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "top-out" },
+                        animation: { effect: 2, speed: 500 }
+                    },
+                    plotarea: { margin: "dynamic 50 dynamic 60" },
+                    "scale-x": { values: dokLabels, item: Object.assign({}, AX), guide: GUIDE, tick: { "line-color": C.border } },
+                    "scale-y": { format: "%v", item: Object.assign({}, AX), guide: GUIDE, tick: { "line-color": C.border } },
+                    series: [{ text: "Pemilik Dokumen", values: dokValues, "background-color": C.primary }]
+                }
+            });
+        };
 
         // ===== DESA TABLE SEARCH =====
         const searchInput = document.getElementById('desaSearch');
@@ -1314,11 +1257,11 @@ $slugify = function($name) {
             searchInput.addEventListener('input', function() {
                 const q = this.value.toLowerCase();
                 document.querySelectorAll('#tableDesa tbody tr').forEach(function(row) {
-                    const text = row.textContent.toLowerCase();
-                    row.style.display = text.includes(q) ? '' : 'none';
+                    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
                 });
             });
         }
+        });
     </script>
 
     <!-- jQuery + DataTables + Bootstrap JS -->
@@ -1331,74 +1274,45 @@ $slugify = function($name) {
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         const DT_LANG = {
-            sEmptyTable: "Tidak ada data tersedia",
-            sInfo: "",
-            sInfoEmpty: "",
-            sInfoFiltered: "",
-            sInfoPostFix: "",
-            sInfoThousands: ".",
-            sLengthMenu: "",
-            sLoadingRecords: "Memuat...",
-            sProcessing: "Memproses...",
-            sSearch: "Cari:",
-            sZeroRecords: "Data tidak ditemukan",
+            sEmptyTable: "Tidak ada data tersedia", sInfo: "", sInfoEmpty: "", sInfoFiltered: "",
+            sInfoPostFix: "", sInfoThousands: ".", sLengthMenu: "", sLoadingRecords: "Memuat...",
+            sProcessing: "Memproses...", sSearch: "Cari:", sZeroRecords: "Data tidak ditemukan",
             oPaginate: { sFirst: "Awal", sLast: "Akhir", sNext: "Berikut", sPrevious: "Sebelumnya" },
             oAria: { sSortAscending: ": urutkan naik", sSortDescending: ": urutkan turun" }
         };
         const dts = {};
         dts.pokok = $('#dt-pokok').DataTable({
-            responsive: true, paging: false, searching: true, info: false,
-            language: DT_LANG,
-            columnDefs: [
-                { targets: [1, 2, 3], className: 'text-end dt-num' },
-                { targets: 0, className: 'dt-cat' }
-            ]
+            responsive: true, paging: false, searching: true, info: false, language: DT_LANG,
+            columnDefs: [{ targets: [1, 2, 3], className: 'text-end dt-num' }, { targets: 0, className: 'dt-cat' }]
         });
         dts.sosio = $('#dt-sosio').DataTable({
-            responsive: true, paging: false, searching: true, info: false,
-            language: DT_LANG,
-            columnDefs: [
-                { targets: [2, 3], className: 'text-end dt-num' },
-                { targets: [0], className: 'dt-cat' }
-            ]
+            responsive: true, paging: false, searching: true, info: false, language: DT_LANG,
+            columnDefs: [{ targets: [2, 3], className: 'text-end dt-num' }, { targets: [0], className: 'dt-cat' }]
         });
         dts.piramida = $('#dt-piramida').DataTable({
-            responsive: true, paging: false, searching: true, info: false,
-            language: DT_LANG,
-            columnDefs: [
-                { targets: [1, 2, 3], className: 'text-end dt-num' },
-                { targets: 0, className: 'dt-cat' }
-            ]
+            responsive: true, paging: false, searching: true, info: false, language: DT_LANG,
+            columnDefs: [{ targets: [1, 2, 3], className: 'text-end dt-num' }, { targets: 0, className: 'dt-cat' }]
         });
         dts.kesehatan = $('#dt-kesehatan').DataTable({
-            responsive: true, paging: false, searching: true, info: false,
-            language: DT_LANG,
-            columnDefs: [
-                { targets: [2, 3], className: 'text-end dt-num' },
-                { targets: [0], className: 'dt-cat' }
-            ]
+            responsive: true, paging: false, searching: true, info: false, language: DT_LANG,
+            columnDefs: [{ targets: [2, 3], className: 'text-end dt-num' }, { targets: [0], className: 'dt-cat' }]
         });
         const tabEl = document.getElementById('dataTabs');
         if (tabEl) {
             tabEl.addEventListener('shown.bs.tab', function (e) {
-                const targetId = e.target.getAttribute('data-bs-target');
-                const key = targetId.replace('#tab-', '');
-                if (dts[key]) {
-                    dts[key].columns.adjust();
-                    if (dts[key].responsive) dts[key].responsive.rebuild();
-                }
-                if (key === 'sosio') {
-                    ['zc-pendidikan', 'zc-kawin', 'zc-pekerjaan'].forEach(function (id) {
-                        try { zingchart.exec(id, 'resize'); } catch (err) {}
-                    });
+                const key = e.target.getAttribute('data-bs-target').replace('#tab-', '');
+                if (dts[key]) { dts[key].columns.adjust(); if (dts[key].responsive) dts[key].responsive.rebuild(); }
+                if (key === 'piramida') {
+                    if (!rendered.has('piramida')) { renderPiramida(); rendered.add('piramida'); }
+                    else { try { zingchart.exec('zc-piramida', 'resize'); } catch(e){} }
+                } else if (key === 'sosio') {
+                    if (!rendered.has('sosio')) { renderSosio(); rendered.add('sosio'); }
+                    else { ['zc-pendidikan','zc-kawin','zc-pekerjaan'].forEach(id => { try { zingchart.exec(id,'resize'); } catch(e){} }); }
                 } else if (key === 'kesehatan') {
-                    ['zc-jkn', 'zc-dokumen'].forEach(function (id) {
-                        try { zingchart.exec(id, 'resize'); } catch (err) {}
-                    });
+                    if (!rendered.has('kesehatan')) { renderKesehatan(); rendered.add('kesehatan'); }
+                    else { ['zc-jkn','zc-dokumen'].forEach(id => { try { zingchart.exec(id,'resize'); } catch(e){} }); }
                 } else if (key === 'pokok') {
-                    try { zingchart.exec('zc-gender', 'resize'); } catch (err) {}
-                } else if (key === 'piramida') {
-                    try { zingchart.exec('zc-piramida', 'resize'); } catch (err) {}
+                    try { zingchart.exec('zc-gender', 'resize'); } catch(e) {}
                 }
             });
         }
