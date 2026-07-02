@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root{
             --ink:#0f1923; --ink-2:#1a2733;
@@ -16,8 +16,8 @@
             --line:#e5e1d8; --muted:#6b7280;
         }
         *{box-sizing:border-box;}
-        body{margin:0;background:var(--paper);font-family:"Source Sans 3",sans-serif;color:var(--ink);}
-        h1,h2,h3{font-family:"Libre Baskerville",serif;}
+        body{margin:0;background:var(--paper);font-family:"Poppins",sans-serif;color:var(--ink);}
+        h1,h2,h3{font-family:"Poppins",sans-serif;}
 
         .api-header{
             background:var(--ink);color:#fff;padding:16px 40px;

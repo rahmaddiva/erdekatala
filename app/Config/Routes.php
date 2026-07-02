@@ -66,6 +66,9 @@ $routes->get('dashboard/getDesaByKecamatan/(:num)', 'DashboardController::getDes
 $routes->get('dashboard/getDusunByDesa/(:num)', 'DashboardController::getDusunByDesa/$1');
 $routes->get('dashboard/getRtByDusun/(:num)', 'DashboardController::getRtByDusun/$1');
 
+// Data Tabel
+$routes->get('/data-tabel', 'DataTabelController::index');
+
 // User CRUD
 $routes->get('/users', 'UserController::index');
 $routes->get('/users/create', 'UserController::create');

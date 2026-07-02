@@ -98,6 +98,14 @@
                     </a>
                 </li>
 
+                <li class="nav-header">DATA TABEL</li>
+                <li class="nav-item">
+                    <a href="<?= base_url('data-tabel') ?>" class="nav-link <?= ($s1 == 'data-tabel') ? 'active' : '' ?>">
+                        <i class="nav-icon fas fa-table"></i>
+                        <p>Data Tabel</p>
+                    </a>
+                </li>
+
                 <?php if (session()->get('role') == 'admin_dinas'): ?>
                     <li class="nav-header">PENGATURAN</li>
                     <li class="nav-item">
