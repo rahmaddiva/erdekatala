@@ -11,14 +11,14 @@ class UserModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $protectFields = true;
-    protected $allowedFields =
-        [
-            'username',
-            'password',
-            'nama_lengkap',
-            'id_desa',
-            'created_at',
-        ];
+    protected $allowedFields = [
+        'username',
+        'password',
+        'nama_lengkap',
+        'id_desa',
+        'created_at',
+        'remember_token',
+    ];
 
 
     // Dates

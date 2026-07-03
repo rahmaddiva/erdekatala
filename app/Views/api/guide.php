@@ -26,10 +26,8 @@ h1,h2,h3,h4,h5{font-family:"Libre Baskerville",serif;}
     box-shadow:0 2px 12px rgba(0,0,0,0.2);
 }
 .guide-header .brand{display:flex;align-items:center;gap:14px;}
-.guide-header .brand-mark{
-    width:44px;height:44px;background:var(--primary);border-radius:8px;
-    display:flex;align-items:center;justify-content:center;
-    font-family:"Libre Baskerville",serif;font-weight:700;font-size:1.5rem;color:#fff;flex-shrink:0;
+.guide-header .brand-logo{
+    height:44px;width:auto;flex-shrink:0;
 }
 .guide-header h1{font-size:1.7rem;font-weight:700;margin:0;}
 .guide-header p{opacity:0.7;font-weight:300;margin-bottom:0;}
@@ -80,7 +78,7 @@ pre code{font-size:.82rem;border-radius:6px;}
 <div class="row align-items-center">
 <div class="col-md-8">
 <div class="brand">
-<div class="brand-mark">S</div>
+<img src="/assets/dist/img/Sikadaputih.png" alt="Sikada Tala" class="brand-logo">
 <div>
 <h1>Panduan Integrasi API Sikada Tala</h1>
 <p class="mb-0">Panduan lengkap mengambil dan menampilkan data kependudukan Tanah Laut ke website Anda</p>

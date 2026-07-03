@@ -52,6 +52,68 @@
                 </div>
             </div>
 
+            <!-- Filter Periode -->
+            <div class="card card-outline card-primary shadow-sm mb-4">
+                <div class="card-body py-2">
+                    <form method="get" action="/laporan" class="form-inline">
+                        <label class="mr-2"><i class="fas fa-calendar-alt mr-1"></i> Periode:</label>
+                        <select name="bulan" class="form-control form-control-sm mr-2">
+                            <option value="">-- Semua Bulan --</option>
+                            <?php foreach ($bulanList as $num => $nama): ?>
+                                <option value="<?= $num ?>" <?= $filterBulan == $num ? 'selected' : '' ?>>
+                                    <?= $nama ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select name="tahun" class="form-control form-control-sm mr-2">
+                            <option value="">-- Semua Tahun --</option>
+                            <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
+                                <option value="<?= $y ?>" <?= $filterTahun == $y ? 'selected' : '' ?>><?= $y ?></option>
+                            <?php endfor; ?>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-filter mr-1"></i> Terapkan
+                        </button>
+                        <?php if (!empty($filterBulan) || !empty($filterTahun)): ?>
+                            <a href="/laporan" class="btn btn-secondary btn-sm ml-2">
+                                <i class="fas fa-times mr-1"></i> Reset
+                            </a>
+                        <?php endif; ?>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Filter Periode -->
+            <div class="card card-outline card-primary shadow-sm mb-4">
+                <div class="card-body py-2">
+                    <form method="get" action="/laporan" class="form-inline">
+                        <label class="mr-2"><i class="fas fa-calendar-alt mr-1"></i> Periode:</label>
+                        <select name="bulan" class="form-control form-control-sm mr-2">
+                            <option value="">-- Semua Bulan --</option>
+                            <?php foreach ($bulanList as $num => $nama): ?>
+                                <option value="<?= $num ?>" <?= $filterBulan == $num ? 'selected' : '' ?>>
+                                    <?= $nama ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select name="tahun" class="form-control form-control-sm mr-2">
+                            <option value="">-- Semua Tahun --</option>
+                            <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
+                                <option value="<?= $y ?>" <?= $filterTahun == $y ? 'selected' : '' ?>><?= $y ?></option>
+                            <?php endfor; ?>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-filter mr-1"></i> Terapkan
+                        </button>
+                        <?php if (!empty($filterBulan) || !empty($filterTahun)): ?>
+                            <a href="/laporan" class="btn btn-secondary btn-sm ml-2">
+                                <i class="fas fa-times mr-1"></i> Reset
+                            </a>
+                        <?php endif; ?>
+                    </form>
+                </div>
+            </div>
+
             <?php if (empty($grouped)): ?>
                 <div class="card shadow-sm">
                     <div class="card-body text-center py-5">

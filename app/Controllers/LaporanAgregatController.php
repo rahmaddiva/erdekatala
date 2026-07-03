@@ -315,6 +315,14 @@ class LaporanAgregatController extends BaseController
                 $builder->like('m_rt.no_rt', $search_rt);
             }
 
+            // Filter bulan/tahun eksak dari dropdown
+            if (!empty($bulan)) {
+                $builder->where('laporan_agregat.bulan', (int)$bulan);
+            }
+            if (!empty($tahun)) {
+                $builder->where('laporan_agregat.tahun', (int)$tahun);
+            }
+
             // Original Search Filter (untuk backward compatibility)
             if ($search) {
                 // Coba konversi nama bulan ke nomor (case-insensitive)
@@ -393,11 +401,23 @@ class LaporanAgregatController extends BaseController
 
         // --- Tampilan khusus admin_desa: accordion timeline per bulan ---
         if ($user['role'] == 'admin_desa') {
-            $allLaporan = $this->laporanModel
+            $filterBulan = $this->request->getGet('bulan');
+            $filterTahun = $this->request->getGet('tahun');
+
+            $query = $this->laporanModel
                 ->select('laporan_agregat.*, m_rt.no_rt, m_dusun.nama_dusun')
                 ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
                 ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-                ->where('m_dusun.id_desa', $user['id_desa'])
+                ->where('m_dusun.id_desa', $user['id_desa']);
+
+            if (!empty($filterBulan)) {
+                $query->where('laporan_agregat.bulan', (int)$filterBulan);
+            }
+            if (!empty($filterTahun)) {
+                $query->where('laporan_agregat.tahun', (int)$filterTahun);
+            }
+
+            $allLaporan = $query
                 ->orderBy('laporan_agregat.tahun', 'DESC')
                 ->orderBy('laporan_agregat.bulan', 'DESC')
                 ->findAll();
@@ -418,11 +438,13 @@ class LaporanAgregatController extends BaseController
             unset($bulanData);
 
             $data = [
-                'title'     => 'Riwayat Laporan Agregat',
-                'bulanList' => $this->bulanList,
-                'grouped'   => $grouped,
-                'allRt'     => $allRt,
-                'totalRt'   => count($allRt),
+                'title'       => 'Riwayat Laporan Agregat',
+                'bulanList'   => $this->bulanList,
+                'grouped'     => $grouped,
+                'allRt'       => $allRt,
+                'totalRt'     => count($allRt),
+                'filterBulan' => $filterBulan,
+                'filterTahun' => $filterTahun,
             ];
             return view('laporan/index_desa', $data);
         }

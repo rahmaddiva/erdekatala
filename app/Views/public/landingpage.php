@@ -30,6 +30,7 @@ $dokTotal   = array_sum($dokumen);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sikada Tala — Sistem Informasi Kependudukan Kabupaten Tanah Laut</title>
     <meta name="description" content="Portal data agregat kependudukan tingkat RT-RW-Desa-Kecamatan di Kabupaten Tanah Laut, Kalimantan Selatan.">
+    <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/SikadaIreng.png') ?>">
 
     <!-- Font: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -109,17 +110,9 @@ $dokTotal   = array_sum($dokumen);
             text-decoration: none;
         }
         .navbar-sikada .brand-mark {
-            width: 38px;
             height: 38px;
-            background: var(--primary);
-            color: #fff;
-            border-radius: 8px;
-            display: grid;
-            place-items: center;
-            font-family: 'Poppins', sans-serif;
-            font-weight: 700;
-            font-size: 1.05rem;
-            box-shadow: 0 2px 8px rgba(221,72,20,.35);
+            width: auto;
+            display: block;
         }
         .navbar-sikada .brand small {
             display: block;
@@ -495,15 +488,9 @@ $dokTotal   = array_sum($dokumen);
             gap: 0.5rem;
         }
         footer.sikada-footer .brand-mark {
-            width: 32px; height: 32px;
-            background: var(--primary);
-            color: #fff;
-            border-radius: 6px;
-            display: inline-grid;
-            place-items: center;
-            font-family: 'Poppins', sans-serif;
-            font-weight: 700;
-            font-size: 0.85rem;
+            height: 32px;
+            width: auto;
+            display: block;
             margin-bottom: 0.75rem;
         }
 
@@ -634,7 +621,7 @@ $dokTotal   = array_sum($dokumen);
     <nav class="navbar-sikada">
         <div class="container d-flex align-items-center justify-content-between">
             <a href="<?= site_url('/') ?>" class="brand">
-                <span class="brand-mark">S</span>
+                <img src="<?= base_url('assets/dist/img/SikadaIreng.png') ?>" alt="Sikada Tala" class="brand-mark">
                 <span>
                     Sikada Tala
                     <small>Kabupaten Tanah Laut</small>
@@ -1084,7 +1071,7 @@ $dokTotal   = array_sum($dokumen);
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-5">
-                    <span class="brand-mark">S</span>
+                    <img src="<?= base_url('assets/dist/img/Sikadaputih.png') ?>" alt="Sikada Tala" class="brand-mark">
                     <h5>Sikada Tala</h5>
                     <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
                         Sistem informasi kependudukan agregat berbasis RT-RW-Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.

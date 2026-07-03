@@ -26,10 +26,8 @@
             position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.25);
         }
         .api-header .brand{display:flex;align-items:center;gap:14px;}
-        .api-header .brand-mark{
-            width:40px;height:40px;background:var(--primary);border-radius:8px;
-            display:flex;align-items:center;justify-content:center;
-            font-family:"Libre Baskerville",serif;font-weight:700;font-size:1.4rem;color:#fff;flex-shrink:0;
+        .api-header .brand-logo{
+            height:40px;width:auto;flex-shrink:0;
         }
         .api-header h1{margin:0;font-size:1.3rem;font-weight:700;}
         .api-header p{margin:2px 0 0;font-size:0.83rem;opacity:0.7;font-weight:300;}
@@ -88,7 +86,7 @@
 
 <div class="api-header">
     <div class="brand">
-        <div class="brand-mark">S</div>
+        <img src="/assets/dist/img/Sikadaputih.png" alt="Sikada Tala" class="brand-logo">
         <div>
             <h1>Sikada Tala Public API</h1>
             <p>Data Agregat Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan</p>

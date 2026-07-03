@@ -26,10 +26,8 @@
             box-shadow:0 4px 24px rgba(15,25,35,0.08);
         }
         .register-card .brand{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
-        .register-card .brand-mark{
-            width:44px;height:44px;background:var(--primary);border-radius:8px;
-            display:flex;align-items:center;justify-content:center;
-            font-family:"Libre Baskerville",serif;font-weight:700;font-size:1.5rem;color:#fff;flex-shrink:0;
+        .register-card .brand-logo{
+            height:44px;width:auto;flex-shrink:0;
         }
         .register-card h2{color:var(--ink);font-size:1.5rem;margin:0;}
         .register-card p.sub{color:var(--muted);font-size:0.9rem;margin:4px 0 28px;font-weight:300;}
@@ -49,7 +47,7 @@
 <body>
 <div class="register-card">
     <div class="brand">
-        <div class="brand-mark">S</div>
+        <img src="/assets/dist/img/SikadaIreng.png" alt="Sikada Tala" class="brand-logo">
         <h2>Daftar API Key</h2>
     </div>
     <p class="sub">Gratis. 1000 request/hari. Akses semua data agregat kependudukan.</p>

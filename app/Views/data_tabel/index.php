@@ -1,4 +1,4 @@
-<?= $this->extend('templates/main') ?>
+﻿<?= $this->extend('templates/main') ?>
 <?= $this->section('content') ?>
 
 <div class="content-wrapper">
@@ -14,6 +14,50 @@
 
     <section class="content">
         <div class="container-fluid">
+
+            <!-- Filter Bulan & Tahun -->
+            <div class="card card-outline card-secondary shadow mb-3">
+                <div class="card-body py-2">
+                    <form method="GET" action="" class="form-inline flex-wrap" style="gap: 0.5rem;">
+                        <div class="form-group mr-2">
+                            <label class="mr-1"><i class="fas fa-calendar-alt mr-1"></i>Bulan</label>
+                            <select name="bulan" class="form-control form-control-sm">
+                                <option value="">-- Semua --</option>
+                                <?php foreach ($namaBulan as $num => $nama): ?>
+                                    <option value="<?= $num ?>" <?= (string)$filterBulan === (string)$num ? 'selected' : '' ?>>
+                                        <?= $nama ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group mr-2">
+                            <label class="mr-1"><i class="fas fa-calendar mr-1"></i>Tahun</label>
+                            <select name="tahun" class="form-control form-control-sm">
+                                <option value="">-- Semua --</option>
+                                <?php foreach ($tahunList as $t): ?>
+                                    <option value="<?= esc($t) ?>" <?= (string)$filterTahun === (string)$t ? 'selected' : '' ?>>
+                                        <?= esc($t) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm mr-1">
+                            <i class="fas fa-filter mr-1"></i>Terapkan
+                        </button>
+                        <a href="?" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-times mr-1"></i>Reset
+                        </a>
+                        <?php if ($filterBulan || $filterTahun): ?>
+                            <span class="badge badge-info ml-2 align-self-center">
+                                Filter aktif:
+                                <?= $filterBulan ? $namaBulan[$filterBulan] : '' ?>
+                                <?= $filterBulan && $filterTahun ? ' / ' : '' ?>
+                                <?= $filterTahun ? esc($filterTahun) : '' ?>
+                            </span>
+                        <?php endif; ?>
+                    </form>
+                </div>
+            </div>
 
 <?php
 // ponytail: define groups inline, no config class
@@ -111,11 +155,11 @@ $groups = [
                                                 <td><?= esc($row['nama_desa']) ?></td>
                                                 <td><?= esc($row['nama_dusun']) ?></td>
                                                 <td><?= esc($row['no_rt']) ?></td>
-                                                <td><?= esc($row['bulan']) ?></td>
+                                                <td><?= esc($namaBulan[$row['bulan']] ?? $row['bulan']) ?></td>
                                                 <td><?= esc($row['tahun']) ?></td>
                                             <?php endif; ?>
                                             <?php foreach (array_keys($g['cols']) as $col): ?>
-                                                <td><?= esc($row[$col] ?? '') ?></td>
+                                                <td><?= esc($col === 'bulan' ? ($namaBulan[$row[$col]] ?? $row[$col]) : ($row[$col] ?? '')) ?></td>
                                             <?php endforeach; ?>
                                         </tr>
                                         <?php endforeach; ?>

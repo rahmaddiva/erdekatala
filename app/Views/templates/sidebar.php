@@ -2,7 +2,7 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="index3.html" class="brand-link">
-        <img src="<?= base_url('assets/') ?>dist/img/sikadatala.png" alt="AdminLTE Logo" style="width: 160px;"
+        <img src="<?= base_url('assets/') ?>dist/img/Sikadaputih.png" alt="Sikada Tala Logo" style="width: 160px;"
             class="brand-image" style="opacity: .8">
     </a>
 

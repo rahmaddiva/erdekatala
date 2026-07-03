@@ -79,6 +79,26 @@
                                             <?php endif; ?>
                                         </select>
                                     </div>
+
+                                    <div class="col-md-2">
+                                        <label>Bulan:</label>
+                                        <select id="filter_bulan" class="form-control">
+                                            <option value="">-- Semua --</option>
+                                            <?php foreach ($bulanList as $num => $nama): ?>
+                                                <option value="<?= $num ?>"><?= $nama ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        <label>Tahun:</label>
+                                        <select id="filter_tahun" class="form-control">
+                                            <option value="">-- Semua --</option>
+                                            <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
+                                                <option value="<?= $y ?>"><?= $y ?></option>
+                                            <?php endfor; ?>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -145,6 +165,8 @@
                                         // Ambil nilai id_kecamatan jika ada (untuk Dinas)
                                         d.id_kecamatan = $('#filter_kecamatan').val();
                                         d.id_desa = $('#filter_desa').val() || $('select[name="id_desa"]').val();
+                                        d.bulan = $('#filter_bulan').val();
+                                        d.tahun = $('#filter_tahun').val();
 
                                         // Tambahkan multi-column search values
                                         d.search_periode = searchValues['periode'] || '';
@@ -211,6 +233,11 @@
 
                             // Trigger refresh saat Desa berubah (Dinas & Kecamatan)
                             $('#filter_desa, select[name="id_desa"]').on('change', function () {
+                                table.draw();
+                            });
+
+                            // Trigger refresh saat Bulan/Tahun berubah
+                            $('#filter_bulan, #filter_tahun').on('change', function () {
                                 table.draw();
                             });
                         });

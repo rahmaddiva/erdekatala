@@ -8,7 +8,7 @@
         <?= esc($title) ?>
     </title>
 
-    <link rel="icon" type="image/png" href="<?= base_url('assets/') ?>dist/img/sikadataladark.png">
+    <link rel="icon" type="image/png" href="<?= base_url('assets/') ?>dist/img/SikadaIreng.png">
 
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet"
@@ -342,7 +342,7 @@
 
         <!-- Preloader -->
         <div id="preloader" aria-hidden="true">
-            <img class="preloader-logo" src="<?= base_url('assets/') ?>dist/img/sikadatala.png" alt="SIKADA TALA Logo">
+            <img class="preloader-logo" src="<?= base_url('assets/') ?>dist/img/SikadaIreng.png" alt="SIKADA TALA Logo">
             <div class="preloader-spinner" role="status" aria-label="Loading"></div>
             <div class="preloader-text">Memuat…</div>
         </div>

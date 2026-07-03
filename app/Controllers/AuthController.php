@@ -108,18 +108,28 @@ class AuthController extends BaseController
 
         $username = $this->request->getPost('username');
         $password = $this->request->getPost('password');
+        $remember = $this->request->getPost('remember');
         $user = $this->userModel->where('username', $username)->first();
         if ($user && password_verify($password, $user['password'])) {
             // regenerate session ID to prevent session fixation
             $this->session->regenerate(true);
-            // set session
-            $this->session->set('id_user', $user['id_user']);
-            $this->session->set('id_kecamatan', $user['id_kecamatan']);
-            $this->session->set('nama_lengkap', $user['nama_lengkap']);
-            $this->session->set('id_desa', $user['id_desa']);
-            $this->session->set('username', $user['username']);
-            $this->session->set('role', $user['role']);
-            $this->session->set('logged_in', true);
+            $this->session->set([
+                'id_user'      => $user['id_user'],
+                'id_kecamatan' => $user['id_kecamatan'],
+                'nama_lengkap' => $user['nama_lengkap'],
+                'id_desa'      => $user['id_desa'],
+                'username'     => $user['username'],
+                'role'         => $user['role'],
+                'logged_in'    => true,
+            ]);
+
+            // "Ingat Saya": simpan token di cookie selama 30 hari
+            if ($remember) {
+                $token = bin2hex(random_bytes(32));
+                $this->userModel->update($user['id_user'], ['remember_token' => $token]);
+                $response = service('response');
+                $response->setCookie('remember_token', $token, 30 * 24 * 3600, '', '/', '', true, true);
+            }
 
             return redirect()->to('/dashboard');
         } else {
@@ -129,7 +139,13 @@ class AuthController extends BaseController
 
     public function logout()
     {
-        // session destroy
+        // Hapus remember_token dari DB dan cookie
+        $id = $this->session->get('id_user');
+        if ($id) {
+            $this->userModel->update($id, ['remember_token' => null]);
+        }
+        service('response')->deleteCookie('remember_token');
+
         $this->session->destroy();
         return redirect()->to('/login');
     }
