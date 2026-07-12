@@ -195,62 +195,62 @@ class LaporanAgregatSeeder extends Seeder
     public function run()
     {
         $db = \Config\Database::connect();
-        $allRT = $db->table('m_rt')->get()->getResultArray();
         $adminDesa = $db->table('users')->where('role', 'admin_desa')->get()->getResultArray();
 
-        if (empty($allRT) || empty($adminDesa)) {
-            echo "Error: Pastikan tabel m_rt dan users sudah terisi sebelum menjalankan seeder ini.\n";
+        if (empty($adminDesa)) {
+            echo "Error: Pastikan tabel users sudah terisi sebelum menjalankan seeder ini.\n";
+            return;
+        }
+
+        // Ambil semua desa beserta nama kecamatannya sekaligus — 1 query
+        $allDesa = $db->table('m_desa')
+            ->select('m_desa.id_desa, m_desa.nama_desa, kecamatan.nama_kecamatan')
+            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan')
+            ->get()->getResultArray();
+
+        if (empty($allDesa)) {
+            echo "Error: Pastikan tabel m_desa sudah terisi sebelum menjalankan seeder ini.\n";
             return;
         }
 
         $kecData = $this->getKecamatanData();
-        $bulan = date('n');
-        $tahun = 2026;
+        $bulan   = 12;  // Semester II = Desember
+        $tahun   = 2025;
 
-        $rtByKec = [];
-        foreach ($allRT as $rt) {
-            $kecRow = $db->table('m_rt')
-                ->select('kecamatan.nama_kecamatan, m_dusun.id_desa')
-                ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-                ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
-                ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan')
-                ->where('m_rt.id_rt', $rt['id_rt'])
-                ->get()->getRow();
-
-            $kec = $kecRow->nama_kecamatan;
-            if (!isset($rtByKec[$kec])) $rtByKec[$kec] = [];
-            $rtByKec[$kec][] = ['rt' => $rt, 'id_desa' => $kecRow->id_desa];
+        // Kelompokkan desa per kecamatan
+        $desaByKec = [];
+        foreach ($allDesa as $desa) {
+            $desaByKec[$desa['nama_kecamatan']][] = $desa;
         }
 
+        // Cache user per desa
         $userCache = [];
+        foreach ($adminDesa as $u) {
+            if ($u['id_desa']) $userCache[$u['id_desa']] = $u['id_user'];
+        }
+        $fallbackUser = $adminDesa[0]['id_user'];
+
         $data = [];
 
-        foreach ($rtByKec as $kec => $rts) {
+        foreach ($desaByKec as $kec => $desas) {
             if (!isset($kecData[$kec])) {
                 echo "Warning: No data for kecamatan '$kec', skipping.\n";
                 continue;
             }
 
-            $kd = $kecData[$kec];
-            $numRTs = count($rts);
-            $mapped = $this->mapKecamatanData($kd);
+            $kd      = $kecData[$kec];
+            $numDesa = count($desas);
+            $mapped  = $this->mapKecamatanData($kd);
 
+            // Distribusi data kecamatan ke tiap desa secara proporsional
             $distributed = [];
             foreach ($mapped as $col => $total) {
-                $distributed[$col] = $this->distribute($total, $numRTs);
+                $distributed[$col] = $this->distribute($total, $numDesa);
             }
 
-            foreach ($rts as $i => $rtInfo) {
-                $rt = $rtInfo['rt'];
-                $id_desa = $rtInfo['id_desa'];
-
-                if (!isset($userCache[$id_desa])) {
-                    $user = $db->table('users')
-                        ->where('id_desa', $id_desa)
-                        ->get()->getRow();
-                    $userCache[$id_desa] = $user ? $user->id_user : $adminDesa[0]['id_user'];
-                }
-                $id_user = $userCache[$id_desa];
+            foreach ($desas as $i => $desa) {
+                $id_desa  = $desa['id_desa'];
+                $id_user  = $userCache[$id_desa] ?? $fallbackUser;
 
                 $vals = [];
                 foreach ($distributed as $col => $arr) {
@@ -258,7 +258,7 @@ class LaporanAgregatSeeder extends Seeder
                 }
 
                 $totalJiwa = $vals['jiwa_l'] + $vals['jiwa_p'];
-                $kkTotal = $vals['kk_l'] + $vals['kk_p'];
+                $kkTotal   = $vals['kk_l'] + $vals['kk_p'];
 
                 $vals['jml_balita'] = $vals['u0_4_l'] + $vals['u0_4_p'];
                 $vals['jml_remaja'] = $vals['u10_14_l'] + $vals['u10_14_p']
@@ -270,37 +270,37 @@ class LaporanAgregatSeeder extends Seeder
                     + $vals['u80_84_l'] + $vals['u80_84_p']
                     + $vals['u85_atas_l'] + $vals['u85_atas_p'];
 
-                $vals['jkn'] = (int)round($totalJiwa * 0.80);
-                $vals['non_jkn'] = $totalJiwa - $vals['jkn'];
-                $vals['pend_bpjs'] = $vals['jkn'];
+                $vals['jkn']          = (int)round($totalJiwa * 0.80);
+                $vals['non_jkn']      = $totalJiwa - $vals['jkn'];
+                $vals['pend_bpjs']    = $vals['jkn'];
                 $vals['pend_non_bpjs'] = $vals['non_jkn'];
-                $vals['pus_jkn'] = $vals['jkn'];
-                $vals['pus_pbi'] = (int)round($totalJiwa * 0.25);
-                $vals['pus_non_pbi'] = $vals['jkn'] - $vals['pus_pbi'];
+                $vals['pus_pbi']      = (int)round($totalJiwa * 0.25);
+                $vals['pus_non_pbi']  = $vals['jkn'] - $vals['pus_pbi'];
+                $vals['pus_jkn']      = $vals['pus_pbi'] + $vals['pus_non_pbi'];
 
-                $vals['jml_pus'] = (int)round($vals['kk_kawin'] * 0.85);
-                $vals['kb_aktif'] = (int)round($vals['jml_pus'] * 0.60);
+                $vals['jml_pus']                     = (int)round($vals['kk_kawin'] * 0.85);
+                $vals['kb_aktif']                    = (int)round($vals['jml_pus'] * 0.60);
                 $vals['jml_penggunaan_alat_kontrasepsi'] = $vals['kb_aktif'];
 
-                $vals['pend_wajib_ktp'] = (int)round($totalJiwa * 0.70);
-                $vals['pend_punya_akta_lahir'] = (int)round($totalJiwa * 0.90);
-                $vals['kk_punya_akta_nikah'] = (int)round($vals['kk_kawin'] * 0.70);
-                $vals['kk_punya_kartu_fisik'] = (int)round($kkTotal * 0.95);
+                $vals['pend_wajib_ktp']          = (int)round($totalJiwa * 0.70);
+                $vals['pend_punya_akta_lahir']   = (int)round($totalJiwa * 0.90);
+                $vals['kk_punya_akta_nikah']     = (int)round($vals['kk_kawin'] * 0.70);
+                $vals['kk_punya_kartu_fisik']    = (int)round($kkTotal * 0.95);
                 $vals['kk_belum_punya_kartu_fisik'] = $kkTotal - $vals['kk_punya_kartu_fisik'];
 
-                $vals['penduduk_hub_kepala'] = $kkTotal;
-                $vals['penduduk_hub_istri'] = (int)round($kkTotal * 0.85);
-                $vals['penduduk_hub_anak'] = (int)round($totalJiwa * 0.30);
+                $vals['penduduk_hub_kepala']  = $kkTotal;
+                $vals['penduduk_hub_istri']   = (int)round($kkTotal * 0.85);
+                $vals['penduduk_hub_anak']    = (int)round($totalJiwa * 0.30);
                 $vals['penduduk_hub_lainnya'] = max(0, $totalJiwa
                     - $vals['penduduk_hub_kepala']
                     - $vals['penduduk_hub_istri']
                     - $vals['penduduk_hub_anak']);
 
                 $data[] = array_merge([
-                    'id_rt' => $rt['id_rt'],
+                    'id_desa' => $id_desa,
                     'id_user' => $id_user,
-                    'bulan' => $bulan,
-                    'tahun' => $tahun,
+                    'bulan'   => $bulan,
+                    'tahun'   => $tahun,
                 ], $vals);
             }
         }

@@ -68,10 +68,9 @@
             <!-- Summary strip -->
             <?php
                 $totalDesa      = count($desaStats);
-                $desaLengkap    = count(array_filter($desaStats, fn($d) => $d['persen'] == 100));
-                $totalRtSemua   = array_sum(array_column($desaStats, 'total_rt'));
+                $desaLengkap    = count(array_filter($desaStats, fn($d) => $d['sudah_lapor'] > 0));
                 $totalSudahSemua = array_sum(array_column($desaStats, 'sudah_lapor'));
-                $persenSemua    = $totalRtSemua > 0 ? round($totalSudahSemua / $totalRtSemua * 100) : 0;
+                $persenSemua    = $totalDesa > 0 ? round($desaLengkap / $totalDesa * 100) : 0;
             ?>
             <div class="row mb-4">
                 <div class="col-md-3 col-6">
@@ -99,11 +98,11 @@
                 <div class="col-md-3 col-6">
                     <div class="info-box shadow-sm">
                         <span class="info-box-icon bg-gradient-info">
-                            <i class="fas fa-home"></i>
+                            <i class="fas fa-map-marker-alt"></i>
                         </span>
                         <div class="info-box-content">
-                            <span class="info-box-text">RT Sudah Lapor</span>
-                            <span class="info-box-number"><?= $totalSudahSemua ?> / <?= $totalRtSemua ?></span>
+                            <span class="info-box-text">Desa Sudah Lapor</span>
+                            <span class="info-box-number"><?= $totalSudahSemua ?> / <?= $totalDesa ?></span>
                         </div>
                     </div>
                 </div>
@@ -193,14 +192,14 @@
     </section>
 </div>
 
-<!-- Modal Detail RT per Desa -->
+<!-- Modal Detail Laporan per Desa -->
 <div class="modal fade" id="modalDetailDesa" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-home mr-2"></i>
-                    Detail RT - <span id="modalDesaNama"></span>
+                    <i class="fas fa-map-marker-alt mr-2"></i>
+                    Detail Laporan - <span id="modalDesaNama"></span>
                 </h5>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
@@ -231,18 +230,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         $.get('<?= base_url('laporan/detailDesa') ?>/' + idDesa + '?bulan=' + bulan + '&tahun=' + tahun, function (res) {
             if (res.status === 'success') {
-                // Escape untrusted strings from API response before inserting into HTML
                 function esc(str) {
                     return $('<span>').text(str).html();
                 }
 
                 let html = '<table class="table table-sm table-bordered">';
-                html += '<thead class="bg-light"><tr><th>Dusun</th><th>RT</th><th class="text-center">Status</th><th class="text-center">Jiwa</th><th class="text-center">KK</th><th class="text-center">Aksi</th></tr></thead><tbody>';
+                html += '<thead class="bg-light"><tr><th class="text-center">Status</th><th class="text-center">Jiwa</th><th class="text-center">KK</th><th class="text-center">Aksi</th></tr></thead><tbody>';
 
                 res.data.forEach(function (row) {
                     const statusBadge = row.id_laporan
-                        ? '<span class="badge badge-success"><i class="fas fa-check mr-1"></i>Sudah</span>'
-                        : '<span class="badge badge-danger"><i class="fas fa-times mr-1"></i>Belum</span>';
+                        ? '<span class="badge badge-success"><i class="fas fa-check mr-1"></i>Sudah Lapor</span>'
+                        : '<span class="badge badge-danger"><i class="fas fa-times mr-1"></i>Belum Lapor</span>';
 
                     const jiwa = row.id_laporan ? (parseInt(row.jiwa_l) + parseInt(row.jiwa_p)).toLocaleString('id-ID') : '-';
                     const kk   = row.id_laporan ? (parseInt(row.kk_l)   + parseInt(row.kk_p)).toLocaleString('id-ID')   : '-';
@@ -253,8 +251,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         : `<a href="/laporan/input" class="btn btn-xs btn-primary" title="Input"><i class="fas fa-plus"></i></a>`;
 
                     html += `<tr class="${idLaporan ? '' : 'table-danger'}">`;
-                    html += `<td>${esc(row.nama_dusun)}</td>`;
-                    html += `<td><span class="badge badge-secondary">RT ${esc(String(row.no_rt))}</span></td>`;
                     html += `<td class="text-center">${statusBadge}</td>`;
                     html += `<td class="text-center">${jiwa}</td>`;
                     html += `<td class="text-center">${kk}</td>`;

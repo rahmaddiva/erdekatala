@@ -37,13 +37,11 @@ class PublicController extends BaseController
         }
 
         $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, kecamatan.nama_kecamatan')
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
             ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
         if ($id_desa_filter) {
-            $builder->where('m_desa.id_desa', $id_desa_filter);
+            $builder->where('laporan_agregat.id_desa', $id_desa_filter);
         } elseif ($id_kecamatan_filter) {
             $builder->where('kecamatan.id_kecamatan', $id_kecamatan_filter);
         }
@@ -116,9 +114,7 @@ class PublicController extends BaseController
         }
 
         $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, m_desa.id_desa, kecamatan.nama_kecamatan')
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
             ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan')
             ->where('kecamatan.id_kecamatan', $kec['id_kecamatan']);
 
@@ -336,9 +332,7 @@ class PublicController extends BaseController
              SUM(laporan_agregat.kk_l + laporan_agregat.kk_p) AS total_kk,
              COUNT(laporan_agregat.id_laporan) AS rt_count'
         );
-        $builder->join('m_rt',     'm_rt.id_rt = laporan_agregat.id_rt');
-        $builder->join('m_dusun',  'm_dusun.id_dusun = m_rt.id_dusun');
-        $builder->join('m_desa',   'm_desa.id_desa = m_dusun.id_desa');
+        $builder->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa');
         $builder->where('m_desa.id_kecamatan', $id_kecamatan);
         $builder->groupBy('m_desa.id_desa');
         $builder->orderBy('m_desa.nama_desa', 'ASC');

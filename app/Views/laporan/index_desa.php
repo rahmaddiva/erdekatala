@@ -26,8 +26,8 @@
                 <div class="col-12 d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted">
-                            <i class="fas fa-home mr-1"></i>
-                            Total RT terdaftar: <strong><?= $totalRt ?> RT</strong>
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            Laporan Desa: <strong><?= esc(session()->get('nama_desa') ?? '') ?></strong>
                         </span>
                     </div>
                     <div class="btn-group">
@@ -52,38 +52,7 @@
                 </div>
             </div>
 
-            <!-- Filter Periode -->
-            <div class="card card-outline card-primary shadow-sm mb-4">
-                <div class="card-body py-2">
-                    <form method="get" action="/laporan" class="form-inline">
-                        <label class="mr-2"><i class="fas fa-calendar-alt mr-1"></i> Periode:</label>
-                        <select name="bulan" class="form-control form-control-sm mr-2">
-                            <option value="">-- Semua Bulan --</option>
-                            <?php foreach ($bulanList as $num => $nama): ?>
-                                <option value="<?= $num ?>" <?= $filterBulan == $num ? 'selected' : '' ?>>
-                                    <?= $nama ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <select name="tahun" class="form-control form-control-sm mr-2">
-                            <option value="">-- Semua Tahun --</option>
-                            <?php for ($y = date('Y'); $y >= date('Y') - 5; $y--): ?>
-                                <option value="<?= $y ?>" <?= $filterTahun == $y ? 'selected' : '' ?>><?= $y ?></option>
-                            <?php endfor; ?>
-                        </select>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="fas fa-filter mr-1"></i> Terapkan
-                        </button>
-                        <?php if (!empty($filterBulan) || !empty($filterTahun)): ?>
-                            <a href="/laporan" class="btn btn-secondary btn-sm ml-2">
-                                <i class="fas fa-times mr-1"></i> Reset
-                            </a>
-                        <?php endif; ?>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Filter Periode -->
+                <!-- Filter Periode -->
             <div class="card card-outline card-primary shadow-sm mb-4">
                 <div class="card-body py-2">
                     <form method="get" action="/laporan" class="form-inline">
@@ -137,11 +106,10 @@
 
                     <?php foreach ($bulanData as $bulan => $laporanList): ?>
                         <?php
-                            $namaBulan  = $bulanList[$bulan] ?? $bulan;
-                            $rtSudah    = array_column($laporanList, 'id_rt');
-                            $jmlSudah   = count($laporanList);
-                            $jmlBelum   = $totalRt - $jmlSudah;
-                            $persen     = $totalRt > 0 ? round($jmlSudah / $totalRt * 100) : 0;
+                            $namaBulan   = $bulanList[$bulan] ?? $bulan;
+                            $laporan     = $laporanList[0] ?? null; // satu laporan per desa per bulan
+                            $sudahLapor  = !empty($laporan);
+                            $persen      = $sudahLapor ? 100 : 0;
                             $accordionId = 'acc-' . $tahun . '-' . $bulan;
                             $collapseId  = 'col-' . $tahun . '-' . $bulan;
                             $isLatest    = ($tahun == array_key_first($grouped) && $bulan == array_key_first($bulanData));
@@ -164,22 +132,17 @@
                                     <!-- Info ringkas -->
                                     <div class="flex-grow-1">
                                         <div class="d-flex align-items-center">
-                                            <small class="text-muted mr-3">
-                                                <i class="fas fa-check-circle text-success mr-1"></i>
-                                                <?= $jmlSudah ?> RT sudah lapor
-                                            </small>
-                                            <?php if ($jmlBelum > 0): ?>
+                                            <?php if ($sudahLapor): ?>
+                                                <small class="text-muted mr-3">
+                                                    <i class="fas fa-check-circle text-success mr-1"></i>
+                                                    Sudah lapor
+                                                </small>
+                                            <?php else: ?>
                                                 <small class="text-muted">
                                                     <i class="fas fa-times-circle text-danger mr-1"></i>
-                                                    <?= $jmlBelum ?> RT belum lapor
+                                                    Belum lapor
                                                 </small>
                                             <?php endif; ?>
-                                        </div>
-                                        <!-- Progress bar -->
-                                        <div class="progress mt-1" style="height:5px; max-width:250px;">
-                                            <div class="progress-bar
-                                                <?= $persen == 100 ? 'bg-success' : ($persen >= 50 ? 'bg-warning' : 'bg-danger') ?>"
-                                                style="width:<?= $persen ?>%"></div>
                                         </div>
                                     </div>
 
@@ -198,8 +161,7 @@
                                     <table class="table table-sm table-hover m-0">
                                         <thead class="bg-light">
                                             <tr>
-                                                <th class="pl-3">Dusun</th>
-                                                <th>RT</th>
+                                                <th class="pl-3 text-center">Status</th>
                                                 <th class="text-center">Jiwa</th>
                                                 <th class="text-center">KK</th>
                                                 <th class="text-center">Jiwa L</th>
@@ -208,89 +170,48 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php
-                                            // Kelompokkan per dusun
-                                            $perDusun = [];
-                                            foreach ($laporanList as $l) {
-                                                $perDusun[$l['nama_dusun']][] = $l;
-                                            }
-                                            ksort($perDusun);
-                                            ?>
-                                            <?php foreach ($perDusun as $namaDusun => $rows): ?>
-                                                <?php foreach ($rows as $idx => $row): ?>
-                                                    <tr>
-                                                        <?php if ($idx === 0): ?>
-                                                            <td rowspan="<?= count($rows) ?>" class="pl-3 align-middle">
-                                                                <i class="fas fa-map-marker-alt text-muted mr-1"></i>
-                                                                <strong><?= esc($namaDusun) ?></strong>
-                                                            </td>
-                                                        <?php endif; ?>
-                                                        <td>
-                                                            <span class="badge badge-secondary">RT <?= esc($row['no_rt']) ?></span>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge badge-info">
-                                                                <?= number_format($row['jiwa_l'] + $row['jiwa_p']) ?>
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge badge-success">
-                                                                <?= number_format($row['kk_l'] + $row['kk_p']) ?>
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-center text-info"><?= number_format($row['jiwa_l']) ?></td>
-                                                        <td class="text-center text-danger"><?= number_format($row['jiwa_p']) ?></td>
-                                                        <td class="text-center">
-                                                            <a href="/laporan/edit/<?= $row['id_laporan'] ?>"
-                                                                class="btn btn-xs btn-warning" title="Edit">
-                                                                <i class="fas fa-edit"></i>
-                                                            </a>
-                                                            <button type="button" class="btn btn-xs btn-danger"
-                                                                onclick="confirmDelete(<?= $row['id_laporan'] ?>)" title="Hapus">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php endforeach; ?>
-
-                                            <!-- RT yang belum lapor -->
-                                            <?php
-                                            $rtBelum = array_filter($allRt, fn($rt) => !in_array($rt['id_rt'], $rtSudah));
-                                            foreach ($rtBelum as $rt):
-                                            ?>
-                                                <tr class="table-danger">
-                                                    <td class="pl-3 text-muted">
-                                                        <i class="fas fa-map-marker-alt mr-1"></i>
-                                                        <?= esc($rt['nama_dusun']) ?>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge badge-secondary">RT <?= esc($rt['no_rt']) ?></span>
-                                                    </td>
-                                                    <td colspan="4" class="text-center text-danger">
-                                                        <i class="fas fa-exclamation-circle mr-1"></i>
-                                                        <small>Belum lapor</small>
+                                            <?php if ($sudahLapor): ?>
+                                                <tr>
+                                                    <td class="text-center">
+                                                        <span class="badge badge-success"><i class="fas fa-check mr-1"></i>Sudah Lapor</span>
                                                     </td>
                                                     <td class="text-center">
-                                                        <a href="/laporan/input" class="btn btn-xs btn-outline-primary" title="Input sekarang">
+                                                        <span class="badge badge-info">
+                                                            <?= number_format($laporan['jiwa_l'] + $laporan['jiwa_p']) ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge badge-success">
+                                                            <?= number_format($laporan['kk_l'] + $laporan['kk_p']) ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center text-info"><?= number_format($laporan['jiwa_l']) ?></td>
+                                                    <td class="text-center text-danger"><?= number_format($laporan['jiwa_p']) ?></td>
+                                                    <td class="text-center">
+                                                        <a href="/laporan/edit/<?= $laporan['id_laporan'] ?>"
+                                                            class="btn btn-xs btn-warning" title="Edit">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-xs btn-danger"
+                                                            onclick="confirmDelete(<?= $laporan['id_laporan'] ?>)" title="Hapus">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            <?php else: ?>
+                                                <tr class="table-danger">
+                                                    <td class="text-center">
+                                                        <span class="badge badge-danger"><i class="fas fa-times mr-1"></i>Belum Lapor</span>
+                                                    </td>
+                                                    <td colspan="4" class="text-center text-muted">-</td>
+                                                    <td class="text-center">
+                                                        <a href="/laporan/input" class="btn btn-xs btn-primary" title="Input">
                                                             <i class="fas fa-plus"></i>
                                                         </a>
                                                     </td>
                                                 </tr>
-                                            <?php endforeach; ?>
+                                            <?php endif; ?>
                                         </tbody>
-                                        <?php
-                                        $totalJiwa = array_sum(array_map(fn($l) => $l['jiwa_l'] + $l['jiwa_p'], $laporanList));
-                                        $totalKK   = array_sum(array_map(fn($l) => $l['kk_l'] + $l['kk_p'], $laporanList));
-                                        ?>
-                                        <tfoot class="bg-light">
-                                            <tr>
-                                                <td colspan="2" class="pl-3"><strong>Total Bulan Ini</strong></td>
-                                                <td class="text-center"><strong><?= number_format($totalJiwa) ?></strong></td>
-                                                <td class="text-center"><strong><?= number_format($totalKK) ?></strong></td>
-                                                <td colspan="3"></td>
-                                            </tr>
-                                        </tfoot>
                                     </table>
                                 </div>
                             </div>

@@ -10,7 +10,7 @@
                 <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
                 <h5><i class="icon fas fa-info-circle"></i> Informasi!</h5>
                 Form laporan agregat digunakan untuk memasukkan data statistik kependudukan secara
-                berkala (bulanan) berdasarkan RT / wilayah. Pastikan data yang dimasukkan sudah benar
+                berkala (bulanan) berdasarkan Desa / wilayah. Pastikan data yang dimasukkan sudah benar
                 sebelum disimpan ke dalam sistem.
             </div>
         </div>
@@ -50,26 +50,19 @@
                                     <button type="button" id="btn-recycle" class="btn btn-outline-info btn-sm">
                                         <i class="fas fa-sync-alt"></i> Salin Data dari Bulan Sebelumnya
                                     </button>
-                                    <small class="text-muted d-block mt-1">*Pilih RT terlebih dahulu sebelum
+                                    <small class="text-muted d-block mt-1">*Pilih Desa terlebih dahulu sebelum
                                         menyalin data.</small>
                                 </div>
                             </div>
                             <div class="row">
 
                                 <div class="col-md-4">
-                                    <label>Pilih RT / Wilayah</label>
-                                    <select name="id_rt" class="form-control select2bs4" required>
-                                        <option value="">-- Pilih RT --</option>
-                                        <?php foreach ($list_rt as $rt): ?>
-                                            <option value="<?= $rt['id_rt'] ?>" <?= (isset($laporan) && $laporan['id_rt'] == $rt['id_rt']) ? 'selected' : '' ?>>
-                                                <?php
-                                                // Jika admin kecamatan, tampilkan Nama Desa agar lebih jelas
-                                                if (session()->get('role') == 'admin_kecamatan') {
-                                                    echo "[Desa " . $rt['nama_desa'] . "] - RT " . $rt['no_rt'] . " (" . $rt['nama_dusun'] . ")";
-                                                } else {
-                                                    echo "RT " . $rt['no_rt'] . " (" . $rt['nama_dusun'] . ")";
-                                                }
-                                                ?>
+                                    <label>Pilih Desa / Wilayah</label>
+                                    <select name="id_desa" class="form-control select2bs4" required>
+                                        <option value="">-- Pilih Desa --</option>
+                                        <?php foreach ($list_desa as $desa): ?>
+                                            <option value="<?= $desa['id_desa'] ?>" <?= (isset($laporan) && $laporan['id_desa'] == $desa['id_desa']) ? 'selected' : '' ?>>
+                                                <?= esc($desa['nama_desa']) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -296,13 +289,13 @@
 <script>
     $(document).ready(function () {
         $('#btn-recycle').on('click', function () {
-            const idRt = $('select[name="id_rt"]').val();
+            const idDesa = $('select[name="id_desa"]').val();
 
-            if (!idRt) {
+            if (!idDesa) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Pilih RT',
-                    text: 'Silakan pilih RT terlebih dahulu!'
+                    title: 'Pilih Desa',
+                    text: 'Silakan pilih Desa terlebih dahulu!'
                 });
                 return;
             }
@@ -319,14 +312,14 @@
                     $.ajax({
                         url: '<?= base_url('laporan/getPreviousData') ?>',
                         type: 'GET',
-                        data: { id_rt: idRt },
+                        data: { id_desa: idDesa },
                         dataType: 'json',
                         success: function (response) {
                             if (response.status === 'success') {
                                 const data = response.data;
 
-                                // List field yang TIDAK boleh ditimpa (Primary key, RT, Bulan, Tahun)
-                                const ignoreFields = ['id_laporan', 'id_rt', 'bulan', 'tahun', 'id_user', 'created_at', 'updated_at'];
+                                // List field yang TIDAK boleh ditimpa (Primary key, Desa, Bulan, Tahun)
+                                const ignoreFields = ['id_laporan', 'id_desa', 'bulan', 'tahun', 'id_user', 'created_at', 'updated_at'];
 
                                 // Loop semua input di form
                                 $('form input[type="number"]').each(function () {

@@ -99,10 +99,8 @@ class ApiController extends BaseController
         $perPage      = min(500, max(10, (int) ($this->request->getGet('per_page') ?? 100)));
 
         $builder = $this->laporanModel
-            ->select('laporan_agregat.*, kecamatan.nama_kecamatan, m_desa.nama_desa, m_dusun.nama_dusun, m_rt.no_rt')
-            ->join('m_rt',      'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun',   'm_dusun.id_dusun = m_rt.id_dusun')
-            ->join('m_desa',    'm_desa.id_desa = m_dusun.id_desa')
+            ->select('laporan_agregat.*, kecamatan.nama_kecamatan, m_desa.nama_desa')
+            ->join('m_desa',    'm_desa.id_desa = laporan_agregat.id_desa')
             ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
         if ($id_kecamatan) $builder->where('kecamatan.id_kecamatan', $id_kecamatan);

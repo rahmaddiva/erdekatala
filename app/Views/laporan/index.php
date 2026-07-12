@@ -111,8 +111,6 @@
                                 <?php if (session()->get('role') == 'admin_kecamatan'): ?>
                                     <th>Desa</th>
                                 <?php endif; ?>
-                                <th>Dusun</th>
-                                <th>RT</th>
                                 <th>Total Jiwa</th>
                                 <th>Total KK</th>
                                 <th width="10%">Aksi</th>
@@ -130,16 +128,6 @@
                                             placeholder="Cari desa..." data-column="2">
                                     </th>
                                 <?php endif; ?>
-                                <th>
-                                    <input type="text" class="form-control form-control-sm search-input"
-                                        placeholder="Cari dusun..."
-                                        data-column="<?= (session()->get('role') == 'admin_kecamatan') ? '3' : '2' ?>">
-                                </th>
-                                <th>
-                                    <input type="text" class="form-control form-control-sm search-input"
-                                        placeholder="Cari RT..."
-                                        data-column="<?= (session()->get('role') == 'admin_kecamatan') ? '4' : '3' ?>">
-                                </th>
                                 <th></th>
                                 <th></th>
                                 <th></th>
@@ -171,8 +159,6 @@
                                         // Tambahkan multi-column search values
                                         d.search_periode = searchValues['periode'] || '';
                                         d.search_desa = searchValues['desa'] || '';
-                                        d.search_dusun = searchValues['dusun'] || '';
-                                        d.search_rt = searchValues['rt'] || '';
 
                                         d.<?= csrf_token() ?> = "<?= csrf_hash() ?>";
                                     }

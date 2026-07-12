@@ -66,34 +66,6 @@
                                     </div>
                             <?php endif; ?>
 
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label><i class="fas fa-home mr-1"></i>Dusun</label>
-                                    <select name="id_dusun" id="filter_dusun" class="form-control select2bs4">
-                                        <option value="">-- Semua Dusun --</option>
-                                        <?php foreach ($list_dusun as $dus): ?>
-                                                <option value="<?= $dus['id_dusun'] ?>" <?= ($filter_dusun == $dus['id_dusun']) ? 'selected' : '' ?>>
-                                                    <?= $dus['nama_dusun'] ?>
-                                                </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label><i class="fas fa-users mr-1"></i>RT</label>
-                                    <select name="id_rt" id="filter_rt" class="form-control select2bs4">
-                                        <option value="">-- Semua RT --</option>
-                                        <?php foreach ($list_rt as $rt): ?>
-                                                <option value="<?= $rt['id_rt'] ?>" <?= ($filter_rt == $rt['id_rt']) ? 'selected' : '' ?>>
-                                                    RT <?= $rt['no_rt'] ?>
-                                                </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-
                             <div class="col-md-1">
                                 <div class="form-group">
                                     <label>&nbsp;</label>

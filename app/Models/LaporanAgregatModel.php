@@ -15,7 +15,7 @@ class LaporanAgregatModel extends Model
 
     // Semua kolom yang boleh diisi secara massal (mass assignment)
     protected $allowedFields = [
-        'id_rt',
+        'id_desa',
         'id_user',
         'bulan',
         'tahun',
@@ -118,44 +118,24 @@ class LaporanAgregatModel extends Model
         'jml_penggunaan_alat_kontrasepsi',
     ];
 
-
-
     /**
      * Ambil semua laporan berdasarkan Desa
-     * Digunakan oleh: Admin Desa
      */
     public function getRekapByDesa($id_desa)
     {
-        return $this->select('laporan_agregat.*, m_rt.no_rt, m_dusun.nama_dusun')
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->where('m_dusun.id_desa', $id_desa)
-            ->findAll();
-    }
-    /**
-     * Ambil semua laporan berdasarkan Kecamatan
-     * Digunakan oleh: Admin Kecamatan
-     */
-
-    public function getRekapByDusun($id_dusun)
-    {
-        return $this->select('laporan_agregat.*, m_rt.no_rt')
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->where('m_rt.id_dusun', $id_dusun)
+        return $this->select('laporan_agregat.*')
+            ->where('laporan_agregat.id_desa', $id_desa)
             ->findAll();
     }
 
     public function getRekapByKecamatan($id_kecamatan, $id_desa = null)
     {
-        $builder = $this->select('laporan_agregat.*, m_desa.nama_desa, m_dusun.nama_dusun , m_rt.no_rt')
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+        $builder = $this->select('laporan_agregat.*, m_desa.nama_desa')
+            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
             ->where('m_desa.id_kecamatan', $id_kecamatan);
 
-        // Jika admin memilih desa tertentu
         if ($id_desa) {
-            $builder->where('m_desa.id_desa', $id_desa);
+            $builder->where('laporan_agregat.id_desa', $id_desa);
         }
 
         return $builder->findAll();
@@ -166,52 +146,31 @@ class LaporanAgregatModel extends Model
      */
     public function getSummaryPerDesa($id_kecamatan)
     {
-        return $this->select('m_desa.nama_desa, 
-                          SUM(jiwa_l + jiwa_p) as total_jiwa, 
+        return $this->select('m_desa.id_desa, m_desa.nama_desa,
+                          SUM(jiwa_l + jiwa_p) as total_jiwa,
                           SUM(kk_l + kk_p) as total_kk,
                           SUM(jml_balita) as total_balita,
                           SUM(jml_pus) as total_pus,
-                          SUM(jiwa_l) as total_jiwa_l, 
+                          SUM(jiwa_l) as total_jiwa_l,
                           SUM(jiwa_p) as total_jiwa_p'
         )
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
             ->where('m_desa.id_kecamatan', $id_kecamatan)
             ->groupBy('m_desa.id_desa')
             ->findAll();
     }
 
-    public function getSummaryPerDusun($id_desa)
-    {
-        return $this->select('m_dusun.nama_dusun, 
-                          SUM(jiwa_l + jiwa_p) as total_jiwa, 
-                          SUM(kk_l + kk_p) as total_kk,
-                          SUM(jml_balita) as total_balita,
-                          SUM(jml_pus) as total_pus,
-                          SUM(jiwa_l) as total_jiwa_l, 
-                          SUM(jiwa_p) as total_jiwa_p'
-        )
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->where('m_dusun.id_desa', $id_desa)
-            ->groupBy('m_dusun.id_dusun')
-            ->findAll();
-    }
-
     public function getSummaryPerKecamatan()
     {
-        return $this->select('kecamatan.nama_kecamatan, 
-                          SUM(jiwa_l + jiwa_p) as total_jiwa, 
+        return $this->select('kecamatan.nama_kecamatan,
+                          SUM(jiwa_l + jiwa_p) as total_jiwa,
                           SUM(kk_l + kk_p) as total_kk,
                           SUM(jml_balita) as total_balita,
                           SUM(jml_pus) as total_pus,
-                          SUM(jiwa_l) as total_jiwa_l, 
+                          SUM(jiwa_l) as total_jiwa_l,
                           SUM(jiwa_p) as total_jiwa_p'
         )
-            ->join('m_rt', 'm_rt.id_rt = laporan_agregat.id_rt')
-            ->join('m_dusun', 'm_dusun.id_dusun = m_rt.id_dusun')
-            ->join('m_desa', 'm_desa.id_desa = m_dusun.id_desa')
+            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
             ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan')
             ->groupBy('kecamatan.id_kecamatan')
             ->findAll();

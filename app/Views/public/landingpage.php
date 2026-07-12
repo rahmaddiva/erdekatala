@@ -1114,6 +1114,7 @@ $dokTotal   = array_sum($dokumen);
             blue:    "#2d6cdf",
             pink:    "#d6336c",
             green:   "#2f9e44",
+            amber:   "#f59e0b",
             muted:   "#6b7280",
             paper:   "#f7f5f1",
             border:  "#e5e1d8"
