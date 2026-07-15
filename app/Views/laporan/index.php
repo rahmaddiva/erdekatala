@@ -179,9 +179,7 @@
                                 // Map column index to field name
                                 const columnMap = {
                                     '1': 'periode',
-                                    '2': 'desa',
-                                    '3': 'dusun',
-                                    '4': 'rt'
+                                    '2': 'desa'
                                 };
 
                                 if (columnMap[column]) {

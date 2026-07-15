@@ -248,10 +248,7 @@ class LaporanAgregatController extends BaseController
             $search_periode = $this->request->getVar('search_periode');
             $search_desa = $this->request->getVar('search_desa');
 
-            // Total semua data (sebelum 
-            $totalData = $this->laporanModel->countAll();
-
-            $builder = $this->laporanModel->select('laporan_agregat.*, m_desa.nama_desa, kecamatan.nama_kecamatan')
+            $builder = $this->laporanModel->select('laporan_agregat.id_laporan, laporan_agregat.id_desa, laporan_agregat.bulan, laporan_agregat.tahun, laporan_agregat.jiwa_l, laporan_agregat.jiwa_p, laporan_agregat.kk_l, laporan_agregat.kk_p, m_desa.nama_desa, kecamatan.nama_kecamatan')
                 ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
                 ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
@@ -272,6 +269,9 @@ class LaporanAgregatController extends BaseController
             } elseif ($user['role'] == 'admin_desa') {
                 $builder->where('laporan_agregat.id_desa', $user['id_desa']);
             }
+
+            // ponytail: scoped count — counts only what this role can see
+            $totalData = (clone $builder)->countAllResults(false);
 
             // Multi-column Search Filter
             if ($search_periode) {
@@ -633,9 +633,10 @@ class LaporanAgregatController extends BaseController
             if ($bulan) $builder->where('laporan_agregat.bulan', $bulan);
             if ($tahun) $builder->where('laporan_agregat.tahun', $tahun);
 
+            // ponytail: hard limit mencegah memory blow-up pada export besar
             $dataLaporan = $builder->orderBy('laporan_agregat.tahun', 'DESC')
                 ->orderBy('laporan_agregat.bulan', 'DESC')
-                ->findAll();
+                ->findAll(5000);
 
             if (empty($dataLaporan)) {
                 return redirect()->back()->with('error', 'Tidak ada data untuk periode yang dipilih.');
@@ -686,9 +687,10 @@ class LaporanAgregatController extends BaseController
         if ($bulan) $builder->where('laporan_agregat.bulan', $bulan);
         if ($tahun) $builder->where('laporan_agregat.tahun', $tahun);
 
+        // ponytail: hard limit mencegah memory blow-up pada export besar
         $dataLaporan = $builder->orderBy('laporan_agregat.tahun', 'DESC')
             ->orderBy('laporan_agregat.bulan', 'DESC')
-            ->findAll();
+            ->findAll(5000);
 
         if (empty($dataLaporan)) {
             return redirect()->back()->with('error', 'Tidak ada data untuk diexport.');

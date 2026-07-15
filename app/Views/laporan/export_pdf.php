@@ -44,7 +44,7 @@ $isFirst = true;
         <thead>
             <tr>
                 <th width="18">No</th>
-                <th width="80">Wilayah (RT / Dusun)</th>
+                <th width="80">Wilayah (Desa)</th>
                 <th colspan="2">Jiwa</th>
                 <th colspan="2">KK</th>
                 <th width="40">Total Jiwa</th>
@@ -61,7 +61,7 @@ $isFirst = true;
             <?php $i = 1; foreach ($laporan as $r): ?>
             <tr>
                 <td><?= $i++ ?></td>
-                <td class="text-left">RT <?= $r['no_rt'] ?> &mdash; <?= esc($r['nama_dusun']) ?></td>
+                <td class="text-left"><?= esc($r['nama_desa'] ?? '-') ?><?= !empty($r['nama_kecamatan']) ? ' — ' . esc($r['nama_kecamatan']) : '' ?></td>
                 <td><?= $r['jiwa_l'] ?></td>
                 <td><?= $r['jiwa_p'] ?></td>
                 <td><?= $r['kk_l'] ?></td>
@@ -89,7 +89,7 @@ $isFirst = true;
             <?php $i = 1; foreach ($laporan as $r): ?>
             <tr>
                 <td><?= $i++ ?></td>
-                <td class="text-left">RT <?= $r['no_rt'] ?> &mdash; <?= esc($r['nama_dusun']) ?></td>
+                <td class="text-left"><?= esc($r['nama_desa'] ?? '-') ?><?= !empty($r['nama_kecamatan']) ? ' — ' . esc($r['nama_kecamatan']) : '' ?></td>
                 <td><?= $r['kk_pend_tidak_sekolah'] ?></td>
                 <td><?= $r['kk_pend_sd'] ?></td>
                 <td><?= $r['kk_pend_smp'] ?></td>
@@ -118,7 +118,7 @@ $isFirst = true;
             <?php $i = 1; foreach ($laporan as $r): ?>
             <tr>
                 <td><?= $i++ ?></td>
-                <td class="text-left">RT <?= $r['no_rt'] ?> &mdash; <?= esc($r['nama_dusun']) ?></td>
+                <td class="text-left"><?= esc($r['nama_desa'] ?? '-') ?><?= !empty($r['nama_kecamatan']) ? ' — ' . esc($r['nama_kecamatan']) : '' ?></td>
                 <td><?= $r['kk_ker_tani'] ?></td>
                 <td><?= $r['kk_ker_nelayan'] ?></td>
                 <td><?= $r['kk_ker_pns'] ?></td>
@@ -165,7 +165,7 @@ $isFirst = true;
             foreach ($laporan as $r): ?>
             <tr>
                 <td><?= $i++ ?></td>
-                <td class="text-left">RT<?= $r['no_rt'] ?></td>
+                <td class="text-left"><?= esc($r['nama_desa'] ?? '-') ?></td>
                 <?php foreach ($fields as $f): ?>
                     <td><?= $r[$f.'_l'] ?></td>
                     <td><?= $r[$f.'_p'] ?></td>
@@ -199,7 +199,7 @@ $isFirst = true;
             <?php $i = 1; foreach ($laporan as $r): ?>
             <tr>
                 <td><?= $i++ ?></td>
-                <td class="text-left">RT <?= $r['no_rt'] ?> &mdash; <?= esc($r['nama_dusun']) ?></td>
+                <td class="text-left"><?= esc($r['nama_desa'] ?? '-') ?><?= !empty($r['nama_kecamatan']) ? ' — ' . esc($r['nama_kecamatan']) : '' ?></td>
                 <td><?= $r['kk_belum_kawin'] ?></td>
                 <td><?= $r['kk_kawin'] ?></td>
                 <td><?= $r['kk_cerai_hidup'] ?></td>
@@ -226,7 +226,7 @@ $isFirst = true;
             <?php $i = 1; foreach ($laporan as $r): ?>
             <tr>
                 <td><?= $i++ ?></td>
-                <td class="text-left">RT <?= $r['no_rt'] ?> &mdash; <?= esc($r['nama_dusun']) ?></td>
+                <td class="text-left"><?= esc($r['nama_desa'] ?? '-') ?><?= !empty($r['nama_kecamatan']) ? ' — ' . esc($r['nama_kecamatan']) : '' ?></td>
                 <td><?= $r['pus_pbi'] ?></td>
                 <td><?= $r['pus_non_pbi'] ?></td>
                 <td><?= $r['non_jkn'] ?></td>
@@ -252,7 +252,7 @@ $isFirst = true;
             <?php $i = 1; foreach ($laporan as $r): ?>
             <tr>
                 <td><?= $i++ ?></td>
-                <td class="text-left">RT <?= $r['no_rt'] ?> &mdash; <?= esc($r['nama_dusun']) ?></td>
+                <td class="text-left"><?= esc($r['nama_desa'] ?? '-') ?><?= !empty($r['nama_kecamatan']) ? ' — ' . esc($r['nama_kecamatan']) : '' ?></td>
                 <td><?= $r['pend_wajib_ktp'] ?></td>
                 <td><?= $r['pend_punya_akta_lahir'] ?></td>
                 <td><?= $r['kk_punya_akta_nikah'] ?></td>
@@ -279,7 +279,7 @@ $isFirst = true;
             <?php $i = 1; foreach ($laporan as $r): ?>
             <tr>
                 <td><?= $i++ ?></td>
-                <td class="text-left">RT <?= $r['no_rt'] ?> &mdash; <?= esc($r['nama_dusun']) ?></td>
+                <td class="text-left"><?= esc($r['nama_desa'] ?? '-') ?><?= !empty($r['nama_kecamatan']) ? ' — ' . esc($r['nama_kecamatan']) : '' ?></td>
                 <td><?= $r['jml_balita'] ?></td>
                 <td><?= $r['jml_remaja'] ?></td>
                 <td><?= $r['jml_lansia'] ?></td>

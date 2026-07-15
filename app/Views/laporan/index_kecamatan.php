@@ -150,21 +150,17 @@
                                 <div class="progress mb-2" style="height: 8px;">
                                     <div class="progress-bar bg-<?= $colorClass ?>"
                                         style="width: <?= $persen ?>%"
-                                        title="<?= $persen ?>% RT sudah lapor">
+                                        title="<?= $persen ?>% desa sudah lapor">
                                     </div>
                                 </div>
 
-                                <!-- Statistik RT -->
+                                <!-- Statistik laporan desa -->
                                 <div class="row text-center mb-2">
-                                    <div class="col-4">
-                                        <div class="text-muted" style="font-size:11px;">Total RT</div>
-                                        <strong><?= $stat['total_rt'] ?></strong>
-                                    </div>
-                                    <div class="col-4">
+                                    <div class="col-6">
                                         <div class="text-success" style="font-size:11px;">Sudah Lapor</div>
                                         <strong class="text-success"><?= $stat['sudah_lapor'] ?></strong>
                                     </div>
-                                    <div class="col-4">
+                                    <div class="col-6">
                                         <div class="text-danger" style="font-size:11px;">Belum Lapor</div>
                                         <strong class="text-danger"><?= $stat['belum_lapor'] ?></strong>
                                     </div>
@@ -176,7 +172,7 @@
                                     data-id="<?= $desa['id_desa'] ?>"
                                     data-nama="<?= esc($desa['nama_desa']) ?>"
                                     data-toggle="modal" data-target="#modalDetailDesa">
-                                    <i class="fas fa-list mr-1"></i> Lihat Detail RT
+                                    <i class="fas fa-list mr-1"></i> Lihat Detail
                                 </button>
                                 <a href="/laporan?id_desa=<?= $desa['id_desa'] ?>&bulan=<?= $filterBulan ?>&tahun=<?= $filterTahun ?>"
                                     class="btn btn-sm btn-outline-primary">

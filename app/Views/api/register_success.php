@@ -10,6 +10,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
+        .cursor-follower {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(221, 72, 20, 0.6);
+            pointer-events: none;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            opacity: 0;
+        }
+        .cursor-follower.active { opacity: 1; }
+    </style>
+    <style>
         :root{
             --ink:#0f1923; --ink-2:#1a2733;
             --primary:#dd4814; --primary-d:#b83a10;
@@ -80,6 +95,29 @@
             }, 2000);
         });
     }
+</script>
+<div class="cursor-follower" id="cursorFollower"></div>
+<script>
+    (function() {
+        var f = document.getElementById('cursorFollower');
+        var mx = 0, my = 0, fx = 0, fy = 0;
+        var speed = 0.08;
+        document.addEventListener('mousemove', function(e) {
+            mx = e.clientX;
+            my = e.clientY;
+            if (!f.classList.contains('active')) f.classList.add('active');
+        });
+        document.addEventListener('mouseleave', function() {
+            f.classList.remove('active');
+        });
+        (function loop() {
+            fx += (mx - fx) * speed;
+            fy += (my - fy) * speed;
+            f.style.left = (fx - 10) + 'px';
+            f.style.top = (fy - 10) + 'px';
+            requestAnimationFrame(loop);
+        })();
+    })();
 </script>
 </body>
 </html>

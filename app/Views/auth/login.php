@@ -13,6 +13,21 @@
     <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/SikadaIreng.png') ?>">
 
     <style>
+        .cursor-follower {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(192, 57, 43, 0.6);
+            pointer-events: none;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            opacity: 0;
+        }
+        .cursor-follower.active { opacity: 1; }
+    </style>
+    <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
@@ -220,7 +235,7 @@
         </p>
 
         <ul class="feature-list">
-            <li><i class="fas fa-map-marker-alt"></i> Pendataan hingga tingkat RT</li>
+            <li><i class="fas fa-map-marker-alt"></i> Pendataan hingga tingkat Desa</li>
             <li><i class="fas fa-chart-bar"></i> Visualisasi statistik kependudukan</li>
             <li><i class="fas fa-file-export"></i> Ekspor laporan Excel &amp; PDF</li>
             <li><i class="fas fa-plug"></i> Akses data via Public API</li>
@@ -288,6 +303,29 @@
     <script src="<?= base_url('assets/plugins/jquery/jquery.min.js') ?>"></script>
     <script src="<?= base_url('assets/plugins/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url('assets/dist/js/adminlte.min.js') ?>"></script>
+    <div class="cursor-follower" id="cursorFollower"></div>
+    <script>
+        (function() {
+            var f = document.getElementById('cursorFollower');
+            var mx = 0, my = 0, fx = 0, fy = 0;
+            var speed = 0.08;
+            document.addEventListener('mousemove', function(e) {
+                mx = e.clientX;
+                my = e.clientY;
+                if (!f.classList.contains('active')) f.classList.add('active');
+            });
+            document.addEventListener('mouseleave', function() {
+                f.classList.remove('active');
+            });
+            (function loop() {
+                fx += (mx - fx) * speed;
+                fy += (my - fy) * speed;
+                f.style.left = (fx - 10) + 'px';
+                f.style.top = (fy - 10) + 'px';
+                requestAnimationFrame(loop);
+            })();
+        })();
+    </script>
 </body>
 
 </html>

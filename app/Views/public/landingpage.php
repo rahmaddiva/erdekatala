@@ -21,6 +21,18 @@ $pekTotal  = array_sum($pekerjaan);
 $kawinTotal = array_sum($status_kawin);
 $jknTotal   = array_sum($jkn_bpjs);
 $dokTotal   = array_sum($dokumen);
+$krsKab        = $krsKab ?? null;
+$krsKecamatan  = $krsKecamatan ?? [];
+$krsUpdatedAt  = $krsUpdatedAt ?? null;
+$krsError      = $krsError ?? null;
+$krsFilterKec  = $krsFilterKec ?? null;
+// API kirim angka string ber-koma ("5,360")
+$krsNum = static function ($v): int {
+    return (int) str_replace([',', '.'], '', (string) ($v ?? 0));
+};
+$krsFmt = static function ($v) use ($krsNum): string {
+    return number_format($krsNum($v), 0, ',', '.');
+};
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -29,7 +41,7 @@ $dokTotal   = array_sum($dokumen);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sikada Tala — Sistem Informasi Kependudukan Kabupaten Tanah Laut</title>
-    <meta name="description" content="Portal data agregat kependudukan tingkat RT-RW-Desa-Kecamatan di Kabupaten Tanah Laut, Kalimantan Selatan.">
+    <meta name="description" content="Portal data agregat kependudukan tingkat Desa-Kecamatan di Kabupaten Tanah Laut, Kalimantan Selatan.">
     <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/SikadaIreng.png') ?>">
 
     <!-- Font: Poppins -->
@@ -48,6 +60,21 @@ $dokTotal   = array_sum($dokumen);
     <!-- ZingChart (CDN resmi, sama dengan dashboard) -->
     <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
 
+    <style>
+        .cursor-follower {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(221, 72, 20, 0.6);
+            pointer-events: none;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            opacity: 0;
+        }
+        .cursor-follower.active { opacity: 1; }
+    </style>
     <style>
         :root {
             --primary:   #dd4814;
@@ -606,6 +633,130 @@ $dokTotal   = array_sum($dokumen);
         .kec-card i { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--paper-3); }
         .kec-card:hover i { color: var(--primary); }
 
+        /* ===== KRS TREE TABLE (mirip SIGA PDF) ===== */
+        .krs-shell {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+        .krs-toolbar {
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+            gap: .75rem; padding: .9rem 1.1rem;
+            background: linear-gradient(135deg, #1a2744 0%, #243556 100%);
+            color: #fff;
+        }
+        .krs-toolbar h3 {
+            margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: .02em;
+        }
+        .krs-toolbar .meta {
+            font-size: .78rem; opacity: .8;
+        }
+        .krs-toolbar .badge-live {
+            background: rgba(72, 199, 142, .2); color: #7dffb3;
+            border: 1px solid rgba(72,199,142,.35);
+            border-radius: 999px; padding: .2rem .65rem;
+            font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+        }
+        .krs-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+        table.krs-tree {
+            width: 100%; border-collapse: collapse;
+            font-size: .78rem; min-width: 1400px;
+            border: 1px solid #b8c4d6;
+        }
+        table.krs-tree thead th {
+            position: sticky; top: 0; z-index: 3;
+            background: #e8eef6; color: #1a2744;
+            font-weight: 700; font-size: .68rem; text-transform: uppercase;
+            letter-spacing: .03em; white-space: nowrap;
+            padding: .55rem .45rem;
+            border: 1px solid #b8c4d6;
+            text-align: center; vertical-align: middle;
+        }
+        table.krs-tree thead tr.krs-grp th {
+            background: #d4deec;
+            font-size: .7rem; padding: .5rem .4rem;
+            border: 1px solid #a8b6cc;
+        }
+        table.krs-tree thead tr:nth-child(2) th {
+            top: 2rem; /* sticky under group header */
+            z-index: 2;
+            background: #eef3f9;
+        }
+        table.krs-tree tbody td {
+            padding: .42rem .45rem;
+            border: 1px solid #cfd8e6;
+            white-space: nowrap; vertical-align: middle;
+            font-variant-numeric: tabular-nums;
+            background: #fff;
+        }
+        table.krs-tree tbody td.n { text-align: right; font-weight: 600; color: #243049; }
+        table.krs-tree tbody td.wilayah {
+            text-align: left; font-weight: 600; color: #1a2744;
+            position: sticky; left: 0; z-index: 1;
+            min-width: 220px; max-width: 280px;
+            border-right: 2px solid #a8b6cc;
+            background: #fff;
+        }
+        table.krs-tree tbody tr:hover td { background: #f5f8fc; }
+        table.krs-tree tbody tr:hover td.wilayah { background: #f5f8fc; }
+        table.krs-tree tr.krs-kab td { background: #ffe8dc; font-weight: 700; }
+        table.krs-tree tr.krs-kab td.wilayah { background: #ffe8dc; color: var(--primary-d); border-right-color: #e0a88a; }
+        table.krs-tree tr.krs-kab:hover td,
+        table.krs-tree tr.krs-kab:hover td.wilayah { background: #ffdccb; }
+        table.krs-tree tr.krs-kec td { background: #f4f7fb; }
+        table.krs-tree tr.krs-kec td.wilayah { background: #f4f7fb; padding-left: 1.4rem; }
+        table.krs-tree tr.krs-kec:hover td,
+        table.krs-tree tr.krs-kec:hover td.wilayah { background: #eaf0f8; }
+        table.krs-tree tr.krs-desa td { background: #fff; }
+        table.krs-tree tr.krs-desa td.wilayah {
+            background: #fff; padding-left: 2.6rem; font-weight: 500; color: #3a4660;
+        }
+        table.krs-tree tr.krs-desa:hover td,
+        table.krs-tree tr.krs-desa:hover td.wilayah { background: #f8fafc; }
+        table.krs-tree tr.krs-loading td {
+            background: #fafbfd; color: var(--muted); font-style: italic; text-align: left;
+            padding-left: 2.6rem; border: 1px solid #cfd8e6;
+        }
+        table.krs-tree .pct { color: var(--primary); font-weight: 700; }
+        /* pemisah tebal antar grup metrik (body: col 1=wilayah, 2–24=metrik) */
+        table.krs-tree tbody td:nth-child(5),
+        table.krs-tree tbody td:nth-child(9),
+        table.krs-tree tbody td:nth-child(12),
+        table.krs-tree tbody td:nth-child(15),
+        table.krs-tree tbody td:nth-child(18),
+        table.krs-tree tbody td:nth-child(19),
+        table.krs-tree tbody td:nth-child(21) {
+            border-right: 2px solid #9aabc4;
+        }
+        table.krs-tree thead tr:nth-child(2) th:nth-child(4),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(8),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(11),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(14),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(17),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(18),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(20) {
+            border-right: 2px solid #9aabc4;
+        }
+        .krs-toggle {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 1.35rem; height: 1.35rem; margin-right: .4rem;
+            border: 1px solid #c5d0e0; border-radius: 4px;
+            background: #fff; color: #1a2744; cursor: pointer;
+            font-size: .7rem; line-height: 1; vertical-align: middle;
+            transition: all .15s ease;
+        }
+        .krs-toggle:hover { border-color: var(--primary); color: var(--primary); }
+        .krs-toggle.open { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .krs-toggle.leaf {
+            visibility: hidden; pointer-events: none;
+        }
+        .krs-hint {
+            padding: .65rem 1.1rem; font-size: .8rem; color: var(--muted);
+            border-top: 1px solid var(--border); background: var(--paper-2);
+        }
+
         @media (max-width: 768px) {
             .hero { padding: 3rem 0 2.5rem; }
             .hero-meta { gap: 1rem; }
@@ -639,7 +790,7 @@ $dokTotal   = array_sum($dokumen);
     <header class="hero">
         <div class="container position-relative">
             <span class="eyebrow">Portal Data Kependudukan</span>
-            <h1>Sikada Tala — <em>Agregat Data</em><br>tingkat RT di Kabupaten Tanah Laut</h1>
+            <h1>Sikada Tala — <em>Agregat Data</em><br>tingkat Desa di Kabupaten Tanah Laut</h1>
             <p class="lead">Pemantauan terpadu data jiwa, kartu keluarga, pendidikan, pekerjaan, piramida penduduk, serta cakupan JKN/BPJS dan KB-PUS dari hulu ke hilir, langsung dari lapangan.</p>
             <div class="hero-meta">
                 <div class="item">
@@ -647,7 +798,7 @@ $dokTotal   = array_sum($dokumen);
                     <span class="l">Kecamatan</span>
                 </div>
                 <div class="item">
-                    <span class="v">RT-RW</span>
+                    <span class="v">Desa</span>
                     <span class="l">Unit Terkecil</span>
                 </div>
                 <div class="item">
@@ -734,7 +885,7 @@ $dokTotal   = array_sum($dokumen);
                 <i class="bi bi-info-circle-fill info-icon"></i>
                 <div>
                     <h4>Skop data saat ini: <?= esc($pendudukKey) ?><?= !empty($filter_kec) ? ' — ' . esc($filter_desa ? 'Desa terpilih' : 'Kecamatan terpilih') : ' (seluruh Kabupaten)' ?></h4>
-                    <p>Data diturunkan dari laporan agregat RT yang telah diinput oleh admin desa. Filter menyesuaikan tampilan seluruh chart di bawah.</p>
+                    <p>Data diturunkan dari laporan agregat desa yang telah diinput oleh admin desa. Filter menyesuaikan tampilan seluruh chart di bawah.</p>
                 </div>
             </div>
         </section>
@@ -1046,6 +1197,127 @@ $dokTotal   = array_sum($dokumen);
 
         <?php endif; ?>
 
+        <!-- ===== MONITORING VERVAL KRS (tree, mirip SIGA) ===== -->
+        <section class="block" style="padding-top: 0;" id="monitoring-krs">
+            <div class="section-head">
+                <h2>Monitoring VERVAL KRS</h2>
+                <span class="crumb">
+                    SIGA BKKBN · Tahun 2026 · Tanah Laut
+                    <?php if (!empty($krsFilterKec)): ?> · <?= esc($krsFilterKec) ?><?php endif; ?>
+                    <?php if (!empty($krsUpdatedAt)): ?> · update <?= esc($krsUpdatedAt) ?><?php endif; ?>
+                </span>
+            </div>
+
+            <?php if (!empty($krsError)): ?>
+                <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
+                    <i class="bi bi-exclamation-triangle me-1"></i><?= esc($krsError) ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (empty($krsKecamatan)): ?>
+                <p class="text-muted">Data Monitoring KRS belum tersedia.</p>
+            <?php else:
+                $renderKrsCells = function (array $r) use ($krsFmt, $krsNum): string {
+                    $ph = $krsNum($r['pushamilVervalAda'] ?? 0) + $krsNum($r['pushamilVervalBaru'] ?? 0);
+                    $bd = $krsNum($r['badutaVervalAda'] ?? 0) + $krsNum($r['badutaVervalBaru'] ?? 0);
+                    $bl = $krsNum($r['balitaVervalAda'] ?? 0) + $krsNum($r['balitaVervalBaru'] ?? 0);
+                    return
+                        '<td class="n">' . $krsFmt($r['kelurahanAda'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['kelurahanTarget'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['kelurahanVerval'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['cakupanKelurahanVerval'] ?? 0) . '%</td>' .
+                        '<td class="n">' . $krsFmt($r['pusSasaran'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['pusVervalAda'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['pusVervalBaru'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['pusVervalAdaBaru'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['pusHamilSasaran'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['pushamilVervalAda'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['pushamilVervalBaru'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['badutaSasaran'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['badutaVervalAda'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['badutaVervalBaru'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['balitaSasaran'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['balitaVervalAda'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['balitaVervalBaru'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['keluargaSasaranCatin'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['sasaranPrioritas'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['prioritasTerverval'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['totalSasaran'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['totalVervalAdaBaru'] ?? 0) . '</td>' .
+                        '<td class="n pct">' . esc(($r['persenTarget'] ?? '0') . '%') . '</td>';
+                };
+                $colspan = 24; // wilayah + 23 metrik
+            ?>
+            <div class="krs-shell">
+                <div class="krs-toolbar">
+                    <div>
+                        <h3 style="color:#ffffff;">Monitoring VERVAL KRS — Kabupaten Tanah Laut</h3>
+                        <div class="meta">Provinsi Kalimantan Selatan · Tahun 2026 · klik ▶ untuk expand desa</div>
+                    </div>
+                    <span class="badge-live">LIVE MIRROR</span>
+                </div>
+                <div class="krs-scroll">
+                    <table class="krs-tree" id="krs-tree">
+                        <thead>
+                            <tr class="krs-grp">
+                                <th rowspan="2">Provinsi / Kab / Kec / Desa</th>
+                                <th colspan="4">Desa / Kelurahan</th>
+                                <th colspan="4">PUS</th>
+                                <th colspan="3">PUS Hamil</th>
+                                <th colspan="3">Baduta</th>
+                                <th colspan="3">Balita</th>
+                                <th colspan="1">Catin</th>
+                                <th colspan="2">Prioritas</th>
+                                <th colspan="3">Total</th>
+                            </tr>
+                            <tr>
+                                <th>Ada</th><th>Target</th><th>Verval</th><th>Cakupan</th>
+                                <th>Sasaran</th><th>Ada</th><th>Baru</th><th>Ada+Baru</th>
+                                <th>Sasaran</th><th>Ada</th><th>Baru</th>
+                                <th>Sasaran</th><th>Ada</th><th>Baru</th>
+                                <th>Sasaran</th><th>Ada</th><th>Baru</th>
+                                <th>Sasaran</th>
+                                <th>Sasaran</th><th>Terverval</th>
+                                <th>Sasaran</th><th>Verval</th><th>% Target</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if ($krsKab): ?>
+                            <tr class="krs-kab" data-level="kab">
+                                <td class="wilayah">
+                                    <button type="button" class="krs-toggle open" data-role="kab" aria-label="Toggle kabupaten">▼</button>
+                                    TANAH LAUT
+                                </td>
+                                <?= $renderKrsCells($krsKab) ?>
+                            </tr>
+                            <?php endif; ?>
+
+                            <?php foreach ($krsKecamatan as $i => $kec):
+                                $bkkbnId = (int) ($kec['bkkbn_id'] ?? 0);
+                                $rowId = 'kec-' . $bkkbnId . '-' . $i;
+                            ?>
+                            <tr class="krs-kec" data-level="kec" data-bkkbn="<?= $bkkbnId ?>" data-row="<?= $rowId ?>" id="<?= $rowId ?>">
+                                <td class="wilayah">
+                                    <?php if ($bkkbnId): ?>
+                                    <button type="button" class="krs-toggle" data-role="kec" data-bkkbn="<?= $bkkbnId ?>" data-parent="<?= $rowId ?>" aria-label="Expand desa">▶</button>
+                                    <?php else: ?>
+                                    <span class="krs-toggle leaf">·</span>
+                                    <?php endif; ?>
+                                    <?= esc($kec['namaDaerah'] ?? '-') ?>
+                                </td>
+                                <?= $renderKrsCells($kec) ?>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="krs-hint">
+                    Sumber data: SIGA BKKBN (live, cache 30 menit). Struktur mirip portal Monitoring VERVAL KRS.
+                </div>
+            </div>
+            <?php endif; ?>
+        </section>
+
         <!-- ===== JELAJAHI KECAMATAN ===== -->
         <section class="block" style="padding-top: 1.5rem;">
             <div class="section-head">
@@ -1074,7 +1346,7 @@ $dokTotal   = array_sum($dokumen);
                     <img src="<?= base_url('assets/dist/img/Sikadaputih.png') ?>" alt="Sikada Tala" class="brand-mark">
                     <h5>Sikada Tala</h5>
                     <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
-                        Sistem informasi kependudukan agregat berbasis RT-RW-Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
+                        Sistem informasi kependudukan agregat berbasis Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
                     </p>
                 </div>
                 <div class="col-lg-3 col-6">
@@ -1095,7 +1367,7 @@ $dokTotal   = array_sum($dokumen);
             </div>
             <div class="footer-bottom">
                 <span>&copy; <?= date('Y') ?> Pemerintah Kabupaten Tanah Laut.</span>
-                <span>RT-RW-Desa-Kecamatan-Laporan-Agregat</span>
+                <span>Desa-Kecamatan-Laporan-Agregat</span>
             </div>
         </div>
     </footer>
@@ -1474,7 +1746,137 @@ $dokTotal   = array_sum($dokumen);
                 }
             });
         }
+
+        // ===== KRS tree expand (lazy-load desa) =====
+        const krsDesaUrl = '<?= site_url('public/krs-desa') ?>';
+        const krsLoaded = new Set();
+
+        function krsNum(v) {
+            return parseInt(String(v ?? 0).replace(/[.,]/g, ''), 10) || 0;
+        }
+        function krsFmt(v) {
+            return krsNum(v).toLocaleString('id-ID');
+        }
+        function krsCells(r) {
+            return [
+                r.kelurahanAda, r.kelurahanTarget, r.kelurahanVerval,
+                (r.cakupanKelurahanVerval ?? 0) + '%',
+                r.pusSasaran, r.pusVervalAda, r.pusVervalBaru, r.pusVervalAdaBaru,
+                r.pusHamilSasaran, r.pushamilVervalAda, r.pushamilVervalBaru,
+                r.badutaSasaran, r.badutaVervalAda, r.badutaVervalBaru,
+                r.balitaSasaran, r.balitaVervalAda, r.balitaVervalBaru,
+                r.keluargaSasaranCatin, r.sasaranPrioritas, r.prioritasTerverval,
+                r.totalSasaran, r.totalVervalAdaBaru, (r.persenTarget ?? '0') + '%'
+            ].map((v, i) => {
+                const cls = (i === 22) ? 'n pct' : 'n';
+                const val = (typeof v === 'string' && v.includes('%')) ? v : krsFmt(v);
+                return `<td class="${cls}">${val}</td>`;
+            }).join('');
+        }
+
+        document.querySelectorAll('#krs-tree .krs-toggle[data-role="kec"]').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const bkkbn = this.dataset.bkkbn;
+                const parentId = this.dataset.parent;
+                const parentRow = document.getElementById(parentId);
+                if (!parentRow || !bkkbn) return;
+
+                const open = this.classList.contains('open');
+                if (open) {
+                    // collapse children
+                    document.querySelectorAll(`tr[data-parent="${parentId}"]`).forEach(tr => tr.remove());
+                    this.classList.remove('open');
+                    this.textContent = '▶';
+                    return;
+                }
+
+                this.classList.add('open');
+                this.textContent = '▼';
+
+                if (krsLoaded.has(parentId)) {
+                    // re-fetch still fine; mark as loading only first time
+                }
+
+                // loading row
+                const loadTr = document.createElement('tr');
+                loadTr.className = 'krs-loading';
+                loadTr.dataset.parent = parentId;
+                loadTr.innerHTML = `<td class="wilayah" colspan="24"><i class="bi bi-arrow-repeat"></i> Memuat desa…</td>`;
+                parentRow.after(loadTr);
+
+                try {
+                    const res = await fetch(krsDesaUrl + '/' + bkkbn, { headers: { 'Accept': 'application/json' } });
+                    const json = await res.json();
+                    loadTr.remove();
+                    const rows = json.rows || [];
+                    if (!rows.length) {
+                        const empty = document.createElement('tr');
+                        empty.className = 'krs-loading';
+                        empty.dataset.parent = parentId;
+                        empty.innerHTML = `<td class="wilayah" colspan="24">Tidak ada data desa.</td>`;
+                        parentRow.after(empty);
+                        return;
+                    }
+                    let anchor = parentRow;
+                    rows.forEach(r => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'krs-desa';
+                        tr.dataset.parent = parentId;
+                        tr.dataset.level = 'desa';
+                        tr.innerHTML = `<td class="wilayah"><span class="krs-toggle leaf">·</span>${(r.namaDaerah || '-').replace(/</g,'&lt;')}</td>${krsCells(r)}`;
+                        anchor.after(tr);
+                        anchor = tr;
+                    });
+                    krsLoaded.add(parentId);
+                } catch (e) {
+                    loadTr.innerHTML = `<td class="wilayah" colspan="24">Gagal memuat data desa.</td>`;
+                }
+            });
+        });
+
+        // toggle kab: hide/show kecamatan rows
+        const kabBtn = document.querySelector('#krs-tree .krs-toggle[data-role="kab"]');
+        if (kabBtn) {
+            kabBtn.addEventListener('click', function () {
+                const open = this.classList.contains('open');
+                const show = !open;
+                this.classList.toggle('open', show);
+                this.textContent = show ? '▼' : '▶';
+                document.querySelectorAll('#krs-tree tr.krs-kec, #krs-tree tr.krs-desa, #krs-tree tr.krs-loading').forEach(tr => {
+                    tr.style.display = show ? '' : 'none';
+                });
+            });
+        }
+
+        // auto-expand first kecamatan if filter aktif (1 row)
+        <?php if (!empty($krsFilterKec) && count($krsKecamatan) === 1): ?>
+        const autoBtn = document.querySelector('#krs-tree .krs-toggle[data-role="kec"]');
+        if (autoBtn) autoBtn.click();
+        <?php endif; ?>
     });
+    </script>
+    <div class="cursor-follower" id="cursorFollower"></div>
+    <script>
+        (function() {
+            var f = document.getElementById('cursorFollower');
+            var mx = 0, my = 0, fx = 0, fy = 0;
+            var speed = 0.08;
+            document.addEventListener('mousemove', function(e) {
+                mx = e.clientX;
+                my = e.clientY;
+                if (!f.classList.contains('active')) f.classList.add('active');
+            });
+            document.addEventListener('mouseleave', function() {
+                f.classList.remove('active');
+            });
+            (function loop() {
+                fx += (mx - fx) * speed;
+                fy += (my - fy) * speed;
+                f.style.left = (fx - 10) + 'px';
+                f.style.top = (fy - 10) + 'px';
+                requestAnimationFrame(loop);
+            })();
+        })();
     </script>
 </body>
 

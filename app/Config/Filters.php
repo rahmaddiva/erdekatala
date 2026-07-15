@@ -78,7 +78,7 @@ class Filters extends BaseFilters
             'honeypot',
             'csrf'      => ['except' => ['api/v1/*']],
             // Require login for most pages; exclude pages needed for authentication and public assets
-            'loggedin' => ['except' => ['/', 'login', 'proses_login', 'public/*', 'assets/*', 'favicon.ico', 'api/*', 'takisung*', 'jorong*', 'pelaihari*', 'kurau*', 'bati-bati*', 'panyipatan*', 'kintap*', 'tambang-ulang*', 'batu-ampar*', 'bajuin*', 'bumi-makmur*']],
+            'loggedin' => ['except' => ['/', 'login', 'proses_login', 'public/*', 'getDesaByKecamatan/*', 'assets/*', 'favicon.ico', 'api/*', 'takisung*', 'jorong*', 'pelaihari*', 'kurau*', 'bati-bati*', 'panyipatan*', 'kintap*', 'tambang-ulang*', 'batu-ampar*', 'bajuin*', 'bumi-makmur*']],
         ],
         'after' => [
             // 'honeypot',

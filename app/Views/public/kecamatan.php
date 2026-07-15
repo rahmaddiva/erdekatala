@@ -59,6 +59,21 @@ $slugify = function($name) {
     <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
 
     <style>
+        .cursor-follower {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(221, 72, 20, 0.6);
+            pointer-events: none;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            opacity: 0;
+        }
+        .cursor-follower.active { opacity: 1; }
+    </style>
+    <style>
         :root {
             --primary:   #dd4814;
             --primary-d: #b0380f;
@@ -469,7 +484,7 @@ $slugify = function($name) {
                 <?php endif; ?>
             </div>
             <h1><?= esc($kecTitle) ?></h1>
-            <p class="lead">Portal data agregat kependudukan tingkat RT di Kecamatan <?= esc($kecNama) ?>, Kabupaten Tanah Laut.</p>
+            <p class="lead">Portal data agregat kependudukan tingkat Desa di Kecamatan <?= esc($kecNama) ?>, Kabupaten Tanah Laut.</p>
             <?php if ($selected_desa): ?>
                 <div class="desa-badge">
                     <i class="bi bi-geo-alt-fill"></i>
@@ -575,7 +590,7 @@ $slugify = function($name) {
                                 <th>Nama Desa</th>
                                 <th class="num">Total Jiwa</th>
                                 <th class="num">Total KK</th>
-                                <th class="num">RT Terlapor</th>
+                                <th class="num">Laporan</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -589,7 +604,7 @@ $slugify = function($name) {
                                 </td>
                                 <td class="num"><?= number_format((int)$ds['total_jiwa_l'] + (int)$ds['total_jiwa_p'], 0, ',', '.') ?></td>
                                 <td class="num"><?= number_format((int)$ds['total_kk'], 0, ',', '.') ?></td>
-                                <td class="num"><span class="rt-pill"><?= (int)$ds['rt_count'] ?> RT</span></td>
+                                <td class="num"><span class="rt-pill"><?= (int)$ds['rt_count'] ?> laporan</span></td>
                                 <td class="num"><i class="bi bi-chevron-right text-muted"></i></td>
                             </tr>
                             <?php endforeach; ?>
@@ -635,7 +650,7 @@ $slugify = function($name) {
                 <i class="bi bi-info-circle-fill info-icon"></i>
                 <div>
                     <h4>Skop data: <strong><?= esc($pendudukKey) ?></strong></h4>
-                    <p>Data diturunkan dari laporan agregat RT yang diinput oleh admin desa. Klik desa pada tabel di atas untuk mempersempit lingk data.</p>
+                    <p>Data diturunkan dari laporan agregat desa yang diinput oleh admin desa. Klik desa pada tabel di atas untuk mempersempit lingkup data.</p>
                 </div>
             </div>
         </section>
@@ -955,7 +970,7 @@ $slugify = function($name) {
             <div class="empty-state">
                 <i class="bi bi-inbox"></i>
                 <h3>Belum ada data laporan</h3>
-                <p>Belum ada laporan agregat RT untuk <?= esc($pendudukKey) ?>.</p>
+                <p>Belum ada laporan agregat desa untuk <?= esc($pendudukKey) ?>.</p>
             </div>
         </section>
 
@@ -990,7 +1005,7 @@ $slugify = function($name) {
                     <span class="brand-mark">S</span>
                     <h5>Sikada Tala</h5>
                     <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
-                        Sistem informasi kependudukan agregat berbasis RT-RW-Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
+                        Sistem informasi kependudukan agregat berbasis Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
                     </p>
                 </div>
                 <div class="col-lg-3 col-6">
@@ -1011,7 +1026,7 @@ $slugify = function($name) {
             </div>
             <div class="footer-bottom">
                 <span>&copy; <?= date('Y') ?> Pemerintah Kabupaten Tanah Laut.</span>
-                <span>RT-RW-Desa-Kecamatan-Laporan-Agregat</span>
+                <span>Desa-Kecamatan-Laporan-Agregat</span>
             </div>
         </div>
     </footer>
@@ -1316,8 +1331,29 @@ $slugify = function($name) {
                 }
             });
         }
-    });
+        });
+    </script>
+    <div class="cursor-follower" id="cursorFollower"></div>
+    <script>
+        (function() {
+            var f = document.getElementById('cursorFollower');
+            var mx = 0, my = 0, fx = 0, fy = 0;
+            var speed = 0.08;
+            document.addEventListener('mousemove', function(e) {
+                mx = e.clientX;
+                my = e.clientY;
+                if (!f.classList.contains('active')) f.classList.add('active');
+            });
+            document.addEventListener('mouseleave', function() {
+                f.classList.remove('active');
+            });
+            (function loop() {
+                fx += (mx - fx) * speed;
+                fy += (my - fy) * speed;
+                f.style.left = (fx - 10) + 'px';
+                f.style.top = (fy - 10) + 'px';
+                requestAnimationFrame(loop);
+            })();
+        })();
     </script>
 </body>
-
-</html>

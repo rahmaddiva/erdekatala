@@ -156,7 +156,7 @@
                             <i class="fas fa-table mr-2"></i>
                             Ringkasan Data 
                             <?php if ($filter_desa): ?>
-                                    Per Dusun
+                                    Desa Terpilih
                             <?php elseif ($filter_kec): ?>
                                     Per Desa
                             <?php else: ?>
@@ -188,7 +188,7 @@
                                             <tr>
                                                 <td>
                                                     <strong>
-                                                        <?= $s['nama_kecamatan'] ?? $s['nama_desa'] ?? $s['nama_dusun'] ?>
+                                                        <?= $s['nama_kecamatan'] ?? $s['nama_desa'] ?? '-' ?>
                                                     </strong>
                                                 </td>
                                                 <td class="text-center">
@@ -548,14 +548,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Chained Dropdown Logic
+    // Chained dropdown: kecamatan → desa
     <?php if (session()->get('role') == 'admin_dinas'): ?>
         $('#filter_kecamatan').change(function() {
             const idKecamatan = $(this).val();
             $('#filter_desa').html('<option value="">-- Semua Desa --</option>');
-            $('#filter_dusun').html('<option value="">-- Semua Dusun --</option>');
-            $('#filter_rt').html('<option value="">-- Semua RT --</option>');
-        
             if (idKecamatan) {
                 $.get('/dashboard/getDesaByKecamatan/' + idKecamatan, function(data) {
                     data.forEach(function(desa) {
@@ -565,33 +562,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     <?php endif; ?>
-
-    $('#filter_desa').change(function() {
-        const idDesa = $(this).val();
-        $('#filter_dusun').html('<option value="">-- Semua Dusun --</option>');
-        $('#filter_rt').html('<option value="">-- Semua RT --</option>');
-        
-        if (idDesa) {
-            $.get('/dashboard/getDusunByDesa/' + idDesa, function(data) {
-                data.forEach(function(dusun) {
-                    $('#filter_dusun').append(`<option value="${dusun.id_dusun}">${dusun.nama_dusun}</option>`);
-                });
-            });
-        }
-    });
-
-    $('#filter_dusun').change(function() {
-        const idDusun = $(this).val();
-        $('#filter_rt').html('<option value="">-- Semua RT --</option>');
-        
-        if (idDusun) {
-            $.get('/dashboard/getRtByDusun/' + idDusun, function(data) {
-                data.forEach(function(rt) {
-                    $('#filter_rt').append(`<option value="${rt.id_rt}">RT ${rt.no_rt}</option>`);
-                });
-            });
-        }
-    });
 });
 </script>
 

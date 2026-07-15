@@ -9,6 +9,7 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'PublicController::landingpage');
 $routes->get('/public/landingpage', 'PublicController::landingpage');
 $routes->get('/getDesaByKecamatan/(:num)', 'PublicController::getDesaByKecamatan/$1');
+$routes->get('/public/krs-desa/(:num)', 'PublicController::getKrsDesa/$1');
 
 // Auth Routes
 $routes->get('/login', 'AuthController::index');

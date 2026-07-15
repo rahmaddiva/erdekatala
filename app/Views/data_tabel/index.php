@@ -63,8 +63,8 @@
 // ponytail: define groups inline, no config class
 $groups = [
     'identitas'  => ['label' => 'Identitas Wilayah & Periode',   'icon' => 'fa-map-marker-alt', 'cols' => [
-        'nama_kecamatan' => 'Kecamatan', 'nama_desa' => 'Desa', 'nama_dusun' => 'Dusun',
-        'no_rt' => 'RT', 'bulan' => 'Bulan', 'tahun' => 'Tahun',
+        'nama_kecamatan' => 'Kecamatan', 'nama_desa' => 'Desa',
+        'bulan' => 'Bulan', 'tahun' => 'Tahun',
     ]],
     'jiwa'       => ['label' => 'Jiwa & KK',                     'icon' => 'fa-users', 'cols' => [
         'jiwa_l' => 'Jiwa L', 'jiwa_p' => 'Jiwa P',
@@ -140,7 +140,7 @@ $groups = [
                                     <thead class="thead-dark">
                                         <tr>
                                             <?php if ($gid !== 'identitas'): ?>
-                                                <th>Kecamatan</th><th>Desa</th><th>Dusun</th><th>RT</th><th>Bulan</th><th>Tahun</th>
+                                                <th>Kecamatan</th><th>Desa</th><th>Bulan</th><th>Tahun</th>
                                             <?php endif; ?>
                                             <?php foreach ($g['cols'] as $lbl): ?>
                                                 <th><?= $lbl ?></th>
@@ -153,8 +153,6 @@ $groups = [
                                             <?php if ($gid !== 'identitas'): ?>
                                                 <td><?= esc($row['nama_kecamatan']) ?></td>
                                                 <td><?= esc($row['nama_desa']) ?></td>
-                                                <td><?= esc($row['nama_dusun']) ?></td>
-                                                <td><?= esc($row['no_rt']) ?></td>
                                                 <td><?= esc($namaBulan[$row['bulan']] ?? $row['bulan']) ?></td>
                                                 <td><?= esc($row['tahun']) ?></td>
                                             <?php endif; ?>
