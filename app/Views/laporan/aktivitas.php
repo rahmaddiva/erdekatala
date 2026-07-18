@@ -100,7 +100,7 @@
                                     ?>
                                         <tr>
                                             <td>
-                                                <small><?= esc($log['created_at'] ?? '-') ?></small>
+                                                <small><?= !empty($log['created_at']) ? date('d-m-Y H:i', strtotime($log['created_at'])) : '-' ?></small>
                                             </td>
                                             <td>
                                                 <span class="badge badge-secondary"><?= esc($log['nama_desa'] ?? '-') ?></span>

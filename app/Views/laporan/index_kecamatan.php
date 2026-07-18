@@ -286,6 +286,13 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </div>
 <script>
+function formatWaktu(dt) {
+    if (!dt) return '-';
+    var d = new Date(dt.replace(' ', 'T'));
+    if (isNaN(d)) return dt;
+    var pad = function (n) { return n < 10 ? '0' + n : n; };
+    return pad(d.getDate()) + '-' + pad(d.getMonth() + 1) + '-' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
 function renderRiwayat(res) {
     if (!res.data.length) return '<p class="text-muted text-center">Belum ada riwayat.</p>';
     const label = {create:'Dibuat', update:'Diperbarui', delete:'Dihapus'};
@@ -296,7 +303,7 @@ function renderRiwayat(res) {
         html += '<div class="mb-1"><span class="badge badge-' + color[r.aksi] + ' mr-1">' + label[r.aksi] + '</span>';
         html += '<strong>' + (r.nama_lengkap || 'Sistem') + '</strong> ';
         html += '<small class="text-muted">(' + (r.role || '-') + ')</small>';
-        html += ' &mdash; <small>' + r.created_at + '</small></div>';
+        html += ' &mdash; <small>' + formatWaktu(r.created_at) + '</small></div>';
         if (r.perubahan && r.perubahan.length) {
             html += '<table class="table table-sm table-bordered mb-0 mt-1"><thead class="bg-light"><tr>';
             html += '<th>Field</th><th class="text-right">Lama</th><th class="text-right">Baru</th></tr></thead><tbody>';
