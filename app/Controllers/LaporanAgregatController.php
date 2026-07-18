@@ -477,22 +477,41 @@ class LaporanAgregatController extends BaseController
     public function getPreviousData()
     {
         $id_desa = $this->request->getGet('id_desa');
+        $bulan   = (int) $this->request->getGet('bulan');
+        $tahun   = (int) $this->request->getGet('tahun');
 
-        $lastData = $this->laporanModel
-            ->where('id_desa', $id_desa)
-            ->orderBy('tahun', 'DESC')
-            ->orderBy('bulan', 'DESC')
-            ->first();
+        // Hitung periode tepat sebelumnya
+        $lastData = null;
+        if ($bulan && $tahun) {
+            $prevBulan = $bulan > 1 ? $bulan - 1 : 12;
+            $prevTahun = $bulan > 1 ? $tahun : $tahun - 1;
+
+            $lastData = $this->laporanModel
+                ->where('id_desa', $id_desa)
+                ->where('bulan', $prevBulan)
+                ->where('tahun', $prevTahun)
+                ->first();
+        }
+
+        // Fallback: ambil record terbaru (backward-compat tombol manual)
+        if (!$lastData) {
+            $lastData = $this->laporanModel
+                ->where('id_desa', $id_desa)
+                ->orderBy('tahun', 'DESC')
+                ->orderBy('bulan', 'DESC')
+                ->first();
+        }
 
         if ($lastData) {
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $lastData
-            ]);
+            // Jangan kirim field identitas/timestamp
+            foreach (['id_laporan', 'id_desa', 'bulan', 'tahun', 'id_user', 'created_at', 'updated_at'] as $key) {
+                unset($lastData[$key]);
+            }
+            return $this->response->setJSON(['status' => 'success', 'data' => $lastData]);
         }
 
         return $this->response->setJSON([
-            'status' => 'error',
+            'status'  => 'error',
             'message' => 'Tidak ditemukan data sebelumnya untuk desa ini.'
         ]);
     }
