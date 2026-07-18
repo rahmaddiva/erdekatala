@@ -240,28 +240,6 @@
                                 form.submit();
                             }
                         }
-
-                        $(document).on('click', '.btn-riwayat', function () {
-                            const id = $(this).data('id');
-                            $('#modalRiwayatContent').html('<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat...</p>');
-                            $('#modalRiwayat').modal('show');
-                            $.get('/laporan/riwayat/' + id, function (res) {
-                                if (!res.data.length) {
-                                    $('#modalRiwayatContent').html('<p class="text-muted text-center">Belum ada riwayat.</p>');
-                                    return;
-                                }
-                                const label = {create: 'Dibuat', update: 'Diperbarui', delete: 'Dihapus'};
-                                const color = {create: 'success', update: 'warning', delete: 'danger'};
-                                let html = '<ul class="list-unstyled">';
-                                res.data.forEach(r => {
-                                    html += `<li class="mb-2"><span class="badge badge-${color[r.aksi]} mr-1">${label[r.aksi]}</span>
-                                        <strong>${r.nama_lengkap ?? 'Sistem'}</strong> <small class="text-muted">(${r.role ?? '-'})</small>
-                                        &mdash; <small>${r.created_at}</small></li>`;
-                                });
-                                html += '</ul>';
-                                $('#modalRiwayatContent').html(html);
-                            });
-                        });
                     </script>
 
                 </div>
