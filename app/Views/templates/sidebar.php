@@ -71,6 +71,7 @@
                 <?php endif; ?>
 
                 <li class="nav-header">DATA AGREGAT</li>
+                <?php if (session()->get('role') != 'admin_kecamatan'): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('laporan/input') ?>"
                         class="nav-link <?= ($s1 == 'laporan' && $s2 == 'input') ? 'active' : '' ?>">
@@ -78,6 +79,7 @@
                         <p>Input Laporan Baru</p>
                     </a>
                 </li>
+                <?php endif; ?>
                 <li class="nav-item">
                     <a href="<?= base_url('laporan') ?>"
                         class="nav-link <?= ($s1 == 'laporan' && $s2 != 'input') ? 'active' : '' ?>">

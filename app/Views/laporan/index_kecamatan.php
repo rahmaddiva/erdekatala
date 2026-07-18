@@ -242,10 +242,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     const kk   = row.id_laporan ? (parseInt(row.kk_l)   + parseInt(row.kk_p)).toLocaleString('id-ID')   : '-';
 
                     const idLaporan = parseInt(row.id_laporan) || 0;
+                    // admin_kecamatan: read-only — hanya lihat riwayat
                     const aksi = idLaporan
-                        ? `<a href="/laporan/edit/${idLaporan}" class="btn btn-xs btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
-                           <button type="button" class="btn btn-xs btn-info btn-riwayat" data-id="${idLaporan}" title="Riwayat"><i class="fas fa-history"></i></button>`
-                        : `<a href="/laporan/input" class="btn btn-xs btn-primary" title="Input"><i class="fas fa-plus"></i></a>`;
+                        ? `<button type="button" class="btn btn-xs btn-info btn-riwayat" data-id="${idLaporan}" title="Riwayat"><i class="fas fa-history"></i></button>`
+                        : `<span class="text-muted">-</span>`;
 
                     html += `<tr class="${idLaporan ? '' : 'table-danger'}">`;
                     html += `<td class="text-center">${statusBadge}</td>`;

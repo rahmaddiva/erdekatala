@@ -522,6 +522,10 @@ class LaporanAgregatController extends BaseController
     {
         $user = session()->get();
 
+        if ($user['role'] == 'admin_kecamatan') {
+            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat menginput laporan.');
+        }
+
         // Ambil daftar desa berdasarkan Role
         if ($user['role'] == 'admin_desa') {
             $list_desa = $this->desaModel->where('id_desa', $user['id_desa'])->findAll();
@@ -542,6 +546,10 @@ class LaporanAgregatController extends BaseController
 
     public function store()
     {
+        if (session()->get('role') == 'admin_kecamatan') {
+            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat menginput laporan.');
+        }
+
         $data = $this->request->getPost();
         $userId = session()->get('id_user');
 
@@ -576,18 +584,15 @@ class LaporanAgregatController extends BaseController
     public function edit($id)
     {
         $user = session()->get();
+
+        if ($user['role'] == 'admin_kecamatan') {
+            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat mengubah laporan.');
+        }
+
         $laporan = $this->laporanModel->find($id);
 
         if (!$laporan)
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-
-        // SECURITY CHECK: Pastikan Admin Kecamatan hanya bisa edit data di wilayahnya
-        if ($user['role'] == 'admin_kecamatan') {
-            $desaRow = $this->desaModel->select('id_kecamatan')->where('id_desa', $laporan['id_desa'])->first();
-            if (!$desaRow || $desaRow['id_kecamatan'] != $user['id_kecamatan']) {
-                return redirect()->to('/laporan')->with('error', 'Anda tidak memiliki akses ke data di luar wilayah kecamatan Anda.');
-            }
-        }
 
         // Ambil list desa berdasarkan role
         if ($user['role'] == 'admin_desa') {
@@ -610,6 +615,10 @@ class LaporanAgregatController extends BaseController
     // Update Data
     public function update($id)
     {
+        if (session()->get('role') == 'admin_kecamatan') {
+            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat mengubah laporan.');
+        }
+
         $old  = $this->laporanModel->find($id);
         $post = $this->request->getPost();
 
@@ -629,6 +638,10 @@ class LaporanAgregatController extends BaseController
     // Hapus Data
     public function delete($id)
     {
+        if (session()->get('role') == 'admin_kecamatan') {
+            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat menghapus laporan.');
+        }
+
         $this->logModel->insert(['id_laporan' => $id, 'id_user' => session()->get('id_user'), 'aksi' => 'delete']);
         $this->laporanModel->delete($id);
         return redirect()->to('/laporan')->with('success', 'Laporan dihapus.');
