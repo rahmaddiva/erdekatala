@@ -48,7 +48,7 @@
                             <div class="row mb-3">
                                 <div class="col-md-12">
                                     <button type="button" id="btn-recycle" class="btn btn-outline-info btn-sm">
-                                        <i class="fas fa-sync-alt"></i> Salin Data dari Bulan Sebelumnya
+                                        <i class="fas fa-sync-alt"></i> Muat Ulang Data Bulan Lalu
                                     </button>
                                     <small class="text-muted d-block mt-1">*Pilih Desa terlebih dahulu sebelum
                                         menyalin data.</small>
@@ -288,71 +288,80 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function () {
-        $('#btn-recycle').on('click', function () {
-            const idDesa = $('select[name="id_desa"]').val();
+        const isCreateMode = $('form').attr('action').includes('/store');
+        const ignoreFields = ['id_laporan', 'id_desa', 'bulan', 'tahun', 'id_user', 'created_at', 'updated_at'];
 
-            if (!idDesa) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Pilih Desa',
-                    text: 'Silakan pilih Desa terlebih dahulu!'
+        function fillFormFromData(data) {
+            $('form input[type="number"]').each(function () {
+                var fieldName = $(this).attr('name');
+                if (data[fieldName] !== undefined && !ignoreFields.includes(fieldName)) {
+                    $(this).val(data[fieldName]);
+                }
+            });
+        }
+
+        function fetchAndFill(silent) {
+            var idDesa = $('select[name="id_desa"]').val();
+            var bulan  = $('select[name="bulan"]').val();
+            var tahun  = $('input[name="tahun"]').val();
+
+            if (!idDesa || !bulan || !tahun) return;
+
+            $.get('<?= base_url('laporan/getPreviousData') ?>', { id_desa: idDesa, bulan: bulan, tahun: tahun })
+                .done(function (response) {
+                    if (response.status === 'success') {
+                        fillFormFromData(response.data);
+                        if (!silent) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Sukses',
+                                text: 'Data berhasil dimuat! Silakan periksa kembali sebelum menyimpan.'
+                            });
+                        } else {
+                            // ponytail: toast ringan, tidak blokir user
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'info',
+                                title: 'Data bulan sebelumnya dimuat otomatis.',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        }
+                    } else if (!silent) {
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengambil data.' });
+                    }
+                })
+                .fail(function () {
+                    if (!silent) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengambil data. Pastikan koneksi server tersedia.' });
+                    }
                 });
+        }
+
+        // Auto-fill hanya di create mode saat 3 field terisi
+        if (isCreateMode) {
+            $('select[name="id_desa"], select[name="bulan"], input[name="tahun"]').on('change', function () {
+                fetchAndFill(true); // ponytail: silent = toast ringan saja
+            });
+        }
+
+        // Tombol manual tetap ada sebagai fallback
+        $('#btn-recycle').on('click', function () {
+            var idDesa = $('select[name="id_desa"]').val();
+            if (!idDesa) {
+                Swal.fire({ icon: 'warning', title: 'Pilih Desa', text: 'Silakan pilih Desa terlebih dahulu!' });
                 return;
             }
-
             Swal.fire({
-                title: 'Salin data ke periode ini?',
+                title: 'Muat ulang data bulan sebelumnya?',
                 text: 'Data yang sudah Anda ketik manual akan tertimpa.',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Salin',
+                confirmButtonText: 'Muat Ulang',
                 cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '<?= base_url('laporan/getPreviousData') ?>',
-                        type: 'GET',
-                        data: { id_desa: idDesa },
-                        dataType: 'json',
-                        success: function (response) {
-                            if (response.status === 'success') {
-                                const data = response.data;
-
-                                // List field yang TIDAK boleh ditimpa (Primary key, Desa, Bulan, Tahun)
-                                const ignoreFields = ['id_laporan', 'id_desa', 'bulan', 'tahun', 'id_user', 'created_at', 'updated_at'];
-
-                                // Loop semua input di form
-                                $('form input[type="number"]').each(function () {
-                                    const fieldName = $(this).attr('name');
-
-                                    // Jika field ada di data dan bukan field yang diabaikan
-                                    if (data[fieldName] !== undefined && !ignoreFields.includes(fieldName)) {
-                                        $(this).val(data[fieldName]);
-                                    }
-                                });
-
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Sukses',
-                                    text: 'Data berhasil disalin! Silakan periksa kembali sebelum menyimpan.'
-                                });
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Gagal',
-                                    text: response.message || 'Gagal mengambil data.'
-                                });
-                            }
-                        },
-                        error: function () {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'Gagal mengambil data. Pastikan koneksi server tersedia.'
-                            });
-                        }
-                    });
-                }
+            }).then(function(result) {
+                if (result.isConfirmed) fetchAndFill(false);
             });
         });
     });
