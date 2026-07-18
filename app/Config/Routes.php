@@ -60,6 +60,7 @@ $routes->get('laporan/export-options', 'LaporanAgregatController::exportOptions'
 $routes->post('laporan/export-options', 'LaporanAgregatController::exportOptions');
 $routes->get('laporan/export/(:any)', 'LaporanAgregatController::export/$1');
 $routes->get('laporan/getPreviousData', 'LaporanAgregatController::getPreviousData');
+$routes->get('/laporan/riwayat/(:num)', 'LaporanAgregatController::getRiwayat/$1');
 $routes->get('laporan/detailDesa/(:num)', 'LaporanAgregatController::detailDesa/$1');
 
 // AJAX Routes untuk Chained Dropdown

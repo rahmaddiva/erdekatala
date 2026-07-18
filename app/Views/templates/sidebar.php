@@ -43,8 +43,8 @@
                     </a>
                 </li>
 
-                <!-- MENU ADMIN DESA dan ADMIN DINAS-->
-                <?php if (in_array(session()->get('role'), ['admin_desa', 'admin_dinas'])): ?>
+                <!-- MENU ADMIN DINAS-->
+                <?php if (session()->get('role') === 'admin_dinas'): ?>
                     <li class="nav-header">MANAJEMEN WILAYAH</li>
                     <li class="nav-item <?= (in_array($s1, ['kecamatan', 'desa']) ? 'menu-open' : '') ?>">
                         <a href="#" class="nav-link <?= (in_array($s1, ['kecamatan', 'desa']) ? 'active' : '') ?>">

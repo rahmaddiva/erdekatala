@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\LaporanAgregatModel;
+use App\Models\LaporanLogModel;
 use App\Models\DesaModel;
 use App\Models\KecamatanModel;
 use Dompdf\Dompdf;
@@ -16,20 +17,19 @@ class LaporanAgregatController extends BaseController
     protected $laporanModel;
     protected $desaModel;
     protected $bulanList;
-
     protected $kecamatanModel;
-
-    // Tambahkan ini di dalam class LaporanAgregatController
+    protected $logModel;
 
     /**
-     * Helper untuk membuat header otomatis, menebalkan font, 
+     * Helper untuk membuat header otomatis, menebalkan font,
      * dan mengatur lebar kolom otomatis.
      */
 
     public function __construct()
     {
         $this->laporanModel = new LaporanAgregatModel();
-        $this->desaModel = new DesaModel();
+        $this->desaModel    = new DesaModel();
+        $this->logModel     = new LaporanLogModel();
         $this->kecamatanModel = new KecamatanModel();
         // Tambahkan helper daftar bulan agar konsisten
         $this->bulanList = [
@@ -346,8 +346,9 @@ class LaporanAgregatController extends BaseController
 
             foreach ($laporan as $row) {
                 // Button Aksi
-                $editBtn = '<a href="' . base_url('laporan/edit/' . $row['id_laporan']) . '" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
-                $deleteBtn = '<button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(' . $row['id_laporan'] . ')" title="Hapus"><i class="fas fa-trash"></i></button>';
+                $editBtn    = '<a href="' . base_url('laporan/edit/' . $row['id_laporan']) . '" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
+                $riwayatBtn = '<button type="button" class="btn btn-sm btn-info btn-riwayat" data-id="' . $row['id_laporan'] . '" title="Riwayat"><i class="fas fa-history"></i></button>';
+                $deleteBtn  = '<button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(' . $row['id_laporan'] . ')" title="Hapus"><i class="fas fa-trash"></i></button>';
 
                 $rowArray = [];
                 $rowArray[] = $no++;
@@ -360,7 +361,7 @@ class LaporanAgregatController extends BaseController
 
                 $rowArray[] = '<span class="badge badge-info">' . number_format($row['jiwa_l'] + $row['jiwa_p']) . ' Jiwa</span>';
                 $rowArray[] = '<span class="badge badge-success">' . number_format($row['kk_l'] + $row['kk_p']) . ' KK</span>';
-                $rowArray[] = $editBtn . ' ' . $deleteBtn;
+                $rowArray[] = $editBtn . ' ' . $riwayatBtn . ' ' . $deleteBtn;
 
                 $data[] = $rowArray;
             }
@@ -565,7 +566,8 @@ class LaporanAgregatController extends BaseController
 
         $data['id_user'] = $userId;
 
-        if ($this->laporanModel->insert($data)) {
+        if ($id = $this->laporanModel->insert($data)) {
+            $this->logModel->insert(['id_laporan' => $id, 'id_user' => $userId, 'aksi' => 'create']);
             return redirect()->to('/laporan')->with('success', 'Laporan berhasil disimpan.');
         }
         return redirect()->back()->withInput()->with('error', 'Gagal menyimpan data.');
@@ -609,6 +611,7 @@ class LaporanAgregatController extends BaseController
     public function update($id)
     {
         if ($this->laporanModel->update($id, $this->request->getPost())) {
+            $this->logModel->insert(['id_laporan' => $id, 'id_user' => session()->get('id_user'), 'aksi' => 'update']);
             return redirect()->to('/laporan')->with('success', 'Laporan diperbarui.');
         }
         return redirect()->back()->with('error', 'Gagal update.');
@@ -617,8 +620,22 @@ class LaporanAgregatController extends BaseController
     // Hapus Data
     public function delete($id)
     {
+        $this->logModel->insert(['id_laporan' => $id, 'id_user' => session()->get('id_user'), 'aksi' => 'delete']);
         $this->laporanModel->delete($id);
         return redirect()->to('/laporan')->with('success', 'Laporan dihapus.');
+    }
+
+    // Riwayat perubahan sebuah laporan (AJAX)
+    public function getRiwayat($id)
+    {
+        $logs = $this->logModel
+            ->select('laporan_log.aksi, laporan_log.created_at, users.nama_lengkap, users.role')
+            ->join('users', 'users.id_user = laporan_log.id_user', 'left')
+            ->where('id_laporan', $id)
+            ->orderBy('laporan_log.created_at', 'DESC')
+            ->findAll();
+
+        return $this->response->setJSON(['status' => 'success', 'data' => $logs]);
     }
 
     public function exportOptions()
