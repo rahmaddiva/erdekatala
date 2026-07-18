@@ -27,6 +27,7 @@
 
         <form action="<?= isset($laporan) ? '/laporan/update/' . $laporan['id_laporan'] : '/laporan/store' ?>"
             method="post">
+            <?= csrf_field() ?>
             <div class="card card-primary card-outline card-tabs">
                 <div class="card-header p-0 pt-1 border-bottom-0">
                     <ul class="nav nav-tabs" id="laporanTab" role="tablist">
