@@ -264,22 +264,48 @@
                         });
                     </script>
 
-                    <!-- Modal Riwayat -->
-                    <div class="modal fade" id="modalRiwayat" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title"><i class="fas fa-history mr-1"></i> Riwayat Perubahan</h5>
-                                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                </div>
-                                <div class="modal-body" id="modalRiwayatContent"></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </section>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<!-- Modal Riwayat -->
+<div class="modal fade" id="modalRiwayat" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-history mr-1"></i> Riwayat Perubahan</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body" id="modalRiwayatContent"></div>
+        </div>
+    </div>
+</div>
+<script>
+$(document).on('click', '.btn-riwayat', function () {
+    const id = $(this).data('id');
+    $('#modalRiwayatContent').html('<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat...</p>');
+    $('#modalRiwayat').modal('show');
+    $.get('/laporan/riwayat/' + id, function (res) {
+        if (!res.data.length) {
+            $('#modalRiwayatContent').html('<p class="text-muted text-center">Belum ada riwayat.</p>');
+            return;
+        }
+        const label = {create: 'Dibuat', update: 'Diperbarui', delete: 'Dihapus'};
+        const color = {create: 'success', update: 'warning', delete: 'danger'};
+        let html = '<ul class="list-unstyled">';
+        res.data.forEach(r => {
+            html += `<li class="mb-2"><span class="badge badge-${color[r.aksi]} mr-1">${label[r.aksi]}</span>
+                <strong>${r.nama_lengkap ?? 'Sistem'}</strong> <small class="text-muted">(${r.role ?? '-'})</small>
+                &mdash; <small>${r.created_at}</small></li>`;
+        });
+        html += '</ul>';
+        $('#modalRiwayatContent').html(html);
+    });
+});
+</script>
 <?= $this->endSection() ?>
