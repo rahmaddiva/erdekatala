@@ -82,11 +82,20 @@
                 <?php endif; ?>
                 <li class="nav-item">
                     <a href="<?= base_url('laporan') ?>"
-                        class="nav-link <?= ($s1 == 'laporan' && $s2 != 'input') ? 'active' : '' ?>">
+                        class="nav-link <?= ($s1 == 'laporan' && $s2 != 'input' && $s2 != 'aktivitas') ? 'active' : '' ?>">
                         <i class="nav-icon fas fa-file-invoice"></i>
                         <p>Riwayat Laporan</p>
                     </a>
                 </li>
+                <?php if (in_array(session()->get('role'), ['admin_kecamatan', 'admin_dinas'], true)): ?>
+                <li class="nav-item">
+                    <a href="<?= base_url('laporan/aktivitas') ?>"
+                        class="nav-link <?= ($s1 == 'laporan' && $s2 == 'aktivitas') ? 'active' : '' ?>">
+                        <i class="nav-icon fas fa-history"></i>
+                        <p>Aktivitas Perubahan</p>
+                    </a>
+                </li>
+                <?php endif; ?>
 
                 <li class="nav-header">DATA TABEL</li>
                 <li class="nav-item">

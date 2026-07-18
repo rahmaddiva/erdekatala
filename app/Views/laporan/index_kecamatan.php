@@ -43,6 +43,9 @@
                         </button>
                         <div class="ml-auto">
                             <div class="btn-group">
+                                <a href="/laporan/aktivitas" class="btn btn-outline-secondary btn-sm mr-1">
+                                    <i class="fas fa-history mr-1"></i> Aktivitas Perubahan
+                                </a>
                                 <a href="/laporan/export-options" class="btn btn-info btn-sm">
                                     <i class="fas fa-sliders-h mr-1"></i> Cetak Kustom
                                 </a>

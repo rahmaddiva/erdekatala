@@ -664,6 +664,77 @@ class LaporanAgregatController extends BaseController
         return $this->response->setJSON(['status' => 'success', 'data' => $logs]);
     }
 
+    /**
+     * Feed aktivitas perubahan laporan se-wilayah.
+     * admin_kecamatan → desa di kecamatannya; admin_dinas → semua.
+     */
+    public function aktivitas()
+    {
+        $user  = session()->get();
+        $role  = $user['role'] ?? '';
+
+        if (!in_array($role, ['admin_kecamatan', 'admin_dinas'], true)) {
+            return redirect()->to('/laporan')->with('error', 'Akses ditolak.');
+        }
+
+        $id_desa = $this->request->getGet('id_desa');
+        $aksi    = $this->request->getGet('aksi');
+        $bulan   = $this->request->getGet('bulan');
+        $tahun   = $this->request->getGet('tahun');
+
+        $builder = $this->logModel
+            ->select('laporan_log.*, users.nama_lengkap, users.role,
+                      laporan_agregat.bulan, laporan_agregat.tahun,
+                      m_desa.nama_desa, m_desa.id_desa, kecamatan.nama_kecamatan')
+            ->join('users', 'users.id_user = laporan_log.id_user', 'left')
+            ->join('laporan_agregat', 'laporan_agregat.id_laporan = laporan_log.id_laporan', 'left')
+            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa', 'left')
+            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan', 'left');
+
+        if ($role === 'admin_kecamatan') {
+            $builder->where('m_desa.id_kecamatan', $user['id_kecamatan']);
+        }
+
+        if ($id_desa) {
+            $builder->where('m_desa.id_desa', $id_desa);
+        }
+        if ($aksi && in_array($aksi, ['create', 'update', 'delete'], true)) {
+            $builder->where('laporan_log.aksi', $aksi);
+        }
+        if ($bulan) {
+            $builder->where('laporan_agregat.bulan', $bulan);
+        }
+        if ($tahun) {
+            $builder->where('laporan_agregat.tahun', $tahun);
+        }
+
+        $logs = $builder->orderBy('laporan_log.created_at', 'DESC')->findAll(100);
+
+        foreach ($logs as &$log) {
+            $log['perubahan'] = $log['perubahan'] ? json_decode($log['perubahan'], true) : null;
+        }
+
+        // daftar desa untuk filter
+        if ($role === 'admin_kecamatan') {
+            $list_desa = $this->desaModel->where('id_kecamatan', $user['id_kecamatan'])->orderBy('nama_desa', 'ASC')->findAll();
+        } else {
+            $list_desa = $this->desaModel->orderBy('nama_desa', 'ASC')->findAll();
+        }
+
+        return view('laporan/aktivitas', [
+            'title'      => 'Aktivitas Perubahan Laporan',
+            'logs'       => $logs,
+            'list_desa'  => $list_desa,
+            'bulanList'  => $this->bulanList,
+            'filter'     => [
+                'id_desa' => $id_desa,
+                'aksi'    => $aksi,
+                'bulan'   => $bulan,
+                'tahun'   => $tahun,
+            ],
+        ]);
+    }
+
     /** Bandingkan data lama vs baru, return array field yang berubah. */
     private function buildDiff(?array $old, array $new): array
     {
