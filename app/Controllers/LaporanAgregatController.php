@@ -610,8 +610,17 @@ class LaporanAgregatController extends BaseController
     // Update Data
     public function update($id)
     {
-        if ($this->laporanModel->update($id, $this->request->getPost())) {
-            $this->logModel->insert(['id_laporan' => $id, 'id_user' => session()->get('id_user'), 'aksi' => 'update']);
+        $old  = $this->laporanModel->find($id);
+        $post = $this->request->getPost();
+
+        if ($this->laporanModel->update($id, $post)) {
+            $diff = $this->buildDiff($old, $post);
+            $this->logModel->insert([
+                'id_laporan' => $id,
+                'id_user'    => session()->get('id_user'),
+                'aksi'       => 'update',
+                'perubahan'  => $diff ? json_encode($diff) : null,
+            ]);
             return redirect()->to('/laporan')->with('success', 'Laporan diperbarui.');
         }
         return redirect()->back()->with('error', 'Gagal update.');
@@ -629,13 +638,85 @@ class LaporanAgregatController extends BaseController
     public function getRiwayat($id)
     {
         $logs = $this->logModel
-            ->select('laporan_log.aksi, laporan_log.created_at, users.nama_lengkap, users.role')
+            ->select('laporan_log.aksi, laporan_log.perubahan, laporan_log.created_at, users.nama_lengkap, users.role')
             ->join('users', 'users.id_user = laporan_log.id_user', 'left')
             ->where('id_laporan', $id)
             ->orderBy('laporan_log.created_at', 'DESC')
             ->findAll();
 
+        foreach ($logs as &$log) {
+            $log['perubahan'] = $log['perubahan'] ? json_decode($log['perubahan'], true) : null;
+        }
+
         return $this->response->setJSON(['status' => 'success', 'data' => $logs]);
+    }
+
+    /** Bandingkan data lama vs baru, return array field yang berubah. */
+    private function buildDiff(?array $old, array $new): array
+    {
+        if (!$old) {
+            return [];
+        }
+
+        $skip = ['id_laporan', 'id_desa', 'id_user', 'bulan', 'tahun', 'created_at', 'updated_at', 'csrf_test_name'];
+        $diff = [];
+
+        foreach ($new as $field => $after) {
+            if (in_array($field, $skip, true) || !array_key_exists($field, $old)) {
+                continue;
+            }
+            $before = $old[$field];
+            // bandingkan sebagai string agar 0 == "0" tidak dianggap berubah
+            if ((string) $before !== (string) $after) {
+                $diff[] = [
+                    'field' => $field,
+                    'label' => $this->fieldLabel($field),
+                    'lama'  => $before,
+                    'baru'  => $after,
+                ];
+            }
+        }
+
+        return $diff;
+    }
+
+    private function fieldLabel(string $field): string
+    {
+        static $map = [
+            'jiwa_l' => 'Jiwa Laki-laki', 'jiwa_p' => 'Jiwa Perempuan',
+            'kk_l' => 'KK Laki-laki', 'kk_p' => 'KK Perempuan',
+            'kk_pend_tidak_sekolah' => 'Pendidikan: Tidak Sekolah', 'kk_pend_sd' => 'Pendidikan: SD',
+            'kk_pend_smp' => 'Pendidikan: SMP', 'kk_pend_sma' => 'Pendidikan: SMA',
+            'kk_pend_diploma' => 'Pendidikan: Diploma', 'kk_pend_s1' => 'Pendidikan: S1',
+            'kk_pend_s2_s3' => 'Pendidikan: S2/S3',
+            'kk_ker_tani' => 'Pekerjaan: Tani', 'kk_ker_nelayan' => 'Pekerjaan: Nelayan',
+            'kk_ker_pns' => 'Pekerjaan: PNS', 'kk_ker_swasta' => 'Pekerjaan: Swasta',
+            'kk_ker_pedagang' => 'Pekerjaan: Pedagang', 'kk_ker_wiraswasta' => 'Pekerjaan: Wiraswasta',
+            'kk_ker_buruh' => 'Pekerjaan: Buruh', 'kk_ker_tidak_kerja' => 'Pekerjaan: Tidak Kerja',
+            'jml_balita' => 'Jml Balita', 'jml_remaja' => 'Jml Remaja', 'jml_lansia' => 'Jml Lansia',
+            'kk_kawin' => 'Status Kawin', 'kk_belum_kawin' => 'Belum Kawin',
+            'kk_cerai_hidup' => 'Cerai Hidup', 'kk_cerai_mati' => 'Cerai Mati',
+            'pend_bpjs' => 'Punya BPJS', 'pend_non_bpjs' => 'Non BPJS',
+            'jkn' => 'JKN', 'non_jkn' => 'Non JKN',
+            'pend_wajib_ktp' => 'Wajib KTP', 'pend_punya_akta_lahir' => 'Punya Akta Lahir',
+            'kk_punya_akta_nikah' => 'Punya Akta Nikah',
+            'kk_punya_kartu_fisik' => 'KK Punya Kartu Fisik', 'kk_belum_punya_kartu_fisik' => 'KK Belum Kartu Fisik',
+            'kb_aktif' => 'KB Aktif', 'jml_pus' => 'Jml PUS',
+            'jml_penggunaan_alat_kontrasepsi' => 'Alat Kontrasepsi',
+            'pus_jkn' => 'PUS JKN', 'pus_pbi' => 'PUS PBI', 'pus_non_pbi' => 'PUS Non PBI',
+            'penduduk_hub_kepala' => 'Hub: Kepala', 'penduduk_hub_istri' => 'Hub: Istri',
+            'penduduk_hub_anak' => 'Hub: Anak', 'penduduk_hub_lainnya' => 'Hub: Lainnya',
+        ];
+
+        if (isset($map[$field])) {
+            return $map[$field];
+        }
+        // piramida umur: u0_4_l → Umur 0-4 L
+        if (preg_match('/^u(\d+)_(\d+|atas)_(l|p)$/', $field, $m)) {
+            $range = $m[2] === 'atas' ? $m[1] . '+' : $m[1] . '-' . $m[2];
+            return 'Umur ' . $range . ' ' . ($m[3] === 'l' ? 'L' : 'P');
+        }
+        return $field;
     }
 
     public function exportOptions()

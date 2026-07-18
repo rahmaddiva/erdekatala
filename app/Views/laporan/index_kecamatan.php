@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <?= $this->section('scripts') ?>
 <!-- Modal Riwayat -->
 <div class="modal fade" id="modalRiwayat" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fas fa-history mr-1"></i> Riwayat Perubahan</h5>
@@ -282,23 +282,40 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 </div>
-
 <script>
+function renderRiwayat(res) {
+    if (!res.data.length) return '<p class="text-muted text-center">Belum ada riwayat.</p>';
+    const label = {create:'Dibuat', update:'Diperbarui', delete:'Dihapus'};
+    const color = {create:'success', update:'warning', delete:'danger'};
+    let html = '';
+    res.data.forEach(function (r) {
+        html += '<div class="border-bottom pb-2 mb-2">';
+        html += '<div class="mb-1"><span class="badge badge-' + color[r.aksi] + ' mr-1">' + label[r.aksi] + '</span>';
+        html += '<strong>' + (r.nama_lengkap || 'Sistem') + '</strong> ';
+        html += '<small class="text-muted">(' + (r.role || '-') + ')</small>';
+        html += ' &mdash; <small>' + r.created_at + '</small></div>';
+        if (r.perubahan && r.perubahan.length) {
+            html += '<table class="table table-sm table-bordered mb-0 mt-1"><thead class="bg-light"><tr>';
+            html += '<th>Field</th><th class="text-right">Lama</th><th class="text-right">Baru</th></tr></thead><tbody>';
+            r.perubahan.forEach(function (p) {
+                html += '<tr><td>' + (p.label || p.field) + '</td>';
+                html += '<td class="text-right text-danger">' + p.lama + '</td>';
+                html += '<td class="text-right text-success"><strong>' + p.baru + '</strong></td></tr>';
+            });
+            html += '</tbody></table>';
+        } else if (r.aksi === 'update') {
+            html += '<small class="text-muted">Tidak ada field yang berubah.</small>';
+        }
+        html += '</div>';
+    });
+    return html;
+}
 $(document).on('click', '.btn-riwayat', function () {
     const id = $(this).data('id');
     $('#modalRiwayatContent').html('<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat...</p>');
     $('#modalRiwayat').modal('show');
     $.get('/laporan/riwayat/' + id, function (res) {
-        if (!res.data.length) { $('#modalRiwayatContent').html('<p class="text-muted text-center">Belum ada riwayat.</p>'); return; }
-        const label = {create:'Dibuat', update:'Diperbarui', delete:'Dihapus'};
-        const color  = {create:'success', update:'warning', delete:'danger'};
-        let html = '<ul class="list-unstyled">';
-        res.data.forEach(r => {
-            html += `<li class="mb-2"><span class="badge badge-${color[r.aksi]} mr-1">${label[r.aksi]}</span>
-                <strong>${r.nama_lengkap ?? 'Sistem'}</strong> <small class="text-muted">(${r.role ?? '-'})</small>
-                &mdash; <small>${r.created_at}</small></li>`;
-        });
-        $('#modalRiwayatContent').html(html + '</ul>');
+        $('#modalRiwayatContent').html(renderRiwayat(res));
     });
 });
 </script>
