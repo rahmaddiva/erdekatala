@@ -340,4 +340,82 @@ class LaporanAgregatModel extends Model
 
         return compact('totals', 'pendidikan', 'pekerjaan', 'status_kawin', 'dokumen', 'jkn_bpjs', 'grafik', 'ageLabels', 'piramidaL', 'piramidaP');
     }
+
+    /**
+     * Status kelengkapan lapor per desa untuk periode bulan/tahun.
+     * Return: list desa + flag sudah_lapor, id_laporan, jiwa, kk.
+     */
+    public function getStatusLaporDesa(int $bulan, int $tahun, ?int $id_kecamatan = null): array
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('m_desa d')
+            ->select('d.id_desa, d.nama_desa, d.id_kecamatan, k.nama_kecamatan,
+                      la.id_laporan, la.jiwa_l, la.jiwa_p, la.kk_l, la.kk_p')
+            ->join('kecamatan k', 'k.id_kecamatan = d.id_kecamatan')
+            ->join(
+                'laporan_agregat la',
+                "la.id_desa = d.id_desa AND la.bulan = {$bulan} AND la.tahun = {$tahun}",
+                'left'
+            )
+            ->orderBy('k.nama_kecamatan', 'ASC')
+            ->orderBy('d.nama_desa', 'ASC');
+
+        if ($id_kecamatan) {
+            $builder->where('d.id_kecamatan', $id_kecamatan);
+        }
+
+        $rows = $builder->get()->getResultArray();
+        foreach ($rows as &$r) {
+            $r['sudah_lapor'] = !empty($r['id_laporan']);
+        }
+        return $rows;
+    }
+
+    /**
+     * Deteksi anomali: lonjakan jiwa total > threshold% dibanding periode sebelumnya.
+     * Hanya bandingkan desa yang punya data di kedua periode.
+     */
+    public function getAnomaliJiwa(int $bulan, int $tahun, float $thresholdPct = 20.0, ?int $id_kecamatan = null): array
+    {
+        $prevBulan = $bulan > 1 ? $bulan - 1 : 12;
+        $prevTahun = $bulan > 1 ? $tahun : $tahun - 1;
+
+        $db = \Config\Database::connect();
+        $sql = "
+            SELECT d.id_desa, d.nama_desa, k.nama_kecamatan,
+                   (curr.jiwa_l + curr.jiwa_p) AS jiwa_sekarang,
+                   (prev.jiwa_l + prev.jiwa_p) AS jiwa_sebelum,
+                   curr.id_laporan
+            FROM laporan_agregat curr
+            JOIN laporan_agregat prev
+              ON prev.id_desa = curr.id_desa
+             AND prev.bulan = ? AND prev.tahun = ?
+            JOIN m_desa d ON d.id_desa = curr.id_desa
+            JOIN kecamatan k ON k.id_kecamatan = d.id_kecamatan
+            WHERE curr.bulan = ? AND curr.tahun = ?
+              AND (prev.jiwa_l + prev.jiwa_p) > 0
+        ";
+        $params = [$prevBulan, $prevTahun, $bulan, $tahun];
+
+        if ($id_kecamatan) {
+            $sql .= " AND d.id_kecamatan = ?";
+            $params[] = $id_kecamatan;
+        }
+
+        $rows = $db->query($sql, $params)->getResultArray();
+        $anomali = [];
+        foreach ($rows as $r) {
+            $sebelum = (int) $r['jiwa_sebelum'];
+            $sekarang = (int) $r['jiwa_sekarang'];
+            $pct = (($sekarang - $sebelum) / $sebelum) * 100;
+            if (abs($pct) >= $thresholdPct) {
+                $r['persen_perubahan'] = round($pct, 1);
+                $r['selisih'] = $sekarang - $sebelum;
+                $anomali[] = $r;
+            }
+        }
+
+        usort($anomali, fn($a, $b) => abs($b['persen_perubahan']) <=> abs($a['persen_perubahan']));
+        return $anomali;
+    }
 }

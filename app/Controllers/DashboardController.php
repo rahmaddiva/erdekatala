@@ -66,25 +66,77 @@ class DashboardController extends BaseController
         $stats = $this->laporanModel->getAggregatedStats($scope_kec, $scope_desa);
         $chart = LaporanAgregatModel::statsToChartData($stats);
 
+        // Status belom lapor + anomali untuk periode berjalan
+        $bulanNow = (int) date('n');
+        $tahunNow = (int) date('Y');
+        $scopeKecForStatus = null;
+        if ($user['role'] == 'admin_kecamatan') {
+            $scopeKecForStatus = (int) $user['id_kecamatan'];
+        } elseif ($user['role'] == 'admin_dinas' && $id_kecamatan_filter) {
+            $scopeKecForStatus = (int) $id_kecamatan_filter;
+        }
+
+        $statusLapor = [];
+        $desaBelumLapor = [];
+        $desaSudahLapor = 0;
+        $desaTotal = 0;
+        $statusDesaSendiri = null;
+        $anomali = [];
+
+        if ($user['role'] == 'admin_desa') {
+            $row = $this->laporanModel
+                ->where('id_desa', $user['id_desa'])
+                ->where('bulan', $bulanNow)
+                ->where('tahun', $tahunNow)
+                ->first();
+            $statusDesaSendiri = [
+                'sudah_lapor' => !empty($row),
+                'id_laporan'  => $row['id_laporan'] ?? null,
+                'bulan'       => $bulanNow,
+                'tahun'       => $tahunNow,
+            ];
+        } else {
+            $statusLapor = $this->laporanModel->getStatusLaporDesa($bulanNow, $tahunNow, $scopeKecForStatus);
+            $desaTotal = count($statusLapor);
+            $desaSudahLapor = count(array_filter($statusLapor, fn($r) => $r['sudah_lapor']));
+            $desaBelumLapor = array_values(array_filter($statusLapor, fn($r) => !$r['sudah_lapor']));
+            $anomali = $this->laporanModel->getAnomaliJiwa($bulanNow, $tahunNow, 20.0, $scopeKecForStatus);
+        }
+
+        $bulanList = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
         $data = [
-            'title'          => 'Statistik Agregat Kependudukan',
-            'grafik'         => $chart['grafik'],
-            'list_kecamatan' => $list_kecamatan,
-            'list_desa'      => $list_desa,
-            'list_dusun'     => [], // ponytail: removed dusun/rt layers
-            'list_rt'        => [],
-            'filter_kec'     => $id_kecamatan_filter,
-            'filter_desa'    => $id_desa_filter,
-            'filter_dusun'   => null,
-            'filter_rt'      => null,
-            'data_summary'   => $data_summary,
-            'pendidikan'     => $chart['pendidikan'],
-            'pekerjaan'      => $chart['pekerjaan'],
-            'status_kawin'   => $chart['status_kawin'],
-            'ageLabels'      => $chart['ageLabels'],
-            'piramidaL'      => $chart['piramidaL'],
-            'piramidaP'      => $chart['piramidaP'],
-            'totals'         => $chart['totals'],
+            'title'              => 'Statistik Agregat Kependudukan',
+            'grafik'             => $chart['grafik'],
+            'list_kecamatan'     => $list_kecamatan,
+            'list_desa'          => $list_desa,
+            'list_dusun'         => [],
+            'list_rt'            => [],
+            'filter_kec'         => $id_kecamatan_filter,
+            'filter_desa'        => $id_desa_filter,
+            'filter_dusun'       => null,
+            'filter_rt'          => null,
+            'data_summary'       => $data_summary,
+            'pendidikan'         => $chart['pendidikan'],
+            'pekerjaan'          => $chart['pekerjaan'],
+            'status_kawin'       => $chart['status_kawin'],
+            'ageLabels'          => $chart['ageLabels'],
+            'piramidaL'          => $chart['piramidaL'],
+            'piramidaP'          => $chart['piramidaP'],
+            'totals'             => $chart['totals'],
+            'bulanNow'           => $bulanNow,
+            'tahunNow'           => $tahunNow,
+            'bulanList'          => $bulanList,
+            'desaBelumLapor'     => $desaBelumLapor,
+            'desaSudahLapor'     => $desaSudahLapor,
+            'desaTotal'          => $desaTotal,
+            'statusDesaSendiri'  => $statusDesaSendiri,
+            'anomali'            => $anomali,
+            'role'               => $user['role'],
         ];
 
         return view('dashboard/index', $data);

@@ -271,6 +271,7 @@
                 </div>
 
                 <div class="card-footer">
+                    <div id="validasiBox" class="alert alert-warning d-none mb-2 py-2"></div>
                     <div class="float-right">
                         <a href="/laporan" class="btn btn-secondary">Batal</a>
                         <button type="submit" class="btn btn-success btn-submit">
@@ -283,14 +284,87 @@
         </form>
     </section>
 </div>
-<!-- jquery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
 <script>
     $(document).ready(function () {
         const isCreateMode = $('form').attr('action').includes('/store');
         const ignoreFields = ['id_laporan', 'id_desa', 'bulan', 'tahun', 'id_user', 'created_at', 'updated_at'];
+
+        function n(name) { return parseInt($('[name="' + name + '"]').val(), 10) || 0; }
+        function sum(names) { return names.reduce(function (a, f) { return a + n(f); }, 0); }
+
+        // form pakai u85_plus_* (bukan u85_atas_*)
+        var piramidaL = ['u0_4_l','u5_9_l','u10_14_l','u15_19_l','u20_24_l','u25_29_l','u30_34_l','u35_39_l','u40_44_l','u45_49_l','u50_54_l','u55_59_l','u60_64_l','u65_69_l','u70_74_l','u75_79_l','u80_84_l','u85_plus_l'];
+        var piramidaP = ['u0_4_p','u5_9_p','u10_14_p','u15_19_p','u20_24_p','u25_29_p','u30_34_p','u35_39_p','u40_44_p','u45_49_p','u50_54_p','u55_59_p','u60_64_p','u65_69_p','u70_74_p','u75_79_p','u80_84_p','u85_plus_p'];
+        var pendFields = ['kk_pend_tidak_sekolah','kk_pend_sd','kk_pend_smp','kk_pend_sma','kk_pend_diploma','kk_pend_s1','kk_pend_s2_s3'];
+        var kerFields  = ['kk_ker_tani','kk_ker_nelayan','kk_ker_pns','kk_ker_swasta','kk_ker_pedagang','kk_ker_wiraswasta','kk_ker_buruh','kk_ker_tidak_kerja'];
+        var kawinFields = ['kk_kawin','kk_belum_kawin','kk_cerai_hidup','kk_cerai_mati'];
+
+        function runValidasi() {
+            var errors = [];
+            var jiwaL = n('jiwa_l'), jiwaP = n('jiwa_p');
+            var kkL = n('kk_l'), kkP = n('kk_p');
+            var totalJiwa = jiwaL + jiwaP;
+            var totalKK = kkL + kkP;
+            var sumPiramidaL = sum(piramidaL);
+            var sumPiramidaP = sum(piramidaP);
+            var sumPend = sum(pendFields);
+            var sumKer = sum(kerFields);
+            var sumKawin = sum(kawinFields);
+
+            if (sumPiramidaL > 0 && sumPiramidaL !== jiwaL) {
+                errors.push('Piramida umur Laki-laki (' + sumPiramidaL + ') ≠ Jiwa L (' + jiwaL + ')');
+            }
+            if (sumPiramidaP > 0 && sumPiramidaP !== jiwaP) {
+                errors.push('Piramida umur Perempuan (' + sumPiramidaP + ') ≠ Jiwa P (' + jiwaP + ')');
+            }
+            if (sumPend > 0 && sumPend !== totalKK) {
+                errors.push('Total Pendidikan KK (' + sumPend + ') ≠ Total KK (' + totalKK + ')');
+            }
+            if (sumKer > 0 && sumKer !== totalKK) {
+                errors.push('Total Pekerjaan KK (' + sumKer + ') ≠ Total KK (' + totalKK + ')');
+            }
+            if (sumKawin > 0 && sumKawin !== totalKK) {
+                errors.push('Total Status Kawin (' + sumKawin + ') ≠ Total KK (' + totalKK + ')');
+            }
+            if (n('kk_punya_kartu_fisik') + n('kk_belum_punya_kartu_fisik') > 0
+                && n('kk_punya_kartu_fisik') + n('kk_belum_punya_kartu_fisik') !== totalKK) {
+                errors.push('KK punya + belum kartu fisik ≠ Total KK');
+            }
+
+            var $box = $('#validasiBox');
+            if (errors.length) {
+                $box.removeClass('d-none').html('<strong><i class="fas fa-exclamation-triangle"></i> Validasi silang:</strong><ul class="mb-0 pl-3">' +
+                    errors.map(function (e) { return '<li>' + e + '</li>'; }).join('') + '</ul>');
+            } else {
+                $box.addClass('d-none').empty();
+            }
+            return errors;
+        }
+
+        $('form input[type="number"]').on('change keyup', runValidasi);
+
+        $('form').on('submit', function (e) {
+            var errors = runValidasi();
+            if (errors.length) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Data tidak konsisten',
+                    html: '<ul class="text-left">' + errors.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' +
+                        '<p class="mb-0 mt-2">Perbaiki data, atau klik <b>Simpan tetap</b> jika memang sengaja.</p>',
+                    showCancelButton: true,
+                    confirmButtonText: 'Simpan tetap',
+                    cancelButtonText: 'Perbaiki dulu'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        $('form').off('submit').submit();
+                    }
+                });
+            }
+        });
 
         function fillFormFromData(data) {
             $('form input[type="number"]').each(function () {
@@ -299,6 +373,7 @@
                     $(this).val(data[fieldName]);
                 }
             });
+            runValidasi();
         }
 
         function fetchAndFill(silent) {
@@ -319,7 +394,6 @@
                                 text: 'Data berhasil dimuat! Silakan periksa kembali sebelum menyimpan.'
                             });
                         } else {
-                            // ponytail: toast ringan, tidak blokir user
                             Swal.fire({
                                 toast: true,
                                 position: 'top-end',
@@ -340,14 +414,12 @@
                 });
         }
 
-        // Auto-fill hanya di create mode saat 3 field terisi
         if (isCreateMode) {
             $('select[name="id_desa"], select[name="bulan"], input[name="tahun"]').on('change', function () {
-                fetchAndFill(true); // ponytail: silent = toast ringan saja
+                fetchAndFill(true);
             });
         }
 
-        // Tombol manual tetap ada sebagai fallback
         $('#btn-recycle').on('click', function () {
             var idDesa = $('select[name="id_desa"]').val();
             if (!idDesa) {
@@ -365,6 +437,8 @@
                 if (result.isConfirmed) fetchAndFill(false);
             });
         });
+
+        runValidasi();
     });
 </script>
 

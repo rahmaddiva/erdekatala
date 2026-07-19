@@ -79,6 +79,118 @@
                 </div>
             </div>
 
+            <?php
+            $namaPeriode = ($bulanList[$bulanNow] ?? $bulanNow) . ' ' . $tahunNow;
+            $persenLapor = $desaTotal > 0 ? round($desaSudahLapor / $desaTotal * 100) : 0;
+            ?>
+
+            <!-- Panel: Status Belum Lapor -->
+            <?php if ($role === 'admin_desa' && $statusDesaSendiri): ?>
+                <?php if (!$statusDesaSendiri['sudah_lapor']): ?>
+                <div class="alert alert-warning alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h5><i class="icon fas fa-exclamation-triangle"></i> Belum Lapor</h5>
+                    Desa Anda belum menginput laporan untuk periode <strong><?= esc($namaPeriode) ?></strong>.
+                    <a href="/laporan/input" class="btn btn-sm btn-warning ml-2"><i class="fas fa-plus"></i> Input Sekarang</a>
+                </div>
+                <?php else: ?>
+                <div class="alert alert-success alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h5><i class="icon fas fa-check"></i> Sudah Lapor</h5>
+                    Laporan periode <strong><?= esc($namaPeriode) ?></strong> sudah diinput.
+                    <a href="/laporan/edit/<?= $statusDesaSendiri['id_laporan'] ?>" class="btn btn-sm btn-outline-success ml-2"><i class="fas fa-edit"></i> Edit</a>
+                </div>
+                <?php endif; ?>
+            <?php elseif (in_array($role, ['admin_kecamatan', 'admin_dinas'], true)): ?>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="info-box shadow-sm">
+                            <span class="info-box-icon <?= $persenLapor == 100 ? 'bg-success' : ($persenLapor >= 50 ? 'bg-warning' : 'bg-danger') ?>">
+                                <i class="fas fa-clipboard-check"></i>
+                            </span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Capaian Lapor (<?= esc($namaPeriode) ?>)</span>
+                                <span class="info-box-number"><?= $desaSudahLapor ?> / <?= $desaTotal ?> desa</span>
+                                <div class="progress mt-1" style="height:6px">
+                                    <div class="progress-bar bg-<?= $persenLapor == 100 ? 'success' : 'warning' ?>" style="width:<?= $persenLapor ?>%"></div>
+                                </div>
+                                <small class="text-muted"><?= $persenLapor ?>% desa sudah lapor</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card card-outline card-danger shadow-sm mb-0">
+                            <div class="card-header py-2">
+                                <h3 class="card-title text-sm">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                    Desa Belum Lapor (<?= count($desaBelumLapor) ?>)
+                                </h3>
+                            </div>
+                            <div class="card-body py-2" style="max-height:120px;overflow-y:auto">
+                                <?php if (empty($desaBelumLapor)): ?>
+                                    <span class="text-success"><i class="fas fa-check"></i> Semua desa sudah lapor.</span>
+                                <?php else: ?>
+                                    <?php foreach ($desaBelumLapor as $d): ?>
+                                        <span class="badge badge-danger mr-1 mb-1"><?= esc($d['nama_desa']) ?><?= $role === 'admin_dinas' ? ' (' . esc($d['nama_kecamatan']) . ')' : '' ?></span>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if (!empty($anomali)): ?>
+                <div class="card card-outline card-warning shadow-sm mb-3">
+                    <div class="card-header py-2">
+                        <h3 class="card-title text-sm">
+                            <i class="fas fa-chart-line mr-1"></i>
+                            Alert Anomali Jiwa (±20% vs bulan lalu) — <?= count($anomali) ?> desa
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Desa</th>
+                                        <?php if ($role === 'admin_dinas'): ?><th>Kecamatan</th><?php endif; ?>
+                                        <th class="text-right">Jiwa Lalu</th>
+                                        <th class="text-right">Jiwa Sekarang</th>
+                                        <th class="text-right">Selisih</th>
+                                        <th class="text-right">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach (array_slice($anomali, 0, 15) as $a): ?>
+                                    <tr>
+                                        <td><?= esc($a['nama_desa']) ?></td>
+                                        <?php if ($role === 'admin_dinas'): ?><td><?= esc($a['nama_kecamatan']) ?></td><?php endif; ?>
+                                        <td class="text-right"><?= number_format($a['jiwa_sebelum']) ?></td>
+                                        <td class="text-right"><?= number_format($a['jiwa_sekarang']) ?></td>
+                                        <td class="text-right <?= $a['selisih'] > 0 ? 'text-success' : 'text-danger' ?>">
+                                            <?= $a['selisih'] > 0 ? '+' : '' ?><?= number_format($a['selisih']) ?>
+                                        </td>
+                                        <td class="text-right">
+                                            <span class="badge badge-<?= abs($a['persen_perubahan']) >= 50 ? 'danger' : 'warning' ?>">
+                                                <?= $a['persen_perubahan'] > 0 ? '+' : '' ?><?= $a['persen_perubahan'] ?>%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <?php if (count($anomali) > 15): ?>
+                        <div class="card-footer py-1"><small class="text-muted">Menampilkan 15 dari <?= count($anomali) ?> anomali.</small></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+            <?php endif; ?>
+
             <!-- Info Boxes - Statistik Utama -->
             <div class="row">
                 <div class="col-12 col-sm-6 col-md-3">
