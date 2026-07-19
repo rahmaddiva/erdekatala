@@ -174,6 +174,9 @@ $groups = [
     </section>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
 <script>
 $(document).ready(function () {
     const cfg = {
@@ -185,16 +188,17 @@ $(document).ready(function () {
             zeroRecords: "Tidak ada data"
         }
     };
-    // ponytail: init DataTable on accordion open, not on load — avoids rendering hidden tables
+    // init DataTable saat accordion dibuka
     $('[data-toggle="collapse"]').on('click', function () {
         const tid = '#dt-' + $(this).data('target').replace('#grp-', '');
-        if (!$.fn.DataTable.isDataTable(tid)) {
-            $(tid).DataTable(tid.includes('piramida') ? Object.assign({}, cfg, { scrollX: true }) : cfg);
-        } else {
-            $(tid).DataTable().columns.adjust();
-        }
+        setTimeout(function () {
+            if (!$.fn.DataTable.isDataTable(tid)) {
+                $(tid).DataTable(tid.includes('piramida') ? Object.assign({}, cfg, { scrollX: true }) : cfg);
+            } else {
+                $(tid).DataTable().columns.adjust();
+            }
+        }, 50);
     });
 });
 </script>
-
 <?= $this->endSection() ?>

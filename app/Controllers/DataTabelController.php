@@ -20,7 +20,8 @@ class DataTabelController extends BaseController
             10 => 'Oktober', 11 => 'November', 12 => 'Desember',
         ];
 
-        $base = $m->select('laporan_agregat.id_laporan, laporan_agregat.id_desa, laporan_agregat.bulan, laporan_agregat.tahun, laporan_agregat.jiwa_l, laporan_agregat.jiwa_p, laporan_agregat.kk_l, laporan_agregat.kk_p, laporan_agregat.jml_balita, laporan_agregat.jml_pus, m_desa.nama_desa, kecamatan.nama_kecamatan')
+        // select semua kolom statistik + nama wilayah
+        $base = $m->select('laporan_agregat.*, m_desa.nama_desa, kecamatan.nama_kecamatan')
                    ->join('m_desa',    'm_desa.id_desa = laporan_agregat.id_desa')
                    ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
