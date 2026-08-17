@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panduan Integrasi API - Sikada Tala</title>
+<title>Panduan Integrasi API - Erdekatala</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
@@ -93,9 +93,9 @@ pre code{font-size:.82rem;border-radius:6px;}
 <div class="row align-items-center">
 <div class="col-md-8">
 <div class="brand">
-<img src="/assets/dist/img/Sikadaputih.png" alt="Sikada Tala" class="brand-logo">
+<img src="/assets/dist/img/erdekatala.png" alt="Erdekatala" class="brand-logo">
 <div>
-<h1>Panduan Integrasi API Sikada Tala</h1>
+<h1>Panduan Integrasi API Erdekatala</h1>
 <p class="mb-0">Panduan lengkap mengambil dan menampilkan data kependudukan Tanah Laut ke website Anda</p>
 </div>
 </div>
@@ -151,7 +151,7 @@ pre code{font-size:.82rem;border-radius:6px;}
 <div class="step-card card" id="step2">
 <div class="card-header"><span class="step-badge">2</span><h5>Base URL dan Endpoint</h5></div>
 <div class="card-body">
-<div class="base-url-box mb-3"><strong>Base URL:</strong> https://sikadatala.test/api/v1</div>
+<div class="base-url-box mb-3"><strong>Base URL:</strong> https://erdekatala.test/api/v1</div>
 <table class="table table-bordered table-sm">
 <thead class="thead-light"><tr><th>Method</th><th>Endpoint</th><th>Keterangan</th></tr></thead>
 <tbody>
@@ -186,7 +186,7 @@ pre code{font-size:.82rem;border-radius:6px;}
 <div class="tab-pane active" id="php-curl">
 <pre><code class="language-php">&lt;?php
 define('API_KEY', 'YOUR_API_KEY');
-define('API_BASE', 'https://sikadatala.test/api/v1');
+define('API_BASE', 'https://erdekatala.test/api/v1');
 
 function apiGet(string $endpoint, array $params = []): array {
     $url = API_BASE . $endpoint;
@@ -223,7 +223,7 @@ require 'vendor/autoload.php';
 use GuzzleHttp\Client;
 
 $client = new Client([
-    'base_uri' =&gt; 'https://sikadatala.test/api/v1/',
+    'base_uri' =&gt; 'https://erdekatala.test/api/v1/',
     'headers'  =&gt; ['Authorization' =&gt; 'Bearer YOUR_API_KEY'],
     'timeout'  =&gt; 10,
 ]);
@@ -246,7 +246,7 @@ echo "Total data: " . $data['total'];
 <pre><code class="language-php">&lt;?php
 // Ambil dan tampilkan rekap kecamatan dalam tabel HTML
 define('API_KEY', 'YOUR_API_KEY');
-define('API_BASE', 'https://sikadatala.test/api/v1');
+define('API_BASE', 'https://erdekatala.test/api/v1');
 
 $ch = curl_init(API_BASE . '/laporan/rekap/kecamatan');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -283,7 +283,7 @@ curl_close($ch);
 <div class="tab-content">
 <div class="tab-pane active" id="js-fetch">
 <pre><code class="language-javascript">const API_KEY  = 'YOUR_API_KEY';
-const API_BASE = 'https://sikadatala.test/api/v1';
+const API_BASE = 'https://erdekatala.test/api/v1';
 
 async function apiGet(endpoint, params = {}) {
     const url = new URL(API_BASE + endpoint);
@@ -331,7 +331,7 @@ loadRekap();</code></pre>
 </div>
 <div class="tab-pane" id="js-jquery">
 <pre><code class="language-javascript">const API_KEY  = 'YOUR_API_KEY';
-const API_BASE = 'https://sikadatala.test/api/v1';
+const API_BASE = 'https://erdekatala.test/api/v1';
 
 // Ambil rekap kecamatan
 $.ajax({
@@ -374,7 +374,7 @@ function loadDesa(idKecamatan) {
 <pre><code class="language-python">import requests
 
 API_KEY  = "YOUR_API_KEY"
-API_BASE = "https://sikadatala.test/api/v1"
+API_BASE = "https://erdekatala.test/api/v1"
 HEADERS  = {"Authorization": f"Bearer {API_KEY}"}
 
 def api_get(endpoint, params=None):
@@ -410,8 +410,8 @@ print("Data disimpan ke rekap_kependudukan.csv")</code></pre>
 <div class="card-body">
 <pre><code class="language-jsx">import { useState, useEffect } from "react";
 
-const API_KEY  = process.env.REACT_APP_SIKADA_KEY;
-const API_BASE = "https://sikadatala.test/api/v1";
+const API_KEY  = process.env.REACT_APP_ERDEKATALA_KEY;
+const API_BASE = "https://erdekatala.test/api/v1";
 
 async function apiGet(endpoint, params = {}) {
     const url = new URL(API_BASE + endpoint);
@@ -454,7 +454,7 @@ export function TabelKecamatan() {
     );
 }</code></pre>
 <div class="alert alert-info mb-0 mt-3">
-<i class="fas fa-info-circle mr-2"></i>Simpan API key di file <code>.env</code>: <code>REACT_APP_SIKADA_KEY=your_key_here</code>
+<i class="fas fa-info-circle mr-2"></i>Simpan API key di file <code>.env</code>: <code>REACT_APP_ERDEKATALA_KEY=your_key_here</code>
 </div>
 </div>
 </div>
@@ -486,7 +486,7 @@ export default {
   },
   async created() {
     try {
-      const res = await fetch("https://sikadatala.test/api/v1/laporan/rekap/kecamatan", {
+      const res = await fetch("https://erdekatala.test/api/v1/laporan/rekap/kecamatan", {
         headers: { Authorization: "Bearer " + import.meta.env.VITE_API_KEY }
       });
       const json = await res.json();
@@ -521,7 +521,7 @@ export default {
 <pre><code class="language-javascript">// Contoh error handling lengkap
 async function safeApiGet(endpoint, params = {}) {
     try {
-        const url = new URL("https://sikadatala.test/api/v1" + endpoint);
+        const url = new URL("https://erdekatala.test/api/v1" + endpoint);
         Object.entries(params).forEach(([k, v]) =&gt; url.searchParams.set(k, v));
 
         const res = await fetch(url, {
@@ -556,7 +556,7 @@ async function safeApiGet(endpoint, params = {}) {
 </div>
 
 <div class="guide-footer">
-    Sikada Tala &middot; Sistem Informasi Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan<br>
+    Erdekatala &middot; Sistem Informasi Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan<br>
     <a href="/api/docs">Dokumentasi</a> &middot; <a href="/api/guide">Panduan</a> &middot; <a href="/api/register">Daftar API Key</a> &middot; <a href="/">Beranda</a>
 </div>
 

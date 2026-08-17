@@ -12,7 +12,7 @@ $lansia      = (int)($totals['lansia'] ?? 0);
 $pus         = (int)($totals['pus'] ?? 0);
 $kbAktif     = (int)($totals['kb_aktif'] ?? 0);
 $alatKontra  = (int)($totals['alat_kontrasepsi'] ?? 0);
-$pendudukKey = !empty($filter_kec) ? (esc($filter_desa ? 'Desa' : 'Kecamatan')) : 'Kabupaten';
+$pendudukKey = !empty($filter_kec_slug) ? (esc($filter_desa_slug ? 'Desa' : 'Kecamatan')) : 'Kabupaten';
 
 // Helper untuk format angka
 $fmt = function($n) { return number_format((int)$n, 0, ',', '.'); };
@@ -40,9 +40,9 @@ $krsFmt = static function ($v) use ($krsNum): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sikada Tala — Sistem Informasi Kependudukan Kabupaten Tanah Laut</title>
+    <title>Erdekatala - Sistem Informasi Kependudukan Kabupaten Tanah Laut</title>
     <meta name="description" content="Portal data agregat kependudukan tingkat Desa-Kecamatan di Kabupaten Tanah Laut, Kalimantan Selatan.">
-    <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/SikadaIreng.png') ?>">
+    <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/erdekatala.png') ?>">
 
     <!-- Font: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -59,6 +59,9 @@ $krsFmt = static function ($v) use ($krsNum): string {
 
     <!-- ZingChart (CDN resmi, sama dengan dashboard) -->
     <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
+
+    <!-- MapLibre GL (peta sebaran) -->
+    <link rel="stylesheet" href="<?= base_url('assets/plugins/maplibre/css/maplibre-gl.css') ?>">
 
     <style>
         .cursor-follower {
@@ -763,6 +766,64 @@ $krsFmt = static function ($v) use ($krsNum): string {
             .section-head { flex-direction: column; align-items: flex-start; }
             .stat-grid { gap: 0.75rem; }
         }
+
+        /* ===== PETA SEBARAN (MapLibre GL) ===== */
+        .map-shell {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+        #map-kecamatan {
+            height: 500px;
+            width: 100%;
+            z-index: 0;
+            background: var(--paper-2);
+        }
+        .map-shell .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            align-items: center;
+            padding: .8rem 1.1rem;
+            background: var(--paper);
+            border-top: 1px solid var(--border);
+            font-size: .8rem;
+            color: var(--ink-soft);
+        }
+        .map-shell .map-legend .dot {
+            display: inline-block;
+            width: 11px; height: 11px;
+            border-radius: 50%;
+            margin-right: .4rem;
+            vertical-align: middle;
+        }
+        .map-popup-kec { font-family: 'Poppins', sans-serif; }
+        .map-popup-kec .pk-name {
+            font-weight: 700; color: var(--ink); font-size: .95rem;
+            margin-bottom: .35rem;
+        }
+        .map-popup-kec .pk-row {
+            display: flex; justify-content: space-between; gap: 1rem;
+            font-size: .82rem; color: var(--ink-soft);
+            padding: .12rem 0;
+        }
+        .map-popup-kec .pk-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+        .map-popup-kec .pk-link {
+            display: block; margin-top: .45rem;
+            font-size: .8rem; font-weight: 600; color: var(--primary);
+        }
+        .map-popup-kec .pk-link:hover { color: var(--primary-d); }
+        .maplibregl-popup a { color: var(--primary); }
+        .map-placeholder {
+            height: 500px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--paper-2);
+            color: var(--muted);
+            font-size: .95rem;
+            border-radius: 12px;
+        }
     </style>
 </head>
 
@@ -772,9 +833,9 @@ $krsFmt = static function ($v) use ($krsNum): string {
     <nav class="navbar-sikada">
         <div class="container d-flex align-items-center justify-content-between">
             <a href="<?= site_url('/') ?>" class="brand">
-                <img src="<?= base_url('assets/dist/img/SikadaIreng.png') ?>" alt="Sikada Tala" class="brand-mark">
+                <img src="<?= base_url('assets/dist/img/erdekatala.png') ?>" alt="Erdekatala" class="brand-mark">
                 <span>
-                    Sikada Tala
+                    Erdekatala
                     <small>Kabupaten Tanah Laut</small>
                 </span>
             </a>
@@ -790,7 +851,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
     <header class="hero">
         <div class="container position-relative">
             <span class="eyebrow">Portal Data Kependudukan</span>
-            <h1>Sikada Tala — <em>Agregat Data</em><br>tingkat Desa di Kabupaten Tanah Laut</h1>
+            <h1>Erdekatala - <em>Agregat Data</em><br>tingkat Desa di Kabupaten Tanah Laut</h1>
             <p class="lead">Pemantauan terpadu data jiwa, kartu keluarga, pendidikan, pekerjaan, piramida penduduk, serta cakupan JKN/BPJS dan KB-PUS dari hulu ke hilir, langsung dari lapangan.</p>
             <div class="hero-meta">
                 <div class="item">
@@ -818,22 +879,26 @@ $krsFmt = static function ($v) use ($krsNum): string {
         <!-- ===== FILTER BAR ===== -->
         <form method="GET" action="<?= site_url('/') ?>" class="filter-bar">
             <div class="field">
-                <label for="id_kecamatan">Kecamatan</label>
-                <select name="id_kecamatan" id="id_kecamatan" onchange="document.getElementById('form-desa').value=''; this.form.submit()">
+                <label for="sel-kecamatan">Kecamatan</label>
+                <select name="kecamatan" id="sel-kecamatan" onchange="loadDesaBySlug(this.value); document.getElementById('sel-desa').value=''; this.form.submit()">
                     <option value="">— Semua Kecamatan —</option>
-                    <?php foreach ($list_kecamatan as $k): ?>
-                        <option value="<?= esc($k['id_kecamatan']) ?>" <?= (string)$filter_kec === (string)$k['id_kecamatan'] ? 'selected' : '' ?>>
+                    <?php foreach ($list_kecamatan as $k):
+                        $slug_k = strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
+                    ?>
+                        <option value="<?= esc($slug_k) ?>" <?= $filter_kec_slug === $slug_k ? 'selected' : '' ?>>
                             <?= esc($k['nama_kecamatan']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="field">
-                <label for="id_desa">Desa</label>
-                <select name="id_desa" id="form-desa" onchange="this.form.submit()" <?= empty($filter_kec) ? 'disabled' : '' ?>>
+                <label for="sel-desa">Desa</label>
+                <select name="desa" id="sel-desa" onchange="this.form.submit()" <?= empty($filter_kec_slug) ? 'disabled' : '' ?>>
                     <option value="">— Semua Desa —</option>
-                    <?php foreach ($list_desa as $d): ?>
-                        <option value="<?= esc($d['id_desa']) ?>" <?= (string)$filter_desa === (string)$d['id_desa'] ? 'selected' : '' ?>>
+                    <?php foreach ($list_desa as $d):
+                        $slug_d = strtolower(str_replace(' ', '-', $d['nama_desa']));
+                    ?>
+                        <option value="<?= esc($slug_d) ?>" <?= $filter_desa_slug === $slug_d ? 'selected' : '' ?>>
                             <?= esc($d['nama_desa']) ?>
                         </option>
                     <?php endforeach; ?>
@@ -884,7 +949,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
             <div class="info-strip">
                 <i class="bi bi-info-circle-fill info-icon"></i>
                 <div>
-                    <h4>Skop data saat ini: <?= esc($pendudukKey) ?><?= !empty($filter_kec) ? ' — ' . esc($filter_desa ? 'Desa terpilih' : 'Kecamatan terpilih') : ' (seluruh Kabupaten)' ?></h4>
+                    <h4>Skop data saat ini: <?= esc($pendudukKey) ?><?= !empty($filter_kec_slug) ? ' - ' . esc($filter_desa_slug ? 'Desa terpilih' : 'Kecamatan terpilih') : ' (seluruh Kabupaten)' ?></h4>
                     <p>Data diturunkan dari laporan agregat desa yang telah diinput oleh admin desa. Filter menyesuaikan tampilan seluruh chart di bawah.</p>
                 </div>
             </div>
@@ -1197,6 +1262,22 @@ $krsFmt = static function ($v) use ($krsNum): string {
 
         <?php endif; ?>
 
+        <!-- ===== PETA SEBARAN KEPENDUDUKAN (MapLibre GL) ===== -->
+        <section class="block" style="padding-top: 0;" id="peta-sebaran">
+            <div class="section-head">
+                <h2>Peta Sebaran Kependudukan</h2>
+                <span class="crumb">11 kecamatan · Total Jiwa &amp; KK per kecamatan</span>
+            </div>
+            <div class="map-shell">
+                <div id="map-kecamatan"></div>
+                <div class="map-legend">
+                    <span><span class="dot" style="background:#dd4814;"></span>Total Jiwa (besar lingkaran = lebih banyak)</span>
+                    <span><span class="dot" style="background:#2d6cdf;"></span>Kecamatan terpilih</span>
+                    <span class="ms-auto text-muted">Klik marker untuk detail</span>
+                </div>
+            </div>
+        </section>
+
         <!-- ===== MONITORING VERVAL KRS (tree, mirip SIGA) ===== -->
         <section class="block" style="padding-top: 0;" id="monitoring-krs">
             <div class="section-head">
@@ -1343,8 +1424,8 @@ $krsFmt = static function ($v) use ($krsNum): string {
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-5">
-                    <img src="<?= base_url('assets/dist/img/Sikadaputih.png') ?>" alt="Sikada Tala" class="brand-mark">
-                    <h5>Sikada Tala</h5>
+                    <img src="<?= base_url('assets/dist/img/erdekatala.png') ?>" alt="Erdekatala" class="brand-mark">
+                    <h5>Erdekatala</h5>
                     <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
                         Sistem informasi kependudukan agregat berbasis Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
                     </p>
@@ -1676,6 +1757,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="<?= base_url('assets/plugins/maplibre/js/maplibre-gl.js') ?>"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         const DT_LANG = {
@@ -1854,6 +1936,175 @@ $krsFmt = static function ($v) use ($krsNum): string {
         if (autoBtn) autoBtn.click();
         <?php endif; ?>
     });
+    </script>
+    <script>
+        // ===== PETA SEBARAN KEPENDUDUKAN (MapLibre GL) =====
+        (function () {
+            const mapEl = document.getElementById('map-kecamatan');
+            if (!mapEl) return;
+
+            const data = <?= json_encode($map_kecamatan) ?>;
+            const filterKec = <?= json_encode($filter_kec_slug) ?>;
+
+            if (typeof maplibregl === 'undefined' || !data.length) {
+                if (typeof maplibregl === 'undefined') {
+                    mapEl.className = 'map-placeholder';
+                    mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Peta tidak dapat dimuat (MapLibre CDN tidak terjangkau).</div>';
+                    return;
+                }
+                mapEl.className = 'map-placeholder';
+                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Belum ada data koordinat wilayah.</div>';
+                return;
+            }
+
+            if (!window.WebGLRenderingContext) {
+                mapEl.className = 'map-placeholder';
+                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Browser tidak mendukung WebGL yang dibutuhkan peta.</div>';
+                return;
+            }
+
+            const fmt = n => Number(n || 0).toLocaleString('id-ID');
+
+            // Cari index kecamatan yang difilter
+            const activeIdx = filterKec
+                ? data.findIndex(k => k.slug === filterKec)
+                : -1;
+
+            const maxJiwa = Math.max(...data.map(k => k.total_jiwa || 0), 1);
+
+            const features = data.map((k, i) => {
+                const isActive = (i === activeIdx);
+                const radius = isActive
+                    ? 22
+                    : 10 + 18 * Math.sqrt((k.total_jiwa || 0) / maxJiwa);
+                return {
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [k.lng, k.lat] },
+                    properties: {
+                        nama: k.nama,
+                        slug: k.slug,
+                        total_jiwa: k.total_jiwa || 0,
+                        total_jiwa_l: k.total_jiwa_l || 0,
+                        total_jiwa_p: k.total_jiwa_p || 0,
+                        total_kk: k.total_kk || 0,
+                        total_pus: k.total_pus || 0,
+                        radius: radius,
+                        isActive: isActive
+                    }
+                };
+            });
+
+            const map = new maplibregl.Map({
+                container: 'map-kecamatan',
+                style: {
+                    version: 8,
+                    sources: {
+                        osm: {
+                            type: 'raster',
+                            tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
+                            tileSize: 256,
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                        },
+                        kecamatan: {
+                            type: 'geojson',
+                            data: { type: 'FeatureCollection', features: features }
+                        }
+                    },
+                    layers: [
+                        { id: 'osm', type: 'raster', source: 'osm' },
+                        {
+                            id: 'kec-circles',
+                            type: 'circle',
+                            source: 'kecamatan',
+                            paint: {
+                                'circle-radius': ['get', 'radius'],
+                                'circle-color': ['case', ['get', 'isActive'], '#2d6cdf', '#dd4814'],
+                                'circle-opacity': ['case', ['get', 'isActive'], 0.85, 0.55],
+                                'circle-stroke-color': ['case', ['get', 'isActive'], '#0f1923', '#ffffff'],
+                                'circle-stroke-width': ['case', ['get', 'isActive'], 3, 2]
+                            }
+                        }
+                    ]
+                },
+                attributionControl: { compact: true },
+                scrollZoom: false
+            });
+
+            map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+            const popup = new maplibregl.Popup({
+                offset: 20,
+                closeButton: false,
+                className: 'map-popup-kec'
+            });
+
+            function popupHtml(k) {
+                return '<div class="pk-name">' + k.nama + '</div>' +
+                    '<div class="pk-row"><span>Total Jiwa</span><b>' + fmt(k.total_jiwa) + '</b></div>' +
+                    '<div class="pk-row"><span>Laki-laki</span><b>' + fmt(k.total_jiwa_l) + '</b></div>' +
+                    '<div class="pk-row"><span>Perempuan</span><b>' + fmt(k.total_jiwa_p) + '</b></div>' +
+                    '<div class="pk-row"><span>Kartu Keluarga</span><b>' + fmt(k.total_kk) + '</b></div>' +
+                    '<div class="pk-row"><span>PUS</span><b>' + fmt(k.total_pus) + '</b></div>' +
+                    '<a class="pk-link" href="' + '<?= site_url('/') ?>' + k.slug + '">Lihat detail kecamatan →</a>';
+            }
+
+            map.on('click', 'kec-circles', function (e) {
+                const k = e.features[0].properties;
+                popup.setLngLat(e.features[0].geometry.coordinates)
+                    .setHTML(popupHtml(k))
+                    .addTo(map);
+            });
+
+            map.on('mouseenter', 'kec-circles', function () {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+            map.on('mouseleave', 'kec-circles', function () {
+                map.getCanvas().style.cursor = '';
+            });
+
+            map.on('load', function () {
+                if (activeIdx >= 0) {
+                    const k = data[activeIdx];
+                    map.flyTo({ center: [k.lng, k.lat], zoom: 10, essential: true });
+                    popup.setLngLat([k.lng, k.lat])
+                        .setHTML(popupHtml(k))
+                        .addTo(map);
+                } else {
+                    // Center seluruh Tanah Laut
+                    const lngs = features.map(f => f.geometry.coordinates[0]);
+                    const lats = features.map(f => f.geometry.coordinates[1]);
+                    map.fitBounds([
+                        [Math.min(...lngs), Math.min(...lats)],
+                        [Math.max(...lngs), Math.max(...lats)]
+                    ], { padding: 40 });
+                }
+            });
+        })();
+    </script>
+    <script>
+        // Load desa berdasarkan slug kecamatan (untuk chained select)
+        function loadDesaBySlug(slugKecamatan) {
+            var selectDesa = document.getElementById('sel-desa');
+            selectDesa.innerHTML = '<option value="">— Semua Desa —</option>';
+            
+            if (!slugKecamatan) {
+                selectDesa.disabled = true;
+                return;
+            }
+            
+            selectDesa.disabled = false;
+            fetch('<?= site_url('/getDesaByKecamatanSlug/') ?>' + slugKecamatan)
+                .then(res => res.json())
+                .then(data => {
+                    data.forEach(function(desa) {
+                        var opt = document.createElement('option');
+                        opt.value = desa.slug;
+                        opt.textContent = desa.nama_desa;
+                        selectDesa.appendChild(opt);
+                    });
+                })
+                .catch(err => console.error('Error loading desa:', err));
+        }
     </script>
     <div class="cursor-follower" id="cursorFollower"></div>
     <script>

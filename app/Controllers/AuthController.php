@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\UserModel;
+use App\Models\NotifikasiModel;
 class AuthController extends BaseController
 {
 
@@ -130,6 +131,9 @@ class AuthController extends BaseController
                 $response = service('response');
                 $response->setCookie('remember_token', $token, 30 * 24 * 3600, '', '/', '', true, true);
             }
+
+            // Generate notifikasi pengingat laporan bulan ini
+            (new NotifikasiModel())->generateReminder($user['id_user'], $user['role'], $user['id_kecamatan'], $user['id_desa']);
 
             return redirect()->to('/dashboard');
         } else {

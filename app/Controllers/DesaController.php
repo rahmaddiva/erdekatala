@@ -37,6 +37,8 @@ class DesaController extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules([
             'nama_desa' => 'required|min_length[3]|max_length[100]',
+            'latitude'  => 'permit_empty|decimal|greater_than_equal_to[-90]|less_than_equal_to[90]',
+            'longitude' => 'permit_empty|decimal|greater_than_equal_to[-180]|less_than_equal_to[180]',
         ]);
         if (!$validation->withRequest($this->request)->run()) {
             return redirect()->back()->withInput()->with('errors', $validation->getErrors());
@@ -45,6 +47,8 @@ class DesaController extends BaseController
         $this->desaModel->insert([
             'nama_desa' => $this->request->getPost('nama_desa'),
             'kode_desa' => $this->request->getPost('kode_desa'),
+            'latitude'  => $this->request->getPost('latitude') !== '' ? $this->request->getPost('latitude') : null,
+            'longitude' => $this->request->getPost('longitude') !== '' ? $this->request->getPost('longitude') : null,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
@@ -57,6 +61,8 @@ class DesaController extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules([
             'nama_desa' => 'required|min_length[3]|max_length[100]',
+            'latitude'  => 'permit_empty|decimal|greater_than_equal_to[-90]|less_than_equal_to[90]',
+            'longitude' => 'permit_empty|decimal|greater_than_equal_to[-180]|less_than_equal_to[180]',
         ]);
         if (!$validation->withRequest($this->request)->run()) {
             return redirect()->back()->withInput()->with('errors', $validation->getErrors());
@@ -65,6 +71,8 @@ class DesaController extends BaseController
         $this->desaModel->update($id, [
             'nama_desa' => $this->request->getPost('nama_desa'),
             'kode_desa' => $this->request->getPost('kode_desa'),
+            'latitude'  => $this->request->getPost('latitude') !== '' ? $this->request->getPost('latitude') : null,
+            'longitude' => $this->request->getPost('longitude') !== '' ? $this->request->getPost('longitude') : null,
         ]);
 
         return redirect()->to('/desa')->with('success', 'Data desa berhasil diupdate.');

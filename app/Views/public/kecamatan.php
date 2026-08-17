@@ -39,7 +39,7 @@ $slugify = function($name) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= esc($kecTitle) ?> — Sikada Tala</title>
+    <title><?= esc($kecTitle) ?> - Erdekatala</title>
     <meta name="description" content="<?= esc($kecMeta) ?>">
 
     <!-- Font: Poppins -->
@@ -459,7 +459,7 @@ $slugify = function($name) {
         <div class="container d-flex align-items-center justify-content-between">
             <a href="<?= site_url('/') ?>" class="brand">
                 <span class="brand-mark">S</span>
-                <span>Sikada Tala <small>Kabupaten Tanah Laut</small></span>
+                <span>Erdekatala <small>Kabupaten Tanah Laut</small></span>
             </a>
             <div class="nav-right d-none d-md-flex">
                 <a href="<?= site_url('/api/docs') ?>" class="nav-link-sikada"><i class="bi bi-code-slash me-1"></i>API</a>
@@ -1003,7 +1003,7 @@ $slugify = function($name) {
             <div class="row g-4">
                 <div class="col-lg-5">
                     <span class="brand-mark">S</span>
-                    <h5>Sikada Tala</h5>
+                    <h5>Erdekatala</h5>
                     <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
                         Sistem informasi kependudukan agregat berbasis Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
                     </p>

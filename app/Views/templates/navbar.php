@@ -12,6 +12,14 @@
 
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
+        <!-- Notifikasi -->
+        <li class="nav-item dropdown">
+            <a class="nav-link" data-toggle="dropdown" href="#" id="notifBell">
+                <i class="far fa-bell"></i>
+                <span class="badge badge-warning navbar-badge" id="notifBadge" style="display:none;">0</span>
+            </a>
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right notif-dropdown" id="notifDropdown"></div>
+        </li>
         <!-- Dark/Light Mode Toggle -->
         <li class="nav-item">
             <button id="themeToggle" class="btn nav-link border-0 px-3" title="Ganti tema" style="background:none;">

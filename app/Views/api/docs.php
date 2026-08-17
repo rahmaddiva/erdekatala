@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sikada Tala API Docs</title>
+    <title>Erdekatala API Docs</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -101,9 +101,9 @@
 
 <div class="api-header">
     <div class="brand">
-        <img src="/assets/dist/img/Sikadaputih.png" alt="Sikada Tala" class="brand-logo">
+        <img src="/assets/dist/img/erdekatala.png" alt="Erdekatala" class="brand-logo">
         <div>
-            <h1>Sikada Tala Public API</h1>
+            <h1>Erdekatala Public API</h1>
             <p>Data Agregat Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan</p>
         </div>
     </div>
@@ -117,7 +117,7 @@
 <div id="swagger-ui"></div>
 
 <div class="api-footer">
-    Sikada Tala &middot; Sistem Informasi Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan<br>
+    Erdekatala &middot; Sistem Informasi Kependudukan Kabupaten Tanah Laut, Kalimantan Selatan<br>
     <a href="/api/docs">Dokumentasi</a> &middot; <a href="/api/guide">Panduan</a> &middot; <a href="/api/register">Daftar API Key</a> &middot; <a href="/">Beranda</a>
 </div>
 
@@ -126,7 +126,7 @@
     const spec = {
         openapi: "3.0.3",
         info: {
-            title: "Sikada Tala Public API",
+            title: "Erdekatala Public API",
             version: "1.0.0",
             description: "API publik untuk mengakses data agregat kependudukan Kabupaten Tanah Laut, Kalimantan Selatan.\n\n**Cara Penggunaan:**\n1. [Daftarkan diri](/api/register) untuk mendapatkan API key gratis\n2. Gunakan API key sebagai Bearer token: `Authorization: Bearer <api_key>`\n3. Atau sebagai query param: `?api_key=<api_key>`\n\n**Rate Limit:** 1000 request per hari per API key. Header `X-RateLimit-Remaining` menunjukkan sisa kuota.",
             contact: {

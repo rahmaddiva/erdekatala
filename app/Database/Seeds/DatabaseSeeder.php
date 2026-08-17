@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
         // 1. Seed wilayah (kecamatan & desa)
         $this->call('WilayahSeeder');
 
+        // 1b. Seed koordinat lat/long desa (bergantung pada kecamatan & desa)
+        $this->call('DesaKoordinatSeeder');
+
         // 2. Seed dusun (bergantung pada m_desa)
         $this->call('DusunSeeder');
 

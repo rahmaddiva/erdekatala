@@ -94,6 +94,18 @@
                                                                     <input type="text" name="kode_desa" class="form-control"
                                                                         value="<?= $d['kode_desa'] ?>" required>
                                                                 </div>
+                                                                <div class="form-group mb-0 mt-3">
+                                                                    <label class="font-weight-bold">Latitude</label>
+                                                                    <input type="text" name="latitude" class="form-control"
+                                                                        value="<?= $d['latitude'] ?? '' ?>"
+                                                                        placeholder="Contoh: -3.8616000">
+                                                                </div>
+                                                                <div class="form-group mb-0 mt-3">
+                                                                    <label class="font-weight-bold">Longitude</label>
+                                                                    <input type="text" name="longitude" class="form-control"
+                                                                        value="<?= $d['longitude'] ?? '' ?>"
+                                                                        placeholder="Contoh: 114.6266000">
+                                                                </div>
                                                             </div>
                                                             <div class="modal-footer justify-content-between border-0">
                                                                 <button type="button" class="btn btn-default btn-flat"
@@ -135,6 +147,16 @@
                                             <label class="font-weight-bold">Kode Desa</label>
                                             <input type="text" name="kode_desa" class="form-control"
                                                 placeholder="Masukkan Kode Desa" required>
+                                        </div>
+                                        <div class="form-group mb-0 mt-3">
+                                            <label class="font-weight-bold">Latitude</label>
+                                            <input type="text" name="latitude" class="form-control"
+                                                placeholder="Contoh: -3.8616000">
+                                        </div>
+                                        <div class="form-group mb-0 mt-3">
+                                            <label class="font-weight-bold">Longitude</label>
+                                            <input type="text" name="longitude" class="form-control"
+                                                placeholder="Contoh: 114.6266000">
                                         </div>
                                     </div>
                                     <div class="modal-footer justify-content-between border-0">

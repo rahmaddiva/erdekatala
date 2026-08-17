@@ -4,11 +4,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SIKADA TALA |
+    <title>Erdekatala |
         <?= esc($title) ?>
     </title>
 
-    <link rel="icon" type="image/png" href="<?= base_url('assets/') ?>dist/img/SikadaIreng.png">
+    <link rel="icon" type="image/png" href="<?= base_url('assets/') ?>dist/img/erdekatala.png">
 
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet"
@@ -358,7 +358,7 @@
 
         <!-- Preloader -->
         <div id="preloader" aria-hidden="true">
-            <img class="preloader-logo" src="<?= base_url('assets/') ?>dist/img/SikadaIreng.png" alt="SIKADA TALA Logo">
+            <img class="preloader-logo" src="<?= base_url('assets/') ?>dist/img/erdekatala.png" alt="Erdekatala Logo">
             <div class="preloader-spinner" role="status" aria-label="Loading"></div>
             <div class="preloader-text">Memuat…</div>
         </div>
@@ -611,6 +611,53 @@
                     $('body').addClass('preloader-done');
                 });
             }, 5000);
+        });
+    </script>
+
+    <script>
+        // ============================================================
+        // NOTIFIKASI BELL
+        // ============================================================
+        $(document).ready(function () {
+            var CSRF = { '<?= csrf_token() ?>': '<?= csrf_hash() ?>' };
+
+            function loadNotif() {
+                $.get('<?= base_url('notifikasi/list') ?>', function (res) {
+                    $('#notifDropdown').html(res.html);
+                    if (res.count > 0) {
+                        $('#notifBadge').text(res.count).show();
+                    } else {
+                        $('#notifBadge').hide();
+                    }
+                });
+            }
+
+            loadNotif();
+
+            $('#notifDropdown').on('click', '.notif-item', function (e) {
+                var $item = $(this);
+                var url = $item.data('url');
+                $.post('<?= base_url('notifikasi/read') ?>/' + $item.data('id'), CSRF);
+                if (url) {
+                    window.location.href = url;
+                }
+            });
+
+            $('#notifDropdown').on('click', '.notif-delete', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var id = $(this).data('id');
+                $.post('<?= base_url('notifikasi/delete') ?>/' + id, CSRF, function () {
+                    loadNotif();
+                });
+            });
+
+            $('#notifDropdown').on('click', '.notif-read-all', function (e) {
+                e.preventDefault();
+                $.post('<?= base_url('notifikasi/read_all') ?>', CSRF, function () {
+                    loadNotif();
+                });
+            });
         });
     </script>
 

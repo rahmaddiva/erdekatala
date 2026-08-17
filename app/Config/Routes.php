@@ -9,6 +9,7 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'PublicController::landingpage');
 $routes->get('/public/landingpage', 'PublicController::landingpage');
 $routes->get('/getDesaByKecamatan/(:num)', 'PublicController::getDesaByKecamatan/$1');
+$routes->get('/getDesaByKecamatanSlug/(:segment)', 'PublicController::getDesaByKecamatanSlug/$1');
 $routes->get('/public/krs-desa/(:num)', 'PublicController::getKrsDesa/$1');
 
 // Auth Routes
@@ -92,22 +93,28 @@ $routes->group('api', function ($routes) {
 
     // Endpoint data (wajib API key)
     $routes->group('v1', ['filter' => 'apikeyauth'], function ($routes) {
-        $routes->get('info',                    'ApiController::info');
-        $routes->get('kecamatan',               'ApiController::kecamatan');
-        $routes->get('desa',                    'ApiController::desa');
-        $routes->get('laporan',                 'ApiController::laporan');
+        $routes->get('info', 'ApiController::info');
+        $routes->get('kecamatan', 'ApiController::kecamatan');
+        $routes->get('desa', 'ApiController::desa');
+        $routes->get('laporan', 'ApiController::laporan');
         $routes->get('laporan/rekap/kecamatan', 'ApiController::rekapKecamatan');
-        $routes->get('laporan/rekap/desa',      'ApiController::rekapDesa');
+        $routes->get('laporan/rekap/desa', 'ApiController::rekapDesa');
     });
 });
 
 // Manajemen API key oleh admin_dinas (perlu login)
-$routes->get('/apikeys',                 'ApiKeyAdminController::index');
-$routes->get('/apikeys/create',          'ApiKeyAdminController::create');
-$routes->post('/apikeys/store',          'ApiKeyAdminController::store');
-$routes->post('/apikeys/revoke/(:num)',   'ApiKeyAdminController::revoke/$1');
-$routes->post('/apikeys/activate/(:num)','ApiKeyAdminController::activate/$1');
-$routes->post('/apikeys/delete/(:num)',  'ApiKeyAdminController::delete/$1');
+$routes->get('/apikeys', 'ApiKeyAdminController::index');
+$routes->get('/apikeys/create', 'ApiKeyAdminController::create');
+$routes->post('/apikeys/store', 'ApiKeyAdminController::store');
+$routes->post('/apikeys/revoke/(:num)', 'ApiKeyAdminController::revoke/$1');
+$routes->post('/apikeys/activate/(:num)', 'ApiKeyAdminController::activate/$1');
+$routes->post('/apikeys/delete/(:num)', 'ApiKeyAdminController::delete/$1');
+
+// Notifikasi Bell
+$routes->get('/notifikasi/list', 'NotifikasiController::list');
+$routes->post('/notifikasi/read/(:num)', 'NotifikasiController::read/$1');
+$routes->post('/notifikasi/read_all', 'NotifikasiController::read_all');
+$routes->post('/notifikasi/delete/(:num)', 'NotifikasiController::delete/$1');
 
 // -------------------------------------------------------
 // Dynamic Kecamatan Pages (harus di AKHIR agar tidak bentrok)

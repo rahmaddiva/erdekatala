@@ -11,7 +11,9 @@
                     </h1>
                 </div>
                 <div class="col-sm-6 text-right">
-                    <a href="/users/create" class="btn btn-success">Tambah Pengguna</a>
+                    <?php if (!isset($is_kecamatan) || !$is_kecamatan): ?>
+                        <a href="/users/create" class="btn btn-success">Tambah Pengguna</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -28,6 +30,9 @@
                                 <th>Username</th>
                                 <th>Nama Lengkap</th>
                                 <th>Role</th>
+                                <?php if (isset($is_kecamatan) && $is_kecamatan): ?>
+                                    <th>Desa</th>
+                                <?php endif; ?>
                                 <th>Dibuat</th>
                                 <th>Aksi</th>
                             </tr>
@@ -47,6 +52,11 @@
                                     <td>
                                         <?= esc($u['role']) ?>
                                     </td>
+                                    <?php if (isset($is_kecamatan) && $is_kecamatan): ?>
+                                        <td>
+                                            <?= esc($u['nama_desa']) ?>
+                                        </td>
+                                    <?php endif; ?>
                                     <td>
                                         <?= esc($u['created_at']) ?>
                                     </td>
@@ -70,8 +80,6 @@
 
 <script>
     $(function () {
-        $('#usersTable').DataTable();
-
         $('.btn-delete-user').on('click', function (e) {
             e.preventDefault();
             var url = $(this).data('url');

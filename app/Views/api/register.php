@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar API Key - Sikada Tala</title>
+    <title>Daftar API Key - Erdekatala</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -62,7 +62,7 @@
 <body>
 <div class="register-card">
     <div class="brand">
-        <img src="/assets/dist/img/SikadaIreng.png" alt="Sikada Tala" class="brand-logo">
+        <img src="/assets/dist/img/erdekatala.png" alt="Erdekatala" class="brand-logo">
         <h2>Daftar API Key</h2>
     </div>
     <p class="sub">Gratis. 1000 request/hari. Akses semua data agregat kependudukan.</p>

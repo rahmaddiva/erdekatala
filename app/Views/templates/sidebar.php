@@ -2,7 +2,7 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="index3.html" class="brand-link">
-        <img src="<?= base_url('assets/') ?>dist/img/Sikadaputih.png" alt="Sikada Tala Logo" style="width: 160px;"
+        <img src="<?= base_url('assets/') ?>dist/img/erdekatala.png" alt="Erdekatala Logo" style="width: 160px;"
             class="brand-image" style="opacity: .8">
     </a>
 
@@ -104,6 +104,16 @@
                         <p>Data Tabel</p>
                     </a>
                 </li>
+
+                <?php if (session()->get('role') == 'admin_kecamatan'): ?>
+                    <li class="nav-header">PENGATURAN</li>
+                    <li class="nav-item">
+                        <a href="<?= base_url('users') ?>" class="nav-link <?= ($s1 == 'users') ? 'active' : '' ?>">
+                            <i class="nav-icon fas fa-user-cog"></i>
+                            <p>Akun Admin Desa</p>
+                        </a>
+                    </li>
+                <?php endif; ?>
 
                 <?php if (session()->get('role') == 'admin_dinas'): ?>
                     <li class="nav-header">PENGATURAN</li>

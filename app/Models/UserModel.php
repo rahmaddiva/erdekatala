@@ -15,6 +15,8 @@ class UserModel extends Model
         'username',
         'password',
         'nama_lengkap',
+        'role',
+        'id_kecamatan',
         'id_desa',
         'created_at',
         'remember_token',

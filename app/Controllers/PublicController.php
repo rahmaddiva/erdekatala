@@ -26,8 +26,33 @@ class PublicController extends BaseController
      */
     public function landingpage()
     {
-        $id_kecamatan_filter = $this->request->getGet('id_kecamatan');
-        $id_desa_filter      = $this->request->getGet('id_desa');
+        $slug_kecamatan = $this->request->getGet('kecamatan');
+        $slug_desa      = $this->request->getGet('desa');
+
+        $id_kecamatan_filter = null;
+        $id_desa_filter      = null;
+
+        // Resolve slug kecamatan ke ID
+        if ($slug_kecamatan) {
+            $kecamatan = $this->kecamatanModel
+                ->where('LOWER(REPLACE(nama_kecamatan, " ", "-"))', strtolower($slug_kecamatan))
+                ->where('is_public', 1)
+                ->first();
+            if ($kecamatan) {
+                $id_kecamatan_filter = $kecamatan['id_kecamatan'];
+            }
+        }
+
+        // Resolve slug desa ke ID
+        if ($slug_desa && $id_kecamatan_filter) {
+            $desa = $this->desaModel
+                ->where('LOWER(REPLACE(nama_desa, " ", "-"))', strtolower($slug_desa))
+                ->where('id_kecamatan', $id_kecamatan_filter)
+                ->first();
+            if ($desa) {
+                $id_desa_filter = $desa['id_desa'];
+            }
+        }
 
         $list_kecamatan = $this->kecamatanModel->where('is_public', 1)->findAll();
 
@@ -38,33 +63,34 @@ class PublicController extends BaseController
 
         // Single SQL SUM query — no findAll() + PHP loop
         $stats = $this->laporanModel->getAggregatedStats(
-            $id_kecamatan_filter ? (int) $id_kecamatan_filter : null,
-            $id_desa_filter ? (int) $id_desa_filter : null
+            $id_kecamatan_filter,
+            $id_desa_filter
         );
         $chart = LaporanAgregatModel::statsToChartData($stats);
 
         // KRS tree: kab total + 11 kecamatan (desa di-load via AJAX expand)
-        $krs = $this->buildKrsTree(2026, $id_kecamatan_filter ? (int) $id_kecamatan_filter : null);
+        $krs = $this->buildKrsTree(2026, $id_kecamatan_filter);
 
         $data = [
-            'list_kecamatan' => $list_kecamatan,
-            'list_desa'      => $list_desa,
-            'filter_kec'     => $id_kecamatan_filter,
-            'filter_desa'    => $id_desa_filter,
-            'totals'         => $chart['totals'],
-            'pendidikan'     => $chart['pendidikan'],
-            'pekerjaan'      => $chart['pekerjaan'],
-            'jkn_bpjs'       => $chart['jkn_bpjs'],
-            'status_kawin'   => $chart['status_kawin'],
-            'dokumen'        => $chart['dokumen'],
-            'ageLabels'      => $chart['ageLabels'],
-            'piramidaL'      => $chart['piramidaL'],
-            'piramidaP'      => $chart['piramidaP'],
-            'krsKab'         => $krs['kab'],
-            'krsKecamatan'   => $krs['kecamatan'],
-            'krsUpdatedAt'   => $krs['updated_at'],
-            'krsError'       => $krs['error'],
-            'krsFilterKec'   => $krs['filter_kec_name'],
+            'list_kecamatan'  => $list_kecamatan,
+            'list_desa'       => $list_desa,
+            'filter_kec_slug' => $slug_kecamatan,
+            'filter_desa_slug'=> $slug_desa,
+            'map_kecamatan'   => $this->buildMapKecamatan(),
+            'totals'          => $chart['totals'],
+            'pendidikan'      => $chart['pendidikan'],
+            'pekerjaan'       => $chart['pekerjaan'],
+            'jkn_bpjs'        => $chart['jkn_bpjs'],
+            'status_kawin'    => $chart['status_kawin'],
+            'dokumen'         => $chart['dokumen'],
+            'ageLabels'       => $chart['ageLabels'],
+            'piramidaL'       => $chart['piramidaL'],
+            'piramidaP'       => $chart['piramidaP'],
+            'krsKab'          => $krs['kab'],
+            'krsKecamatan'    => $krs['kecamatan'],
+            'krsUpdatedAt'    => $krs['updated_at'],
+            'krsError'        => $krs['error'],
+            'krsFilterKec'    => $krs['filter_kec_name'],
         ];
 
         return view('public/landingpage', $data);
@@ -355,12 +381,102 @@ class PublicController extends BaseController
     }
 
     /**
-     * AJAX endpoint untuk mendapatkan desa berdasarkan kecamatan
+     * AJAX endpoint untuk mendapatkan desa berdasarkan kecamatan (ID, legacy)
      */
     public function getDesaByKecamatan($id_kecamatan)
     {
         $desa = $this->desaModel->where('id_kecamatan', $id_kecamatan)->findAll();
         return $this->response->setJSON($desa);
+    }
+
+    /**
+     * AJAX endpoint untuk mendapatkan desa berdasarkan slug kecamatan
+     * URL: /getDesaByKecamatanSlug/pelaihari
+     */
+    public function getDesaByKecamatanSlug($slug)
+    {
+        $kecamatan = $this->kecamatanModel
+            ->where('LOWER(REPLACE(nama_kecamatan, " ", "-"))', strtolower($slug))
+            ->where('is_public', 1)
+            ->first();
+
+        if (!$kecamatan) {
+            return $this->response->setStatusCode(404)->setJSON([]);
+        }
+
+        $desa = $this->desaModel
+            ->where('id_kecamatan', $kecamatan['id_kecamatan'])
+            ->findAll();
+
+        // Tambahkan slug ke setiap desa
+        foreach ($desa as &$d) {
+            $d['slug'] = strtolower(str_replace(' ', '-', $d['nama_desa']));
+        }
+
+        return $this->response->setJSON($desa);
+    }
+
+    /**
+     * Data untuk peta sebaran: koordinat kecamatan (hardcode, sumber: peta.web.id)
+     * + statistik agregat per kecamatan.
+     */
+    private function buildMapKecamatan(): array
+    {
+        $kecamatan = $this->kecamatanModel->where('is_public', 1)->findAll();
+
+        // Koordinat tetap per kecamatan (peta.web.id)
+        $coords = $this->kecamatanCoordinatesMap();
+
+        // Statistik agregat per kecamatan
+        $summaries = $this->laporanModel->getSummaryPerKecamatan();
+        $stats = [];
+        foreach ($summaries as $s) {
+            $stats[$s['nama_kecamatan']] = $s;
+        }
+
+        $map = [];
+        foreach ($kecamatan as $k) {
+            $id = (int) $k['id_kecamatan'];
+            $key = strtoupper(trim(str_replace(['_', '-'], ' ', $k['nama_kecamatan'])));
+            $key = preg_replace('/\s+/', ' ', $key) ?? $key;
+            if (!isset($coords[$key])) {
+                continue;
+            }
+            $s = $stats[$k['nama_kecamatan']] ?? [];
+            $slug = $k['slug'] ?: strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
+            $map[] = [
+                'id_kecamatan' => $id,
+                'nama'         => $k['nama_kecamatan'],
+                'slug'         => $slug,
+                'lat'          => $coords[$key]['lat'],
+                'lng'          => $coords[$key]['lng'],
+                'total_jiwa'   => (int) ($s['total_jiwa'] ?? 0),
+                'total_jiwa_l' => (int) ($s['total_jiwa_l'] ?? 0),
+                'total_jiwa_p' => (int) ($s['total_jiwa_p'] ?? 0),
+                'total_kk'     => (int) ($s['total_kk'] ?? 0),
+                'total_pus'    => (int) ($s['total_pus'] ?? 0),
+            ];
+        }
+
+        return $map;
+    }
+
+    /** // ponytail: koordinat kecamatan Tanah Laut, sumber https://peta.web.id/peta/kab/kabupaten-tanah-laut/ */
+    private function kecamatanCoordinatesMap(): array
+    {
+        return [
+            'BAJUIN'        => ['lat' => -3.7115033,  'lng' => 114.8804853],
+            'BATI BATI'     => ['lat' => -3.565921,   'lng' => 114.7855271],
+            'BATU AMPAR'    => ['lat' => -3.8215822,  'lng' => 114.9279547],
+            'BUMI MAKMUR'   => ['lat' => -3.5617356,  'lng' => 114.607413],
+            'JORONG'        => ['lat' => -3.9318403,  'lng' => 114.9754175],
+            'KINTAP'        => ['lat' => -3.857227,   'lng' => 115.207901],
+            'KURAU'         => ['lat' => -3.6442297,  'lng' => 114.6430427],
+            'PANYIPATAN'    => ['lat' => -4.0351561,  'lng' => 114.6667939],
+            'PELAIHARI'     => ['lat' => -3.799686,   'lng' => 114.746696],
+            'TAKISUNG'      => ['lat' => -3.8676527,  'lng' => 114.6430427],
+            'TAMBANG ULANG' => ['lat' => -3.6400722,  'lng' => 114.7855271],
+        ];
     }
 
     // ===================================================
