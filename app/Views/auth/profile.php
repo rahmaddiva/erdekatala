@@ -49,6 +49,10 @@
                             <ul class="nav nav-pills">
                                 <li class="nav-item"><a class="nav-link active" href="#settings"
                                         data-toggle="tab">Settings</a></li>
+                                <?php if (isset($kec)): ?>
+                                <li class="nav-item"><a class="nav-link" href="#data-kecamatan"
+                                        data-toggle="tab">Data Kecamatan</a></li>
+                                <?php endif; ?>
                             </ul>
                         </div><!-- /.card-header -->
                         <div class="card-body">
@@ -150,7 +154,14 @@
                                     </div>
                                 </div>
 
+                                <?php if (isset($kec)): ?>
+                                    <div class="tab-pane" id="data-kecamatan">
+                                        <?= $this->include('auth/profile_kecamatan') ?>
+                                    </div>
+                                <?php endif; ?>
+
                             </div>
+
                         </div><!-- /.card-body -->
                     </div>
                 </div>

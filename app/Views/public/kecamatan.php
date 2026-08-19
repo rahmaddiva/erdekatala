@@ -19,6 +19,10 @@ $kecTitle  = $kecamatan['page_title'] ?: 'Kecamatan ' . $kecNama;
 $kecMeta   = $kecamatan['meta_description'] ?: 'Data agregat kependudukan Kecamatan ' . $kecNama . ', Kabupaten Tanah Laut, Kalimantan Selatan.';
 $pendudukKey = esc($kecNama);
 
+// Kode 3 digit kecamatan untuk file GeoJSON (mis. "63.01.04" -> "004")
+$kodeSeg = explode('.', (string) ($kecamatan['kode_kecamatan'] ?? ''));
+$kecKode = str_pad((string) (end($kodeSeg) ?: ''), 3, '0', STR_PAD_LEFT);
+
 $hasData = $jiwaTotal > 0;
 
 $fmt = function($n) { return number_format((int)$n, 0, ',', '.'); };
@@ -41,6 +45,8 @@ $slugify = function($name) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($kecTitle) ?> - Erdekatala</title>
     <meta name="description" content="<?= esc($kecMeta) ?>">
+    <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/erdekatala.png') ?>">
+    <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
 
     <!-- Font: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,6 +63,9 @@ $slugify = function($name) {
 
     <!-- ZingChart -->
     <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
+
+    <!-- Leaflet (peta sebaran per desa, file lokal di public/leaflet) -->
+    <link rel="stylesheet" href="<?= base_url('leaflet/leaflet.css') ?>">
 
     <style>
         .cursor-follower {
@@ -144,9 +153,9 @@ $slugify = function($name) {
 
         /* ===== PAGE HEADER ===== */
         .page-hero {
-            background: var(--ink);
+            background: linear-gradient(135deg, var(--ink) 0%, #1a2e3e 100%);
             color: #fff;
-            padding: 3rem 0 2.5rem;
+            padding: 3.5rem 0 3rem;
             position: relative;
             overflow: hidden;
         }
@@ -235,6 +244,59 @@ $slugify = function($name) {
             color: var(--ink); line-height: 1; margin-bottom: 0.35rem;
         }
         .stat-card .sub { font-size: 0.82rem; color: var(--muted); }
+        .stat-card .icon-circle {
+            position: absolute; top: 1rem; right: 1.1rem;
+            width: 38px; height: 38px; border-radius: 50%;
+            display: grid; place-items: center; font-size: 1.15rem;
+        }
+        .stat-card .icon-circle.tone-primary { background: rgba(221,72,20,.12); color: var(--primary); }
+        .stat-card .icon-circle.tone-blue    { background: rgba(45,108,223,.12); color: var(--accent-l); }
+        .stat-card .icon-circle.tone-pink    { background: rgba(214,51,108,.12); color: var(--accent-p); }
+        .stat-card .icon-circle.tone-green   { background: rgba(47,158,68,.12); color: var(--good); }
+        .stat-card .icon-circle.tone-orange  { background: rgba(221,72,20,.12); color: var(--primary); }
+
+        /* ===== PROFIL KECAMATAN ===== */
+        .profil-card {
+            background: var(--paper); border: 1px solid var(--border);
+            border-radius: 10px; padding: 1.5rem 1.75rem; box-shadow: var(--shadow-sm);
+        }
+        .profil-card .profil-desc {
+            font-size: 0.95rem; line-height: 1.7; color: var(--ink-soft); margin: 0 0 1.25rem;
+        }
+        .profil-grid {
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem 1.5rem;
+        }
+        .profil-field {
+            display: flex; align-items: flex-start; gap: 0.75rem;
+            background: var(--paper-2); border: 1px solid var(--border);
+            border-radius: 8px; padding: 0.75rem 0.9rem;
+        }
+        .profil-field.full { grid-column: 1 / -1; }
+        .profil-field .pf-icon {
+            width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+            display: grid; place-items: center; margin-top: 0.15rem;
+            background: rgba(221,72,20,.1); color: var(--primary);
+        }
+        .profil-field .pf-label {
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.15rem;
+        }
+        .profil-field .pf-value {
+            font-size: 0.93rem; font-weight: 600; color: var(--ink); margin: 0; line-height: 1.5;
+        }
+        .profil-photo {
+            border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-md); border: 1px solid var(--border);
+        }
+        .profil-photo img {
+            width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block;
+        }
+        .profil-photo-placeholder {
+            border-radius: 10px; border: 1.5px dashed var(--border);
+            background: linear-gradient(135deg, var(--paper), var(--paper-3));
+            display: grid; place-items: center; min-height: 260px;
+        }
+        .profil-photo-placeholder i { font-size: 3rem; color: var(--paper-3); }
+        .profil-photo-placeholder p { margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--muted); }
 
         /* ===== INFO STRIP ===== */
         .info-strip {
@@ -242,7 +304,11 @@ $slugify = function($name) {
             padding: 1.5rem 1.75rem; display: flex; align-items: center;
             gap: 1.25rem; margin: 2rem 0;
         }
-        .info-strip .info-icon { font-size: 1.8rem; color: var(--primary); flex-shrink: 0; }
+        .info-strip .info-icon {
+            width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+            display: grid; place-items: center; font-size: 1.3rem;
+            background: rgba(255,255,255,.1); color: var(--primary);
+        }
         .info-strip h4 { color: #fff; margin: 0 0 0.2rem; font-size: 1.05rem; }
         .info-strip p { margin: 0; color: rgba(255,255,255,.7); font-size: 0.9rem; }
 
@@ -357,11 +423,15 @@ $slugify = function($name) {
             border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm);
         }
         .desa-search-bar {
+            display: flex; align-items: center; gap: 0.5rem;
             padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
             background: var(--paper-2);
         }
+        .desa-search-bar .search-icon {
+            color: var(--muted); font-size: 1.1rem; flex-shrink: 0;
+        }
         .desa-search-bar input {
-            width: 100%; padding: 0.6rem 0.95rem; border: 1px solid var(--border);
+            flex: 1; padding: 0.6rem 0.95rem; border: 1px solid var(--border);
             border-radius: 6px; background: var(--paper);
             font-family: inherit; font-size: 0.92rem; color: var(--ink);
         }
@@ -370,7 +440,9 @@ $slugify = function($name) {
             box-shadow: 0 0 0 3px rgba(221,72,20,.12);
         }
         .table-desa { width: 100%; border-collapse: collapse; }
+        .table-desa .thead-wrap { overflow-x: auto; }
         .table-desa thead th {
+            position: sticky; top: 0; z-index: 1;
             font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.06em; color: var(--muted);
             padding: 0.8rem 1rem; background: var(--paper-2);
@@ -450,6 +522,84 @@ $slugify = function($name) {
             .stat-grid { gap: 0.75rem; }
         }
     </style>
+    <style>
+        /* ===== PETA SEBARAN PER DESA (Leaflet) ===== */
+        .map-shell {
+            background: #fff;
+            border: 1px solid var(--border, #e5e1d8);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(15,25,35,.06), 0 2px 4px rgba(15,25,35,.04);
+        }
+        #map-desa {
+            height: 480px;
+            width: 100%;
+            position: relative;
+            z-index: 0;
+            background: #f7f5f1;
+        }
+        .leaflet-container {
+            background: #f7f5f1;
+            font-family: inherit;
+        }
+        .map-shell .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            align-items: center;
+            padding: .8rem 1.1rem;
+            background: #fff;
+            border-top: 1px solid #e5e1d8;
+            font-size: .8rem;
+            color: #1e2d3a;
+        }
+        .map-shell .map-legend .swatch {
+            display: inline-block;
+            width: 13px; height: 13px;
+            border-radius: 3px;
+            margin-right: .35rem;
+            vertical-align: middle;
+            border: 1px solid rgba(15,25,35,.08);
+        }
+        .map-shell .map-legend .lg-item {
+            display: inline-flex;
+            align-items: center;
+        }
+        .map-shell .map-legend .lg-item b {
+            font-weight: 600;
+            color: #0f1923;
+            font-variant-numeric: tabular-nums;
+        }
+        .map-shell .map-legend .lg-sep {
+            width: 1px; height: 16px;
+            background: #e5e1d8;
+        }
+        .map-popup-desa { font-family: 'Poppins', sans-serif; }
+        .map-popup-desa .pk-name {
+            font-weight: 700; color: #0f1923; font-size: .95rem;
+            margin-bottom: .35rem;
+        }
+        .map-popup-desa .pk-row {
+            display: flex; justify-content: space-between; gap: 1rem;
+            font-size: .82rem; color: #1e2d3a;
+            padding: .12rem 0;
+        }
+        .map-popup-desa .pk-row b { color: #0f1923; font-variant-numeric: tabular-nums; }
+        .map-popup-desa .pk-link {
+            display: block; margin-top: .45rem;
+            font-size: .8rem; font-weight: 600; color: #dd4814;
+        }
+        .map-popup-desa .pk-link:hover { color: #b0380f; }
+        .leaflet-popup-content a { color: #dd4814; }
+        .map-placeholder {
+            height: 480px;
+            display: flex; align-items: center; justify-content: center;
+            background: #f7f5f1;
+            color: #6b7280;
+            font-size: .95rem;
+            border-radius: 12px;
+        }
+    </style>
 </head>
 
 <body>
@@ -508,63 +658,75 @@ $slugify = function($name) {
             <h2>Profil Kecamatan</h2>
             <span class="crumb">Informasi resmi kecamatan</span>
         </div>
-        <div style="display: grid; grid-template-columns: minmax(0, 320px) 1fr; gap: 1.5rem; align-items: start;">
+        <div class="profil-grid-wrap" style="display: grid; grid-template-columns: minmax(0, 380px) 1fr; gap: 1.5rem; align-items: start;">
             <?php if (!empty($kecamatan['foto']) && file_exists(FCPATH . $kecamatan['foto'])): ?>
-                <div style="border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-md); border: 1px solid var(--border);">
-                    <img src="<?= base_url($kecamatan['foto']) ?>" alt="Foto Kecamatan <?= esc($kecNama) ?>"
-                        style="width: 100%; height: 260px; object-fit: cover; display: block;">
+                <div class="profil-photo">
+                    <img src="<?= base_url($kecamatan['foto']) ?>" alt="Foto Kecamatan <?= esc($kecNama) ?>">
                 </div>
             <?php else: ?>
-                <div style="border-radius: 10px; background: var(--ink); color: rgba(255,255,255,.5); display: grid; place-items: center; height: 260px; border: 1px solid var(--border);">
+                <div class="profil-photo-placeholder">
                     <div style="text-align: center;">
-                        <i class="bi bi-building" style="font-size: 3rem; color: rgba(255,255,255,.2);"></i>
-                        <p style="margin: 0.5rem 0 0; font-size: 0.85rem;">Kantor Kecamatan <?= esc($kecNama) ?></p>
+                        <i class="bi bi-building"></i>
+                        <p>Kantor Kecamatan <?= esc($kecNama) ?></p>
                     </div>
                 </div>
             <?php endif; ?>
-            <div style="background: var(--paper); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem 1.75rem; box-shadow: var(--shadow-sm);">
+            <div class="profil-card">
                 <?php if (!empty($kecamatan['deskripsi'])): ?>
-                    <p style="font-size: 0.95rem; line-height: 1.7; color: var(--ink-soft); margin: 0 0 1.25rem;"><?= nl2br(esc($kecamatan['deskripsi'])) ?></p>
+                    <p class="profil-desc"><?= nl2br(esc($kecamatan['deskripsi'])) ?></p>
                 <?php endif; ?>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem;">
+                <div class="profil-grid">
                     <?php if (!empty($kecamatan['nama_camat'])): ?>
+                    <div class="profil-field">
+                        <div class="pf-icon"><i class="bi bi-person-badge"></i></div>
                         <div>
-                            <p style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.25rem;">Camat</p>
-                            <p style="font-size: 0.95rem; font-weight: 600; margin: 0;"><?= esc($kecamatan['nama_camat']) ?></p>
+                            <p class="pf-label">Camat</p>
+                            <p class="pf-value"><?= esc($kecamatan['nama_camat']) ?></p>
                         </div>
+                    </div>
                     <?php endif; ?>
                     <?php if (!empty($kecamatan['jam_layanan'])): ?>
+                    <div class="profil-field">
+                        <div class="pf-icon"><i class="bi bi-clock"></i></div>
                         <div>
-                            <p style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.25rem;">Jam Layanan</p>
-                            <p style="font-size: 0.95rem; font-weight: 600; margin: 0;"><?= esc($kecamatan['jam_layanan']) ?></p>
+                            <p class="pf-label">Jam Layanan</p>
+                            <p class="pf-value"><?= esc($kecamatan['jam_layanan']) ?></p>
                         </div>
+                    </div>
                     <?php endif; ?>
                     <?php if (!empty($kecamatan['telepon'])): ?>
+                    <div class="profil-field">
+                        <div class="pf-icon"><i class="bi bi-telephone"></i></div>
                         <div>
-                            <p style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.25rem;">Telepon</p>
-                            <p style="font-size: 0.95rem; font-weight: 600; margin: 0;"><?= esc($kecamatan['telepon']) ?></p>
+                            <p class="pf-label">Telepon</p>
+                            <p class="pf-value"><?= esc($kecamatan['telepon']) ?></p>
                         </div>
+                    </div>
                     <?php endif; ?>
                     <?php if (!empty($kecamatan['email'])): ?>
+                    <div class="profil-field">
+                        <div class="pf-icon"><i class="bi bi-envelope"></i></div>
                         <div>
-                            <p style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.25rem;">Email</p>
-                            <p style="font-size: 0.95rem; font-weight: 600; margin: 0;"><?= esc($kecamatan['email']) ?></p>
+                            <p class="pf-label">Email</p>
+                            <p class="pf-value"><?= esc($kecamatan['email']) ?></p>
                         </div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($kecamatan['alamat_kantor'])): ?>
+                    <div class="profil-field full">
+                        <div class="pf-icon"><i class="bi bi-geo-alt"></i></div>
+                        <div>
+                            <p class="pf-label">Alamat Kantor</p>
+                            <p class="pf-value"><?= nl2br(esc($kecamatan['alamat_kantor'])) ?></p>
+                        </div>
+                    </div>
                     <?php endif; ?>
                 </div>
-                <?php if (!empty($kecamatan['alamat_kantor'])): ?>
-                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
-                        <p style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.25rem;">Alamat Kantor</p>
-                        <p style="font-size: 0.95rem; margin: 0; line-height: 1.6;"><?= nl2br(esc($kecamatan['alamat_kantor'])) ?></p>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
         <style>
         @media (max-width: 768px) {
-            div[style*="grid-template-columns: minmax(0, 320px)"] {
-                grid-template-columns: 1fr !important;
-            }
+            .profil-grid-wrap { grid-template-columns: 1fr !important; }
         }
         </style>
     </section>
@@ -581,6 +743,7 @@ $slugify = function($name) {
             </div>
             <div class="desa-section">
                 <div class="desa-search-bar">
+                    <i class="bi bi-search search-icon"></i>
                     <input type="text" id="desaSearch" placeholder="Cari nama desa..." autocomplete="off">
                 </div>
                 <div style="overflow-x: auto;">
@@ -613,6 +776,26 @@ $slugify = function($name) {
                 </div>
             </div>
         </section>
+
+        <!-- ===== PETA SEBARAN PER DESA (Leaflet) ===== -->
+        <section class="block" style="padding-bottom: 1.5rem;">
+            <div class="section-head">
+                <h2>Peta Sebaran Penduduk per Desa</h2>
+                <span class="crumb">Total jiwa per desa di Kecamatan <?= esc($kecNama) ?></span>
+            </div>
+            <div class="map-shell">
+                <div id="map-desa"></div>
+                <div class="map-legend" id="map-legend-desa">
+                    <span class="text-muted">Total Jiwa</span>
+                    <span class="lg-item" id="dlg-0"><span class="swatch"></span><b></b></span>
+                    <span class="lg-item" id="dlg-1"><span class="swatch"></span><b></b></span>
+                    <span class="lg-item" id="dlg-2"><span class="swatch"></span><b></b></span>
+                    <span class="lg-item" id="dlg-3"><span class="swatch"></span><b></b></span>
+                    <span class="lg-item" id="dlg-4"><span class="swatch"></span><b></b></span>
+                    <span class="ms-auto text-muted">Klik poligon untuk detail</span>
+                </div>
+            </div>
+        </section>
         <?php endif; ?>
 
         <?php if ($hasData): ?>
@@ -621,25 +804,25 @@ $slugify = function($name) {
         <section class="block" style="padding-top: 1.5rem;">
             <div class="stat-grid">
                 <div class="stat-card">
-                    <i class="bi bi-people-fill icon"></i>
+                    <div class="icon-circle tone-primary"><i class="bi bi-people-fill"></i></div>
                     <div class="label">Total Jiwa</div>
                     <div class="value"><?= number_format($jiwaTotal, 0, ',', '.') ?></div>
                     <div class="sub"><?= number_format($jiwaL, 0, ',', '.') ?> L · <?= number_format($jiwaP, 0, ',', '.') ?> P</div>
                 </div>
-                <div class="stat-card">
-                    <i class="bi bi-house-door-fill icon"></i>
+                <div class="stat-card alt-blue">
+                    <div class="icon-circle tone-blue"><i class="bi bi-house-door-fill"></i></div>
                     <div class="label">Kartu Keluarga</div>
                     <div class="value"><?= number_format($kkTotal, 0, ',', '.') ?></div>
                     <div class="sub"><?= number_format($kkL, 0, ',', '.') ?> L · <?= number_format($kkP, 0, ',', '.') ?> P</div>
                 </div>
-                <div class="stat-card">
-                    <i class="bi bi-balloon-fill icon"></i>
+                <div class="stat-card alt-pink">
+                    <div class="icon-circle tone-pink"><i class="bi bi-balloon-fill"></i></div>
                     <div class="label">Balita</div>
                     <div class="value"><?= number_format($balita, 0, ',', '.') ?></div>
                     <div class="sub">Usia 0-5 tahun</div>
                 </div>
-                <div class="stat-card">
-                    <i class="bi bi-heart-pulse-fill icon"></i>
+                <div class="stat-card alt-green">
+                    <div class="icon-circle tone-green"><i class="bi bi-heart-pulse-fill"></i></div>
                     <div class="label">PUS</div>
                     <div class="value"><?= number_format($pus, 0, ',', '.') ?></div>
                     <div class="sub">Pasangan Usia Subur</div>
@@ -1279,6 +1462,9 @@ $slugify = function($name) {
         });
     </script>
 
+    <!-- Leaflet (peta sebaran per desa, file lokal di public/leaflet) -->
+    <script src="<?= base_url('leaflet/leaflet.js') ?>"></script>
+
     <!-- jQuery + DataTables + Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
@@ -1334,6 +1520,199 @@ $slugify = function($name) {
         });
     </script>
     <div class="cursor-follower" id="cursorFollower"></div>
+    <script>
+        // ===== PETA SEBARAN PER DESA (Leaflet) =====
+        (function () {
+            const mapEl = document.getElementById('map-desa');
+            if (!mapEl) return;
+
+            const desaStats = <?= json_encode($desa_stats) ?>;
+            const kecKode = <?= json_encode($kecKode) ?>;
+            const filterDesa = <?= json_encode($selected_desa ? $slugify($selected_desa['nama_desa']) : '') ?>;
+            const GEO_DESA = <?= json_encode(base_url('geojson/desa/')) ?> + kecKode + '.geojson';
+            const BASE_URL = <?= json_encode(site_url('/')) ?>;
+
+            if (typeof L === 'undefined') {
+                mapEl.className = 'map-placeholder';
+                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Peta tidak dapat dimuat (library Leaflet gagal dimuat).</div>';
+                return;
+            }
+
+            const fmt = n => Number(n || 0).toLocaleString('id-ID');
+            const RAMP = ['#fdeae2', '#f8c9b3', '#f2a483', '#e86f3f', '#dd4814'];
+            const COLOR_ACTIVE = '#2d6cdf';
+            const COLOR_NODATA = '#e5e1d8';
+
+            const desaSlugify = name => String(name).toLowerCase().replace(/\s+/g, '-');
+            const desaByKode = new Map(desaStats.map(d => [d.kode, d]));
+
+            function makeBucketFn(values) {
+                const sorted = values.slice().sort((a, b) => a - b);
+                const q = i => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * i / 5))] : 0;
+                const stops = [q(1), q(2), q(3), q(4), q(5)];
+                return {
+                    stops: stops,
+                    fn: function (n) {
+                        for (let i = 0; i < stops.length; i++) {
+                            if (n <= stops[i]) return i;
+                        }
+                        return stops.length - 1;
+                    }
+                };
+            }
+
+            const bucket = makeBucketFn(desaStats.map(d => d.total_jiwa || 0));
+
+            function mergeDesa(feature) {
+                const p = feature.properties || {};
+                const kode = String(p.kd_kecamatan) + '.' + String(p.kd_kelurahan);
+                const d = desaByKode.get(kode);
+                const props = {
+                    kode: kode,
+                    nama: d ? d.nama_desa : (p.nm_kelurahan || ''),
+                    slug: d ? desaSlugify(d.nama_desa) : '',
+                    hasData: !!d,
+                    isActive: !!(d && filterDesa && desaSlugify(d.nama_desa) === filterDesa),
+                    total_jiwa: d ? d.total_jiwa : 0,
+                    total_jiwa_l: d ? Number(d.total_jiwa_l) : 0,
+                    total_jiwa_p: d ? Number(d.total_jiwa_p) : 0,
+                    total_kk: d ? Number(d.total_kk) : 0,
+                    rt_count: d ? Number(d.rt_count) : 0
+                };
+                props.bucket = props.hasData ? bucket.fn(props.total_jiwa) : 0;
+                return { type: 'Feature', geometry: feature.geometry, properties: props };
+            }
+
+            // ===== Style choropleth (pengganti expression fill-color MapLibre) =====
+            function baseFill(props) {
+                return props.isActive ? COLOR_ACTIVE
+                    : (props.hasData ? RAMP[props.bucket] : COLOR_NODATA);
+            }
+            function desaStyle(feature) {
+                return {
+                    fillColor: baseFill(feature.properties || {}),
+                    fillOpacity: 0.85,
+                    color: '#ffffff',
+                    weight: 1,
+                    opacity: 1
+                };
+            }
+            // Hover: blend warna dasar 40% ke putih (ekuivalen overlay rgba(255,255,255,.40))
+            function blendWhite(hex, amt) {
+                const n = parseInt(hex.slice(1), 16);
+                const mix = c => Math.round(c + (255 - c) * amt);
+                return 'rgb(' + mix((n >> 16) & 255) + ',' + mix((n >> 8) & 255) + ',' + mix(n & 255) + ')';
+            }
+            function hoverStyle(feature) {
+                return { fillColor: blendWhite(baseFill(feature.properties || {}), 0.4), fillOpacity: 0.85 };
+            }
+
+            let desaGeo = null;
+
+            let map;
+            try {
+                map = L.map('map-desa', {
+                    scrollWheelZoom: false,
+                    zoomControl: false,
+                    minZoom: 6,
+                    maxZoom: 18
+                });
+                // View sementara sebelum fitBounds data GeoJSON siap
+                map.setView([-3.85, 114.75], 9);
+                L.control.zoom({ position: 'topright' }).addTo(map);
+                map.attributionControl.setPrefix('');
+            } catch (err) {
+                mapEl.className = 'map-placeholder';
+                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Peta tidak dapat diinisialisasi (' + ((err && err.message) || 'kesalahan tak terduga') + ').<br><small>Coba muat ulang halaman atau gunakan browser lain.</small></div>';
+                return;
+            }
+
+            const tiles = L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.carto.com/attributions">CARTO</a>'
+            }).addTo(map);
+
+            // Kegagalan tile basemap dicatat, bukan diam-diam
+            let mapTileErr = 0;
+            tiles.on('tileerror', function () {
+                mapTileErr++;
+                if (mapTileErr === 3) {
+                    const legend = document.getElementById('map-legend-desa');
+                    if (legend) {
+                        const note = document.createElement('span');
+                        note.className = 'text-muted';
+                        note.style.fontSize = '.75rem';
+                        note.innerHTML = ' &middot; <i class="bi bi-exclamation-triangle"></i> Peta dasar gagal dimuat &mdash; poligon data tetap tampil';
+                        legend.appendChild(note);
+                    }
+                }
+            });
+
+            function desaPopupHtml(d) {
+                return '<div class="pk-name">' + d.nama + '</div>' +
+                    '<div class="pk-row"><span>Total Jiwa</span><b>' + fmt(d.total_jiwa) + '</b></div>' +
+                    '<div class="pk-row"><span>Laki-laki</span><b>' + fmt(d.total_jiwa_l) + '</b></div>' +
+                    '<div class="pk-row"><span>Perempuan</span><b>' + fmt(d.total_jiwa_p) + '</b></div>' +
+                    '<div class="pk-row"><span>Kartu Keluarga</span><b>' + fmt(d.total_kk) + '</b></div>' +
+                    '<div class="pk-row"><span>Laporan</span><b>' + fmt(d.rt_count) + '</b></div>' +
+                    '<a class="pk-link" href="' + BASE_URL + <?= json_encode($kecSlug) ?> + '?desa=' + d.slug + '">Lihat detail desa →</a>';
+            }
+
+            fetch(GEO_DESA)
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(fc => {
+                    const features = (fc.features || []).map(mergeDesa);
+
+                    desaGeo = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+                        style: desaStyle,
+                        onEachFeature: function (feature, layer) {
+                            layer.bindPopup(desaPopupHtml(feature.properties), { className: 'map-popup-desa', closeButton: false, maxWidth: 300 });
+                            layer.on({
+                                mouseover: function (e) {
+                                    e.target.setStyle(hoverStyle(feature));
+                                    mapEl.style.cursor = 'pointer';
+                                },
+                                mouseout: function (e) {
+                                    if (desaGeo) desaGeo.resetStyle(e.target);
+                                    mapEl.style.cursor = '';
+                                }
+                            });
+                        }
+                    }).addTo(map);
+
+                    let activeLayer = null;
+                    desaGeo.eachLayer(function (l) {
+                        if (l.feature && l.feature.properties.isActive) activeLayer = l;
+                    });
+                    if (activeLayer) {
+                        map.fitBounds(activeLayer.getBounds(), { padding: [60, 60] });
+                    } else if (desaGeo.getLayers().length) {
+                        map.fitBounds(desaGeo.getBounds(), { padding: [40, 40] });
+                    }
+                })
+                .catch(function (err) {
+                    mapEl.className = 'map-placeholder';
+                    mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Peta tidak dapat dimuat (' + err.message + ').</div>';
+                });
+
+            // ===== Legenda (isi warna + rentang nilai) =====
+            RAMP.forEach(function (color, i) {
+                const el = document.getElementById('dlg-' + i);
+                if (!el) return;
+                const swatch = el.querySelector('.swatch');
+                const label = el.querySelector('b');
+                if (swatch) swatch.style.background = color;
+                if (label) {
+                    const lo = i === 0 ? 0 : (bucket.stops[i - 1] + 1);
+                    const hi = bucket.stops[i];
+                    label.textContent = fmt(lo) + '–' + fmt(hi);
+                }
+            });
+
+            // Klik poligon (popup) dan hover highlight ditangani langsung
+            // via bindPopup + event layer di onEachFeature.
+        })();
+    </script>
     <script>
         (function() {
             var f = document.getElementById('cursorFollower');

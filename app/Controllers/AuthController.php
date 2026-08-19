@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\UserModel;
 use App\Models\NotifikasiModel;
+use App\Models\KecamatanModel;
 class AuthController extends BaseController
 {
 
@@ -29,6 +30,11 @@ class AuthController extends BaseController
             'title' => 'Profile User',
             'user' => $this->userModel->find($this->session->get('id_user'))
         ];
+
+        if ($this->session->get('role') === 'admin_kecamatan') {
+            $data['kec'] = (new KecamatanModel())->find($this->session->get('id_kecamatan'));
+        }
+
         return view('auth/profile', $data);
     }
 
@@ -92,6 +98,67 @@ class AuthController extends BaseController
         $this->userModel->update($id, ['password' => $hash]);
 
         return redirect()->to('/profile')->with('success', 'Password berhasil diubah');
+    }
+
+    public function updateKecamatanProfile()
+    {
+        if ($this->session->get('role') !== 'admin_kecamatan') {
+            return redirect()->to('/dashboard')->with('error', 'Anda tidak memiliki akses');
+        }
+
+        $idKec = $this->session->get('id_kecamatan');
+        $kec = (new KecamatanModel())->find($idKec);
+        if (!$kec) {
+            return redirect()->to('/profile')->with('error', 'Data kecamatan tidak ditemukan');
+        }
+
+        $slugRule = 'permit_empty|max_length[100]';
+        $newSlug = $this->request->getPost('slug');
+        if ($newSlug && $newSlug !== ($kec['slug'] ?? '')) {
+            $slugRule .= '|is_unique[kecamatan.slug]';
+        }
+
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'slug'           => $slugRule,
+            'foto'           => 'permit_empty|max_size[foto,2048]|ext_in[foto,jpg,jpeg,png,webp]',
+        ]);
+
+        if (!$validation->withRequest($this->request)->run()) {
+            return redirect()->back()->withInput()->with('errors', $validation->getErrors());
+        }
+
+        $data = [
+            'slug'           => $newSlug ?: null,
+            'page_title'     => $this->request->getPost('page_title') ?: null,
+            'meta_description' => $this->request->getPost('meta_description') ?: null,
+            'deskripsi'      => $this->request->getPost('deskripsi') ?: null,
+            'nama_camat'     => $this->request->getPost('nama_camat') ?: null,
+            'alamat_kantor'  => $this->request->getPost('alamat_kantor') ?: null,
+            'telepon'        => $this->request->getPost('telepon') ?: null,
+            'email'          => $this->request->getPost('email') ?: null,
+            'jam_layanan'    => $this->request->getPost('jam_layanan') ?: null,
+        ];
+
+        $foto = $this->request->getFile('foto');
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $uploadDir = FCPATH . 'assets/uploads/kecamatan';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            if (!empty($kec['foto']) && file_exists(FCPATH . $kec['foto'])) {
+                unlink(FCPATH . $kec['foto']);
+            }
+
+            $newName = $foto->getRandomName();
+            $foto->move($uploadDir, $newName);
+            $data['foto'] = 'assets/uploads/kecamatan/' . $newName;
+        }
+
+        (new KecamatanModel())->update($idKec, $data);
+
+        return redirect()->to('/profile')->with('success', 'Data kecamatan berhasil diperbarui');
     }
 
     public function proses_login()

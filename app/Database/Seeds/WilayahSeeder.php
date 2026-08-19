@@ -174,7 +174,7 @@ class WilayahSeeder extends Seeder
                     ['nama_desa' => 'Sumber Jaya', 'kode_desa' => '63.01.07.2010'],
                     ['nama_desa' => 'Bukit Mulia', 'kode_desa' => '63.01.07.2011'],
                     ['nama_desa' => 'Kebun Raya', 'kode_desa' => '63.01.07.2012'],
-                    ['nama_desa' => 'Mekar Sari', 'kode_desa' => '63.01.07.2013'],
+                    ['nama_desa' => 'Mekar Raya', 'kode_desa' => '63.01.07.2013'],
                     ['nama_desa' => 'Sebamban Baru', 'kode_desa' => '63.01.07.2014'],
                 ];
                 foreach ($desas as $d) {

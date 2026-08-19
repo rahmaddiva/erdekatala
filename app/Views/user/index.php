@@ -82,7 +82,7 @@
     $(function () {
         $('.btn-delete-user').on('click', function (e) {
             e.preventDefault();
-            var url = $(this).data('url');
+            var form = $(this).closest('form');
             Swal.fire({
                 title: 'Hapus Pengguna?',
                 text: 'Data pengguna akan dihapus permanen.',
@@ -92,7 +92,7 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = url;
+                    form.submit();
                 }
             });
         });

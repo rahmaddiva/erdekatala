@@ -21,6 +21,12 @@
                 <form method="post" action="/users/update/<?= $user['id_user'] ?>">
                     <?= csrf_field() ?>
                     <div class="card-body">
+                        <?php if (isset($is_kecamatan) && $is_kecamatan): ?>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <input type="text" class="form-control" value="Admin Desa" disabled>
+                        </div>
+                        <?php endif; ?>
                         <div class="form-group">
                             <label>Nama Lengkap</label>
                             <input type="text" name="nama_lengkap" class="form-control"
@@ -39,13 +45,27 @@
                             <label>Konfirmasi Password</label>
                             <input type="password" name="password_confirm" class="form-control">
                         </div>
+                        <?php if (isset($is_kecamatan) && $is_kecamatan): ?>
+                        <div class="form-group">
+                            <label>Desa</label>
+                            <select name="id_desa" class="form-control">
+                                <?php foreach ($desa_list as $d): ?>
+                                <option value="<?= $d['id_desa'] ?>" <?= ($d['id_desa'] == $user['id_desa']) ? 'selected' : '' ?>>
+                                    <?= esc($d['nama_desa']) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php else: ?>
                         <div class="form-group">
                             <label>Role</label>
                             <select name="role" class="form-control">
-                                <option value="user" <?= $user['role'] == 'user' ? 'selected' : '' ?>>User</option>
-                                <option value="admin" <?= $user['role'] == 'admin' ? 'selected' : '' ?>>Admin</option>
+                                <option value="admin_desa" <?= $user['role'] == 'admin_desa' ? 'selected' : '' ?>>Admin Desa</option>
+                                <option value="admin_kecamatan" <?= $user['role'] == 'admin_kecamatan' ? 'selected' : '' ?>>Admin Kecamatan</option>
+                                <option value="admin_dinas" <?= $user['role'] == 'admin_dinas' ? 'selected' : '' ?>>Admin Dinas</option>
                             </select>
                         </div>
+                        <?php endif; ?>
                     </div>
                     <div class="card-footer">
                         <a href="/users" class="btn btn-secondary">Batal</a>

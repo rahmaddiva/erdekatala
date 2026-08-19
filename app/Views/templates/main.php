@@ -9,6 +9,7 @@
     </title>
 
     <link rel="icon" type="image/png" href="<?= base_url('assets/') ?>dist/img/erdekatala.png">
+    <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
 
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet"

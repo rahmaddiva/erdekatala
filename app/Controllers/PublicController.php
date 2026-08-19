@@ -77,6 +77,7 @@ class PublicController extends BaseController
             'filter_kec_slug' => $slug_kecamatan,
             'filter_desa_slug'=> $slug_desa,
             'map_kecamatan'   => $this->buildMapKecamatan(),
+            'desa_stats'      => $id_kecamatan_filter ? $this->getDesaStats($id_kecamatan_filter) : [],
             'totals'          => $chart['totals'],
             'pendidikan'      => $chart['pendidikan'],
             'pekerjaan'       => $chart['pekerjaan'],
@@ -424,7 +425,7 @@ class PublicController extends BaseController
     {
         $kecamatan = $this->kecamatanModel->where('is_public', 1)->findAll();
 
-        // Koordinat tetap per kecamatan (peta.web.id)
+        // Koordinat fallback per kecamatan (peta.web.id) — dipakai bila poligon tak ada
         $coords = $this->kecamatanCoordinatesMap();
 
         // Statistik agregat per kecamatan
@@ -439,17 +440,16 @@ class PublicController extends BaseController
             $id = (int) $k['id_kecamatan'];
             $key = strtoupper(trim(str_replace(['_', '-'], ' ', $k['nama_kecamatan'])));
             $key = preg_replace('/\s+/', ' ', $key) ?? $key;
-            if (!isset($coords[$key])) {
-                continue;
-            }
             $s = $stats[$k['nama_kecamatan']] ?? [];
-            $slug = $k['slug'] ?: strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
+            $slug = $k['slug'] ?: $this->slugify($k['nama_kecamatan']);
+            $c = $coords[$key] ?? null;
             $map[] = [
+                'kode'         => $this->kodeKecamatan3($k['kode_kecamatan']),
                 'id_kecamatan' => $id,
                 'nama'         => $k['nama_kecamatan'],
                 'slug'         => $slug,
-                'lat'          => $coords[$key]['lat'],
-                'lng'          => $coords[$key]['lng'],
+                'lat'          => $c['lat'] ?? null,
+                'lng'          => $c['lng'] ?? null,
                 'total_jiwa'   => (int) ($s['total_jiwa'] ?? 0),
                 'total_jiwa_l' => (int) ($s['total_jiwa_l'] ?? 0),
                 'total_jiwa_p' => (int) ($s['total_jiwa_p'] ?? 0),
@@ -459,6 +459,17 @@ class PublicController extends BaseController
         }
 
         return $map;
+    }
+
+    /**
+     * "63.01.01" / "63.01.001" -> "001" (3 digit, kunci join dengan GeoJSON BPS)
+     */
+    private function kodeKecamatan3(string $kodeKecamatan): string
+    {
+        $parts = explode('.', $kodeKecamatan);
+        $last = (string) (end($parts) ?: '');
+
+        return str_pad($last, 3, '0', STR_PAD_LEFT);
     }
 
     /** // ponytail: koordinat kecamatan Tanah Laut, sumber https://peta.web.id/peta/kab/kabupaten-tanah-laut/ */
@@ -499,7 +510,7 @@ class PublicController extends BaseController
     {
         $builder = $this->laporanModel->builder();
         $builder->select(
-            'm_desa.id_desa, m_desa.nama_desa,
+            'm_desa.id_desa, m_desa.nama_desa, m_desa.kode_desa,
              SUM(laporan_agregat.jiwa_l) AS total_jiwa_l,
              SUM(laporan_agregat.jiwa_p) AS total_jiwa_p,
              SUM(laporan_agregat.kk_l + laporan_agregat.kk_p) AS total_kk,
@@ -510,6 +521,18 @@ class PublicController extends BaseController
         $builder->groupBy('m_desa.id_desa');
         $builder->orderBy('m_desa.nama_desa', 'ASC');
 
-        return $builder->get()->getResultArray();
+        $rows = $builder->get()->getResultArray();
+
+        // Tambah kunci join GeoJSON ("002.007") + total jiwa
+        foreach ($rows as &$r) {
+            $parts = explode('.', (string) ($r['kode_desa'] ?? ''));
+            $kec = str_pad((string) ($parts[2] ?? ''), 3, '0', STR_PAD_LEFT);
+            $desa = substr((string) ($parts[3] ?? ''), -3);
+            $r['kode'] = $kec . '.' . $desa;
+            $r['total_jiwa'] = (int) $r['total_jiwa_l'] + (int) $r['total_jiwa_p'];
+        }
+        unset($r);
+
+        return $rows;
     }
 }

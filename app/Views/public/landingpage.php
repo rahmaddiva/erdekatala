@@ -43,6 +43,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
     <title>Erdekatala - Sistem Informasi Kependudukan Kabupaten Tanah Laut</title>
     <meta name="description" content="Portal data agregat kependudukan tingkat Desa-Kecamatan di Kabupaten Tanah Laut, Kalimantan Selatan.">
     <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/erdekatala.png') ?>">
+    <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
 
     <!-- Font: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -60,8 +61,8 @@ $krsFmt = static function ($v) use ($krsNum): string {
     <!-- ZingChart (CDN resmi, sama dengan dashboard) -->
     <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
 
-    <!-- MapLibre GL (peta sebaran) -->
-    <link rel="stylesheet" href="<?= base_url('assets/plugins/maplibre/css/maplibre-gl.css') ?>">
+    <!-- Leaflet (peta sebaran, file lokal di public/leaflet) -->
+    <link rel="stylesheet" href="<?= base_url('leaflet/leaflet.css') ?>">
 
     <style>
         .cursor-follower {
@@ -767,7 +768,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
             .stat-grid { gap: 0.75rem; }
         }
 
-        /* ===== PETA SEBARAN (MapLibre GL) ===== */
+        /* ===== PETA SEBARAN (Leaflet) ===== */
         .map-shell {
             background: var(--paper);
             border: 1px solid var(--border);
@@ -778,8 +779,13 @@ $krsFmt = static function ($v) use ($krsNum): string {
         #map-kecamatan {
             height: 500px;
             width: 100%;
+            position: relative;
             z-index: 0;
             background: var(--paper-2);
+        }
+        .leaflet-container {
+            background: var(--paper-2);
+            font-family: inherit;
         }
         .map-shell .map-legend {
             display: flex;
@@ -799,6 +805,27 @@ $krsFmt = static function ($v) use ($krsNum): string {
             margin-right: .4rem;
             vertical-align: middle;
         }
+        .map-shell .map-legend .swatch {
+            display: inline-block;
+            width: 13px; height: 13px;
+            border-radius: 3px;
+            margin-right: .35rem;
+            vertical-align: middle;
+            border: 1px solid rgba(15,25,35,.08);
+        }
+        .map-shell .map-legend .lg-item {
+            display: inline-flex;
+            align-items: center;
+        }
+        .map-shell .map-legend .lg-item b {
+            font-weight: 600;
+            color: var(--ink);
+            font-variant-numeric: tabular-nums;
+        }
+        .map-shell .map-legend .lg-sep {
+            width: 1px; height: 16px;
+            background: var(--border);
+        }
         .map-popup-kec { font-family: 'Poppins', sans-serif; }
         .map-popup-kec .pk-name {
             font-weight: 700; color: var(--ink); font-size: .95rem;
@@ -815,7 +842,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
             font-size: .8rem; font-weight: 600; color: var(--primary);
         }
         .map-popup-kec .pk-link:hover { color: var(--primary-d); }
-        .maplibregl-popup a { color: var(--primary); }
+        .leaflet-popup-content a { color: var(--primary); }
         .map-placeholder {
             height: 500px;
             display: flex; align-items: center; justify-content: center;
@@ -1262,7 +1289,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
 
         <?php endif; ?>
 
-        <!-- ===== PETA SEBARAN KEPENDUDUKAN (MapLibre GL) ===== -->
+        <!-- ===== PETA SEBARAN KEPENDUDUKAN (Leaflet) ===== -->
         <section class="block" style="padding-top: 0;" id="peta-sebaran">
             <div class="section-head">
                 <h2>Peta Sebaran Kependudukan</h2>
@@ -1270,11 +1297,17 @@ $krsFmt = static function ($v) use ($krsNum): string {
             </div>
             <div class="map-shell">
                 <div id="map-kecamatan"></div>
-                <div class="map-legend">
-                    <span><span class="dot" style="background:#dd4814;"></span>Total Jiwa (besar lingkaran = lebih banyak)</span>
-                    <span><span class="dot" style="background:#2d6cdf;"></span>Kecamatan terpilih</span>
-                    <span class="ms-auto text-muted">Klik marker untuk detail</span>
-                </div>
+            <div class="map-legend" id="map-legend-kec">
+                <span class="lg-item"><span class="swatch" style="background:#2d6cdf;"></span>Kecamatan terpilih</span>
+                <span class="lg-sep"></span>
+                <span class="text-muted">Total Jiwa</span>
+                <span class="lg-item" id="lg-0"><span class="swatch"></span><b></b></span>
+                <span class="lg-item" id="lg-1"><span class="swatch"></span><b></b></span>
+                <span class="lg-item" id="lg-2"><span class="swatch"></span><b></b></span>
+                <span class="lg-item" id="lg-3"><span class="swatch"></span><b></b></span>
+                <span class="lg-item" id="lg-4"><span class="swatch"></span><b></b></span>
+                <span class="ms-auto text-muted">Klik poligon untuk detail</span>
+            </div>
             </div>
         </section>
 
@@ -1757,7 +1790,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?= base_url('assets/plugins/maplibre/js/maplibre-gl.js') ?>"></script>
+    <script src="<?= base_url('leaflet/leaflet.js') ?>"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         const DT_LANG = {
@@ -1938,18 +1971,25 @@ $krsFmt = static function ($v) use ($krsNum): string {
     });
     </script>
     <script>
-        // ===== PETA SEBARAN KEPENDUDUKAN (MapLibre GL) =====
+        // ===== PETA SEBARAN KEPENDUDUKAN (Leaflet) =====
         (function () {
             const mapEl = document.getElementById('map-kecamatan');
             if (!mapEl) return;
 
             const data = <?= json_encode($map_kecamatan) ?>;
+            const desaStats = <?= json_encode($desa_stats ?? []) ?>;
             const filterKec = <?= json_encode($filter_kec_slug) ?>;
+            const filterDesa = <?= json_encode($filter_desa_slug) ?>;
 
-            if (typeof maplibregl === 'undefined' || !data.length) {
-                if (typeof maplibregl === 'undefined') {
+            const GEO_KEC = <?= json_encode(base_url('geojson/kecamatan.geojson')) ?>;
+            const GEO_DESA = <?= json_encode(base_url('geojson/desa/')) ?>;
+            const GEO_KAB = <?= json_encode(base_url('geojson/kabupaten.geojson')) ?>;
+            const BASE_URL = <?= json_encode(site_url('/')) ?>;
+
+            if (typeof L === 'undefined' || !data.length) {
+                if (typeof L === 'undefined') {
                     mapEl.className = 'map-placeholder';
-                    mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Peta tidak dapat dimuat (MapLibre CDN tidak terjangkau).</div>';
+                    mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Peta tidak dapat dimuat (library Leaflet gagal dimuat).</div>';
                     return;
                 }
                 mapEl.className = 'map-placeholder';
@@ -1957,128 +1997,287 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 return;
             }
 
-            if (!window.WebGLRenderingContext) {
-                mapEl.className = 'map-placeholder';
-                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Browser tidak mendukung WebGL yang dibutuhkan peta.</div>';
+            const fmt = n => Number(n || 0).toLocaleString('id-ID');
+            const RAMP = ['#fdeae2', '#f8c9b3', '#f2a483', '#e86f3f', '#dd4814'];
+            const COLOR_ACTIVE = '#2d6cdf';
+            const COLOR_NODATA = '#e5e1d8';
+
+            // Kecamatan yang difilter (slug)
+            const activeKec = filterKec
+                ? data.find(k => k.slug === filterKec) || null
+                : null;
+
+            // Klasifikasi 5 kelas (kuantil sederhana)
+            function makeBucketFn(values) {
+                const sorted = values.slice().sort((a, b) => a - b);
+                const q = i => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * i / 5))] : 0;
+                const stops = [q(1), q(2), q(3), q(4), q(5)];
+                return {
+                    stops: stops,
+                    fn: function (n) {
+                        for (let i = 0; i < stops.length; i++) {
+                            if (n <= stops[i]) return i;
+                        }
+                        return stops.length - 1;
+                    }
+                };
+            }
+
+            const kecBucket = makeBucketFn(data.map(k => k.total_jiwa || 0));
+            const desaBucket = makeBucketFn(desaStats.map(d => d.total_jiwa || 0));
+
+            const byKode = new Map(data.map(k => [k.kode, k]));
+            const desaByKode = new Map(desaStats.map(d => [d.kode, d]));
+
+            function mergeKec(feature) {
+                const p = feature.properties || {};
+                const k = byKode.get(String(p.kd_kecamatan));
+                const props = {
+                    kode: String(p.kd_kecamatan),
+                    nama: k ? k.nama : (p.nm_kecamatan || ''),
+                    slug: k ? k.slug : '',
+                    hasData: !!k,
+                    isActive: !!(k && activeKec && k.kode === activeKec.kode),
+                    total_jiwa: k ? k.total_jiwa : 0,
+                    total_jiwa_l: k ? k.total_jiwa_l : 0,
+                    total_jiwa_p: k ? k.total_jiwa_p : 0,
+                    total_kk: k ? k.total_kk : 0,
+                    total_pus: k ? k.total_pus : 0
+                };
+                props.bucket = props.hasData ? kecBucket.fn(props.total_jiwa) : 0;
+                return { type: 'Feature', geometry: feature.geometry, properties: props };
+            }
+
+            const activeDesaSlug = filterDesa ? String(filterDesa).toLowerCase() : '';
+            const desaSlugify = name => String(name).toLowerCase().replace(/\s+/g, '-');
+
+            function mergeDesa(feature) {
+                const p = feature.properties || {};
+                const kode = String(p.kd_kecamatan) + '.' + String(p.kd_kelurahan);
+                const d = desaByKode.get(kode);
+                const props = {
+                    kode: kode,
+                    nama: d ? d.nama_desa : (p.nm_kelurahan || ''),
+                    slug: d ? desaSlugify(d.nama_desa) : '',
+                    hasData: !!d,
+                    isActive: !!(d && activeDesaSlug && desaSlugify(d.nama_desa) === activeDesaSlug),
+                    total_jiwa: d ? d.total_jiwa : 0,
+                    total_jiwa_l: d ? Number(d.total_jiwa_l) : 0,
+                    total_jiwa_p: d ? Number(d.total_jiwa_p) : 0,
+                    total_kk: d ? Number(d.total_kk) : 0,
+                    rt_count: d ? Number(d.rt_count) : 0
+                };
+                props.bucket = props.hasData ? desaBucket.fn(props.total_jiwa) : 0;
+                return { type: 'Feature', geometry: feature.geometry, properties: props };
+            }
+
+            let map;
+            // ===== Style choropleth (pengganti expression fill-color MapLibre) =====
+            function baseFill(props) {
+                return props.isActive ? COLOR_ACTIVE
+                    : (props.hasData ? RAMP[props.bucket] : COLOR_NODATA);
+            }
+            function kecStyle(feature) {
+                return {
+                    fillColor: baseFill(feature.properties || {}),
+                    fillOpacity: 0.85,
+                    color: '#ffffff',
+                    weight: 1.2,
+                    opacity: 1
+                };
+            }
+            function desaStyle(feature) {
+                return {
+                    fillColor: baseFill(feature.properties || {}),
+                    fillOpacity: 0.85,
+                    color: '#ffffff',
+                    weight: 0.8,
+                    opacity: 1
+                };
+            }
+            // Hover: blend warna dasar 40% ke putih (ekuivalen overlay rgba(255,255,255,.40))
+            function blendWhite(hex, amt) {
+                const n = parseInt(hex.slice(1), 16);
+                const mix = c => Math.round(c + (255 - c) * amt);
+                return 'rgb(' + mix((n >> 16) & 255) + ',' + mix((n >> 8) & 255) + ',' + mix(n & 255) + ')';
+            }
+            function hoverStyle(feature) {
+                return { fillColor: blendWhite(baseFill(feature.properties || {}), 0.4), fillOpacity: 0.85 };
+            }
+
+            let kecGeo = null, desaGeo = null, kabGeo = null;
+
+            // Handler interaksi poligon kecamatan (hover + popup klik)
+            function onEachKec(feature, layer) {
+                layer.bindPopup(kecPopupHtml(feature.properties), { className: 'map-popup-kec', closeButton: false, maxWidth: 300 });
+                layer.on({
+                    mouseover: function (e) {
+                        e.target.setStyle(hoverStyle(feature));
+                        mapEl.style.cursor = 'pointer';
+                    },
+                    mouseout: function (e) {
+                        if (kecGeo) kecGeo.resetStyle(e.target);
+                        mapEl.style.cursor = '';
+                    }
+                });
+            }
+
+            // Handler interaksi poligon desa (hover + popup klik)
+            function onEachDesa(feature, layer) {
+                layer.bindPopup(desaPopupHtml(feature.properties), { className: 'map-popup-desa', closeButton: false, maxWidth: 300 });
+                layer.on({
+                    mouseover: function (e) {
+                        e.target.setStyle(hoverStyle(feature));
+                        mapEl.style.cursor = 'pointer';
+                    },
+                    mouseout: function (e) {
+                        if (desaGeo) desaGeo.resetStyle(e.target);
+                        mapEl.style.cursor = '';
+                    }
+                });
+            }
+
+            try {
+                map = L.map('map-kecamatan', {
+                    scrollWheelZoom: false,
+                    zoomControl: false,
+                    minZoom: 6,
+                    maxZoom: 18
+                });
+                // View sementara sebelum fitBounds data GeoJSON siap
+                map.setView([-3.85, 114.75], 8);
+                L.control.zoom({ position: 'topright' }).addTo(map);
+                map.attributionControl.setPrefix('');
+            } catch (err) {
+                showMapError('Peta tidak dapat diinisialisasi (' + ((err && err.message) || 'kesalahan tak terduga') + '). Coba muat ulang halaman atau gunakan browser lain.');
                 return;
             }
 
-            const fmt = n => Number(n || 0).toLocaleString('id-ID');
+            const tiles = L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.carto.com/attributions">CARTO</a>'
+            }).addTo(map);
 
-            // Cari index kecamatan yang difilter
-            const activeIdx = filterKec
-                ? data.findIndex(k => k.slug === filterKec)
-                : -1;
-
-            const maxJiwa = Math.max(...data.map(k => k.total_jiwa || 0), 1);
-
-            const features = data.map((k, i) => {
-                const isActive = (i === activeIdx);
-                const radius = isActive
-                    ? 22
-                    : 10 + 18 * Math.sqrt((k.total_jiwa || 0) / maxJiwa);
-                return {
-                    type: 'Feature',
-                    geometry: { type: 'Point', coordinates: [k.lng, k.lat] },
-                    properties: {
-                        nama: k.nama,
-                        slug: k.slug,
-                        total_jiwa: k.total_jiwa || 0,
-                        total_jiwa_l: k.total_jiwa_l || 0,
-                        total_jiwa_p: k.total_jiwa_p || 0,
-                        total_kk: k.total_kk || 0,
-                        total_pus: k.total_pus || 0,
-                        radius: radius,
-                        isActive: isActive
+            // Kegagalan tile basemap dicatat, bukan diam-diam
+            let mapTileErr = 0;
+            tiles.on('tileerror', function () {
+                mapTileErr++;
+                if (mapTileErr === 3) {
+                    const legend = document.getElementById('map-legend-kec');
+                    if (legend) {
+                        const note = document.createElement('span');
+                        note.className = 'text-muted';
+                        note.style.fontSize = '.75rem';
+                        note.innerHTML = ' &middot; <i class="bi bi-exclamation-triangle"></i> Peta dasar gagal dimuat &mdash; poligon data tetap tampil';
+                        legend.appendChild(note);
                     }
-                };
+                }
             });
 
-            const map = new maplibregl.Map({
-                container: 'map-kecamatan',
-                style: {
-                    version: 8,
-                    sources: {
-                        osm: {
-                            type: 'raster',
-                            tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
-                            tileSize: 256,
-                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                        },
-                        kecamatan: {
-                            type: 'geojson',
-                            data: { type: 'FeatureCollection', features: features }
-                        }
-                    },
-                    layers: [
-                        { id: 'osm', type: 'raster', source: 'osm' },
-                        {
-                            id: 'kec-circles',
-                            type: 'circle',
-                            source: 'kecamatan',
-                            paint: {
-                                'circle-radius': ['get', 'radius'],
-                                'circle-color': ['case', ['get', 'isActive'], '#2d6cdf', '#dd4814'],
-                                'circle-opacity': ['case', ['get', 'isActive'], 0.85, 0.55],
-                                'circle-stroke-color': ['case', ['get', 'isActive'], '#0f1923', '#ffffff'],
-                                'circle-stroke-width': ['case', ['get', 'isActive'], 3, 2]
-                            }
-                        }
-                    ]
-                },
-                attributionControl: { compact: true },
-                scrollZoom: false
-            });
-
-            map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-
-            const popup = new maplibregl.Popup({
-                offset: 20,
-                closeButton: false,
-                className: 'map-popup-kec'
-            });
-
-            function popupHtml(k) {
+            function kecPopupHtml(k) {
                 return '<div class="pk-name">' + k.nama + '</div>' +
                     '<div class="pk-row"><span>Total Jiwa</span><b>' + fmt(k.total_jiwa) + '</b></div>' +
                     '<div class="pk-row"><span>Laki-laki</span><b>' + fmt(k.total_jiwa_l) + '</b></div>' +
                     '<div class="pk-row"><span>Perempuan</span><b>' + fmt(k.total_jiwa_p) + '</b></div>' +
                     '<div class="pk-row"><span>Kartu Keluarga</span><b>' + fmt(k.total_kk) + '</b></div>' +
                     '<div class="pk-row"><span>PUS</span><b>' + fmt(k.total_pus) + '</b></div>' +
-                    '<a class="pk-link" href="' + '<?= site_url('/') ?>' + k.slug + '">Lihat detail kecamatan →</a>';
+                    '<a class="pk-link" href="' + BASE_URL + k.slug + '">Lihat detail kecamatan →</a>';
             }
 
-            map.on('click', 'kec-circles', function (e) {
-                const k = e.features[0].properties;
-                popup.setLngLat(e.features[0].geometry.coordinates)
-                    .setHTML(popupHtml(k))
-                    .addTo(map);
-            });
+            function desaPopupHtml(d) {
+                return '<div class="pk-name">' + d.nama + '</div>' +
+                    '<div class="pk-row"><span>Total Jiwa</span><b>' + fmt(d.total_jiwa) + '</b></div>' +
+                    '<div class="pk-row"><span>Laki-laki</span><b>' + fmt(d.total_jiwa_l) + '</b></div>' +
+                    '<div class="pk-row"><span>Perempuan</span><b>' + fmt(d.total_jiwa_p) + '</b></div>' +
+                    '<div class="pk-row"><span>Kartu Keluarga</span><b>' + fmt(d.total_kk) + '</b></div>' +
+                    '<div class="pk-row"><span>Laporan</span><b>' + fmt(d.rt_count) + '</b></div>' +
+                    '<a class="pk-link" href="' + BASE_URL + activeKec.slug + '?desa=' + d.slug + '">Lihat detail desa →</a>';
+            }
 
-            map.on('mouseenter', 'kec-circles', function () {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-            map.on('mouseleave', 'kec-circles', function () {
-                map.getCanvas().style.cursor = '';
-            });
+            function showMapError(msg) {
+                mapEl.className = 'map-placeholder';
+                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>' + msg + '</div>';
+            }
 
-            map.on('load', function () {
-                if (activeIdx >= 0) {
-                    const k = data[activeIdx];
-                    map.flyTo({ center: [k.lng, k.lat], zoom: 10, essential: true });
-                    popup.setLngLat([k.lng, k.lat])
-                        .setHTML(popupHtml(k))
-                        .addTo(map);
-                } else {
-                    // Center seluruh Tanah Laut
-                    const lngs = features.map(f => f.geometry.coordinates[0]);
-                    const lats = features.map(f => f.geometry.coordinates[1]);
-                    map.fitBounds([
-                        [Math.min(...lngs), Math.min(...lats)],
-                        [Math.max(...lngs), Math.max(...lats)]
-                    ], { padding: 40 });
+            // Garis batas kabupaten selalu di atas (meniru urutan layer MapLibre lama)
+            function raiseKab() {
+                if (kabGeo) { kabGeo.eachLayer(function (l) { l.bringToFront(); }); }
+            }
+
+            function loadDesa(kec) {
+                fetch(GEO_DESA + kec.kode + '.geojson')
+                    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    .then(fc => {
+                        const features = (fc.features || []).map(mergeDesa);
+                        if (!features.length) return;
+                        if (desaGeo) { map.removeLayer(desaGeo); }
+                        desaGeo = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+                            style: desaStyle,
+                            onEachFeature: onEachDesa
+                        }).addTo(map);
+                        raiseKab();
+                    })
+                    .catch(() => { /* peta kecamatan tetap tampil */ });
+            }
+
+            fetch(GEO_KEC)
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(fc => {
+                    const features = (fc.features || []).map(mergeKec);
+
+                    kecGeo = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+                        style: kecStyle,
+                        onEachFeature: onEachKec
+                    }).addTo(map);
+
+                    if (activeKec) {
+                        let activeLayer = null;
+                        kecGeo.eachLayer(function (l) {
+                            if (l.feature && l.feature.properties.kode === activeKec.kode) activeLayer = l;
+                        });
+                        if (activeLayer) {
+                            map.fitBounds(activeLayer.getBounds(), { padding: [60, 60] });
+                        } else {
+                            // Fallback ke titik lat/lng kecamatan (urutan Leaflet: [lat, lng])
+                            map.flyTo([activeKec.lat || -3.8, activeKec.lng || 114.75], 9);
+                        }
+                        loadDesa(activeKec);
+                    } else if (kecGeo.getLayers().length) {
+                        map.fitBounds(kecGeo.getBounds(), { padding: [40, 40] });
+                    }
+                    raiseKab();
+                })
+                .catch(err => showMapError('Peta tidak dapat dimuat (' + err.message + ').'));
+
+            // Garis batas kabupaten (konteks; gagal dimuat tidak menghentikan peta)
+            fetch(GEO_KAB)
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(fc => {
+                    const features = fc.features || [];
+                    if (!features.length) return;
+                    kabGeo = L.geoJSON(fc, {
+                        style: { color: '#5b6472', weight: 1.6, opacity: 0.9, dashArray: '8,4', fill: false },
+                        interactive: false
+                    }).addTo(map);
+                })
+                .catch(function () { /* opsional */ });
+
+            // ===== Legenda (isi warna + rentang nilai) =====
+            RAMP.forEach(function (color, i) {
+                const el = document.getElementById('lg-' + i);
+                if (!el) return;
+                const swatch = el.querySelector('.swatch');
+                const label = el.querySelector('b');
+                if (swatch) swatch.style.background = color;
+                if (label) {
+                    const lo = i === 0 ? 0 : (kecBucket.stops[i - 1] + 1);
+                    const hi = kecBucket.stops[i];
+                    label.textContent = fmt(lo) + '–' + fmt(hi);
                 }
             });
+
+            // Klik poligon (popup) dan hover highlight ditangani langsung
+            // via bindPopup + event layer di onEachKec/onEachDesa.
         })();
     </script>
     <script>

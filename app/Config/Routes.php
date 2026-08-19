@@ -22,6 +22,7 @@ $routes->get('/dashboard', 'DashboardController::index');
 $routes->get('/profile', 'AuthController::profile');
 $routes->post('/profile/update', 'AuthController::update_profile');
 $routes->post('/profile/password', 'AuthController::change_password');
+$routes->post('/profile/kecamatan/update', 'AuthController::updateKecamatanProfile');
 
 // routes kecamatan
 $routes->get('/kecamatan', 'KecamatanController::index');

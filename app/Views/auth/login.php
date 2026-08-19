@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="<?= base_url('assets/plugins/icheck-bootstrap/icheck-bootstrap.min.css'); ?>">
     <link rel="stylesheet" href="<?= base_url('assets/dist/css/adminlte.min.css'); ?>">
     <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/erdekatala.png') ?>">
+    <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
 
     <style>
         .cursor-follower {
