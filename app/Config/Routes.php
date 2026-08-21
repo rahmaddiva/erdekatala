@@ -101,6 +101,12 @@ $routes->group('api', function ($routes) {
         $routes->get('laporan/rekap/kecamatan', 'ApiController::rekapKecamatan');
         $routes->get('laporan/rekap/desa', 'ApiController::rekapDesa');
     });
+
+    // Endpoint peta (publik tanpa key) — sengaja DI LUAR grup apikeyauth
+    $routes->group('v1/map', function ($routes) {
+        $routes->get('kecamatan', 'ApiController::mapKecamatan');
+        $routes->get('desa', 'ApiController::mapDesa');
+    });
 });
 
 // Manajemen API key oleh admin_dinas (perlu login)

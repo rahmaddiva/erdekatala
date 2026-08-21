@@ -244,6 +244,134 @@ class LaporanAgregatModel extends Model
     }
 
     /**
+     * Daftar field indikator yang diagregasi untuk peta (snake_case, selain
+     * kunci join & field turunan total_kk/total_jiwa). Konsisten dgn library/map.md.
+     */
+    public static function mapIndicatorFields(): array
+    {
+        return [
+            // Jiwa & KK dasar
+            'jiwa_l', 'jiwa_p', 'kk_l', 'kk_p',
+            // Kelompok umur
+            'jml_balita', 'jml_remaja', 'jml_lansia',
+            // Pendidikan (7)
+            'kk_pend_tidak_sekolah', 'kk_pend_sd', 'kk_pend_smp', 'kk_pend_sma',
+            'kk_pend_diploma', 'kk_pend_s1', 'kk_pend_s2_s3',
+            // Pekerjaan (8)
+            'kk_ker_tani', 'kk_ker_nelayan', 'kk_ker_pns', 'kk_ker_swasta',
+            'kk_ker_pedagang', 'kk_ker_wiraswasta', 'kk_ker_buruh', 'kk_ker_tidak_kerja',
+            // Status kawin (4)
+            'kk_kawin', 'kk_belum_kawin', 'kk_cerai_hidup', 'kk_cerai_mati',
+            // Dokumen (5)
+            'pend_wajib_ktp', 'pend_punya_akta_lahir', 'kk_punya_akta_nikah',
+            'kk_punya_kartu_fisik', 'kk_belum_punya_kartu_fisik',
+            // JKN/BPJS (7)
+            'pend_bpjs', 'pend_non_bpjs', 'pus_jkn', 'pus_pbi', 'pus_non_pbi', 'jkn', 'non_jkn',
+            // KB & PUS
+            'kb_aktif', 'jml_pus', 'jml_penggunaan_alat_kontrasepsi',
+        ];
+    }
+
+    /**
+     * Agregasi per kecamatan untuk peta (1 query GROUP BY, bukan loop N query).
+     * Kunci join ke GeoJSON: kd_kecamatan (3 digit via PublicController::kodeKecamatan3).
+     * Mengembalikan 1 baris per kecamatan + semua field indikator (SUM, int).
+     */
+    public function getMapKecamatan(): array
+    {
+        $fields = self::mapIndicatorFields();
+        $select = ['kecamatan.id_kecamatan', 'kecamatan.kode_kecamatan'];
+        foreach ($fields as $f) {
+            $select[] = "SUM(laporan_agregat.{$f}) AS {$f}";
+        }
+
+        $rows = $this->builder()
+            ->select(implode(', ', $select))
+            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
+            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan')
+            ->groupBy(['kecamatan.id_kecamatan', 'kecamatan.kode_kecamatan'])
+            ->get()
+            ->getResultArray();
+
+        return array_map(function (array $r) {
+            return $this->normalizeMapRow($r, $this->kode3($r['kode_kecamatan'] ?? ''));
+        }, $rows);
+    }
+
+    /**
+     * Agregasi per desa untuk peta (1 query GROUP BY, bukan loop N query).
+     * Kunci join ke GeoJSON: kd_kecamatan + kd_kelurahan (dipecah dari m_desa.kode_desa).
+     * @param int|null $idKecamatan Bila diset, batasi ke kecamatan tsb.
+     */
+    public function getMapDesa(?int $idKecamatan = null): array
+    {
+        $fields = self::mapIndicatorFields();
+        $select = ['m_desa.id_desa', 'm_desa.kode_desa', 'kecamatan.kode_kecamatan'];
+        foreach ($fields as $f) {
+            $select[] = "SUM(laporan_agregat.{$f}) AS {$f}";
+        }
+
+        $builder = $this->builder()
+            ->select(implode(', ', $select))
+            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
+            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
+
+        if ($idKecamatan !== null) {
+            $builder->where('m_desa.id_kecamatan', $idKecamatan);
+        }
+
+        $builder->groupBy(['m_desa.id_desa', 'm_desa.kode_desa', 'kecamatan.kode_kecamatan']);
+
+        $rows = $builder->get()->getResultArray();
+
+        return array_map(function (array $r) {
+            $kdKecamatan = $this->kode3($r['kode_kecamatan'] ?? '');
+            $kdKelurahan = $this->kodeDesa3($r['kode_desa'] ?? '');
+            return $this->normalizeMapRow($r, $kdKecamatan, $kdKelurahan);
+        }, $rows);
+    }
+
+    /**
+     * Ubah "63.01.01" -> "001" (3 digit), konsisten dgn PublicController::kodeKecamatan3.
+     */
+    private function kode3(string $kode): string
+    {
+        $parts = explode('.', $kode);
+        return str_pad((string) (end($parts) ?: ''), 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Pecah m_desa.kode_desa "63.01.01.2001" -> "001" (3 digit terakhir bagian desa),
+     * konsisten dgn getDesaStats() public kunci {"kec"."desa"}.
+     */
+    private function kodeDesa3(string $kode): string
+    {
+        $parts = explode('.', $kode);
+        return substr((string) ($parts[3] ?? ''), -3);
+    }
+
+    /**
+     * Normalisasi satu baris agregat: buang kolom join mentah, tambah kunci join
+     * + total_kk/total_jiwa, cast semua indikator ke int (wilayah tanpa data -> 0).
+     */
+    private function normalizeMapRow(array $row, string $kdKecamatan, ?string $kdKelurahan = null): array
+    {
+        $out = ['kd_kecamatan' => $kdKecamatan];
+        if ($kdKelurahan !== null) {
+            $out['kd_kelurahan'] = $kdKelurahan;
+        }
+
+        foreach (self::mapIndicatorFields() as $f) {
+            $out[$f] = (int) ($row[$f] ?? 0);
+        }
+
+        $out['total_jiwa'] = $out['jiwa_l'] + $out['jiwa_p'];
+        $out['total_kk']   = $out['kk_l'] + $out['kk_p'];
+
+        return $out;
+    }
+
+    /**
      * Helper: daftar key yang direturn getAggregatedStats
      */
     private function getAggregatedStatsKeys(): array
