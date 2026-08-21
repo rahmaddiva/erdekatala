@@ -760,6 +760,12 @@ $krsFmt = static function ($v) use ($krsNum): string {
             padding: .65rem 1.1rem; font-size: .8rem; color: var(--muted);
             border-top: 1px solid var(--border); background: var(--paper-2);
         }
+        /* ===== YAN-KB REPORT (iframe srcdoc, mirror SIGA) ===== */
+        .yankb-frame { overflow-x: auto; }
+        .yankb-frame iframe {
+            display: block; width: 100%; min-width: 1008px; height: 70vh;
+            border: 0; background: #fff;
+        }
 
         @media (max-width: 768px) {
             .hero { padding: 3rem 0 2.5rem; }
@@ -782,6 +788,42 @@ $krsFmt = static function ($v) use ($krsNum): string {
             position: relative;
             z-index: 0;
             background: var(--paper-2);
+        }
+        .map-indicator-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .5rem;
+            padding: .8rem 1.1rem;
+            background: var(--paper);
+            border-bottom: 1px solid var(--border);
+        }
+        .map-indicator-bar label {
+            margin: 0;
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+        }
+        .map-indicator-bar select {
+            font-family: inherit;
+            font-size: .82rem;
+            color: var(--ink);
+            background: var(--paper-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: .4rem 2.1rem .4rem .75rem;
+            min-width: 230px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color .15s ease;
+        }
+        .map-indicator-bar select:hover,
+        .map-indicator-bar select:focus { border-color: var(--primary); }
+        .map-indicator-bar .lg-label-ind {
+            margin-left: auto;
+            font-size: .78rem;
+            color: var(--muted);
+            font-style: italic;
         }
         .leaflet-container {
             background: var(--paper-2);
@@ -1289,18 +1331,34 @@ $krsFmt = static function ($v) use ($krsNum): string {
 
         <?php endif; ?>
 
+        <?php $mapIndicatorGroups = include APPPATH . 'Views/public/partials/map_indicators.php'; ?>
+
         <!-- ===== PETA SEBARAN KEPENDUDUKAN (Leaflet) ===== -->
         <section class="block" style="padding-top: 0;" id="peta-sebaran">
             <div class="section-head">
                 <h2>Peta Sebaran Kependudukan</h2>
-                <span class="crumb">11 kecamatan · Total Jiwa &amp; KK per kecamatan</span>
+                <span class="crumb">11 kecamatan · Indikator agregat per kecamatan</span>
             </div>
             <div class="map-shell">
+                <div class="map-indicator-bar">
+                    <label for="ind-kec-select">Indikator:</label>
+                    <select id="ind-kec-select">
+                        <?php foreach ($mapIndicatorGroups as $grup): ?>
+                        <optgroup label="<?= esc($grup['group']) ?>">
+                            <?php foreach ($grup['items'] as $it): ?>
+                            <option value="<?= esc($it['field']) ?>"><?= esc($it['label']) ?></option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                        <?php endforeach; ?>
+                    </select>
+                    <span class="lg-label-ind" id="lg-indicator-name"></span>
+                </div>
                 <div id="map-kecamatan"></div>
             <div class="map-legend" id="map-legend-kec">
                 <span class="lg-item"><span class="swatch" style="background:#2d6cdf;"></span>Kecamatan terpilih</span>
+                <span class="lg-item"><span class="swatch" style="background:#e5e1d8;"></span>Tidak ada data</span>
                 <span class="lg-sep"></span>
-                <span class="text-muted">Total Jiwa</span>
+                <span class="lg-item lg-ind-label"></span>
                 <span class="lg-item" id="lg-0"><span class="swatch"></span><b></b></span>
                 <span class="lg-item" id="lg-1"><span class="swatch"></span><b></b></span>
                 <span class="lg-item" id="lg-2"><span class="swatch"></span><b></b></span>
@@ -1311,16 +1369,28 @@ $krsFmt = static function ($v) use ($krsNum): string {
             </div>
         </section>
 
-        <!-- ===== MONITORING VERVAL KRS (tree, mirip SIGA) ===== -->
-        <section class="block" style="padding-top: 0;" id="monitoring-krs">
+        <!-- ===== MONITORING BKKBN (tabs: VERVAL KRS + Cakupan Pelayanan KB) ===== -->
+        <section class="block" style="padding-top: 0;" id="monitoring-bkkbn">
             <div class="section-head">
-                <h2>Monitoring VERVAL KRS</h2>
-                <span class="crumb">
-                    SIGA BKKBN · Tahun 2026 · Tanah Laut
-                    <?php if (!empty($krsFilterKec)): ?> · <?= esc($krsFilterKec) ?><?php endif; ?>
-                    <?php if (!empty($krsUpdatedAt)): ?> · update <?= esc($krsUpdatedAt) ?><?php endif; ?>
-                </span>
+                <h2>Monitoring BKKBN</h2>
+                <span class="crumb">SIGA BKKBN · Tahun 2026 · Tanah Laut</span>
             </div>
+
+            <ul class="nav nav-tabs sikada-tabs" id="sigaTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-krs" type="button" role="tab" aria-selected="true">
+                        <i class="bi bi-diagram-3-fill me-1"></i>Monitoring VERVAL KRS
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-yankb" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-clipboard-data-fill me-1"></i>Cakupan Laporan Tempat Pelayanan KB
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-krs" role="tabpanel">
 
             <?php if (!empty($krsError)): ?>
                 <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
@@ -1430,6 +1500,39 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 </div>
             </div>
             <?php endif; ?>
+
+            </div><!-- /tab-krs -->
+
+            <!-- ===== TAB 2: CAKUPAN LAPORAN TEMPAT PELAYANAN KB ===== -->
+            <div class="tab-pane fade" id="tab-yankb" role="tabpanel">
+                <?php if (!empty($yankbError)): ?>
+                    <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
+                        <i class="bi bi-exclamation-triangle me-1"></i><?= esc($yankbError) ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (empty($yankbHtml)): ?>
+                    <p class="text-muted">Data Cakupan Laporan Tempat Pelayanan KB belum tersedia.</p>
+                <?php else: ?>
+                    <div class="krs-shell">
+                        <div class="krs-toolbar">
+                            <div>
+                                <h3 style="color:#ffffff;">Cakupan Laporan Tempat Pelayanan KB — Kabupaten Tanah Laut</h3>
+                                <div class="meta">SIGA BKKBN · Bulan Agustus 2026<?php if (!empty($yankbUpdatedAt)): ?> · update <?= esc($yankbUpdatedAt) ?><?php endif; ?></div>
+                            </div>
+                            <span class="badge-live">LIVE MIRROR</span>
+                        </div>
+                        <div class="yankb-frame">
+                            <iframe srcdoc="<?= esc($yankbHtml, 'attr') ?>" title="Cakupan Laporan Tempat Pelayanan KB" loading="lazy"></iframe>
+                        </div>
+                        <div class="krs-hint">
+                            Sumber data: SIGA BKKBN (live, cache 30 menit). Laporan YanKB bulanan per kecamatan.
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div><!-- /tab-yankb -->
+
+            </div><!-- /tab-content -->
         </section>
 
         <!-- ===== JELAJAHI KECAMATAN ===== -->
@@ -1971,18 +2074,28 @@ $krsFmt = static function ($v) use ($krsNum): string {
     });
     </script>
     <script>
-        // ===== PETA SEBARAN KEPENDUDUKAN (Leaflet) =====
+        // ===== PETA SEBARAN KEPENDUDUKAN (Leaflet) — tematik multi-indikator =====
+        // Data polygon + statistik dimuat dari endpoint publik GET /api/v1/map/kecamatan
+        // (single source of truth; join statistik dilakukan di server).
         (function () {
             const mapEl = document.getElementById('map-kecamatan');
             if (!mapEl) return;
 
+            // Metadata kecamatan dari server (nama/slug/titik) — statistik polygon
+            // diambil dari properti FeatureCollection endpoint, bukan dari sini.
             const data = <?= json_encode($map_kecamatan) ?>;
-            const desaStats = <?= json_encode($desa_stats ?? []) ?>;
             const filterKec = <?= json_encode($filter_kec_slug) ?>;
             const filterDesa = <?= json_encode($filter_desa_slug) ?>;
 
-            const GEO_KEC = <?= json_encode(base_url('geojson/kecamatan.geojson')) ?>;
-            const GEO_DESA = <?= json_encode(base_url('geojson/desa/')) ?>;
+            // Mapping SENTRAL label Indonesia -> field snake_case (partials/map_indicators.php)
+            const INDICATOR_GROUPS = <?= json_encode($mapIndicatorGroups) ?>;
+            const INDICATOR_LABEL = {};
+            INDICATOR_GROUPS.forEach(function (g) {
+                g.items.forEach(function (it) { INDICATOR_LABEL[it.field] = it.label; });
+            });
+
+            const API_MAP_KEC = <?= json_encode(base_url('api/v1/map/kecamatan')) ?>;
+            const API_MAP_DESA = <?= json_encode(base_url('api/v1/map/desa')) ?>;
             const GEO_KAB = <?= json_encode(base_url('geojson/kabupaten.geojson')) ?>;
             const BASE_URL = <?= json_encode(site_url('/')) ?>;
 
@@ -1998,6 +2111,9 @@ $krsFmt = static function ($v) use ($krsNum): string {
             }
 
             const fmt = n => Number(n || 0).toLocaleString('id-ID');
+            const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
             const RAMP = ['#fdeae2', '#f8c9b3', '#f2a483', '#e86f3f', '#dd4814'];
             const COLOR_ACTIVE = '#2d6cdf';
             const COLOR_NODATA = '#e5e1d8';
@@ -2007,13 +2123,14 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 ? data.find(k => k.slug === filterKec) || null
                 : null;
 
-            // Klasifikasi 5 kelas (kuantil sederhana)
+            // Klasifikasi 5 kelas (kuantil sederhana); aman untuk data flat/semua 0
             function makeBucketFn(values) {
                 const sorted = values.slice().sort((a, b) => a - b);
                 const q = i => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * i / 5))] : 0;
                 const stops = [q(1), q(2), q(3), q(4), q(5)];
                 return {
                     stops: stops,
+                    flat: stops.every(function (s) { return s === stops[0]; }),
                     fn: function (n) {
                         for (let i = 0; i < stops.length; i++) {
                             if (n <= stops[i]) return i;
@@ -2023,56 +2140,86 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 };
             }
 
-            const kecBucket = makeBucketFn(data.map(k => k.total_jiwa || 0));
-            const desaBucket = makeBucketFn(desaStats.map(d => d.total_jiwa || 0));
+            // ===== Pemilih indikator =====
+            const indicatorSelect = document.getElementById('ind-kec-select');
+            let activeField = (indicatorSelect && indicatorSelect.value) || 'total_jiwa';
+            if (indicatorSelect) indicatorSelect.value = activeField;
+
+            // ===== State layer & feature =====
+            let map;
+            let kecGeo = null, desaGeo = null, kabGeo = null;
+            let kecFeatures = [];   // feature kecamatan hasil merge endpoint + metadata
+            let desaFeatures = [];  // feature desa hasil merge endpoint (saat filter aktif)
+            let kecBucket = makeBucketFn([0]);
+            let desaBucket = makeBucketFn([0]);
 
             const byKode = new Map(data.map(k => [k.kode, k]));
-            const desaByKode = new Map(desaStats.map(d => [d.kode, d]));
-
-            function mergeKec(feature) {
-                const p = feature.properties || {};
-                const k = byKode.get(String(p.kd_kecamatan));
-                const props = {
-                    kode: String(p.kd_kecamatan),
-                    nama: k ? k.nama : (p.nm_kecamatan || ''),
-                    slug: k ? k.slug : '',
-                    hasData: !!k,
-                    isActive: !!(k && activeKec && k.kode === activeKec.kode),
-                    total_jiwa: k ? k.total_jiwa : 0,
-                    total_jiwa_l: k ? k.total_jiwa_l : 0,
-                    total_jiwa_p: k ? k.total_jiwa_p : 0,
-                    total_kk: k ? k.total_kk : 0,
-                    total_pus: k ? k.total_pus : 0
-                };
-                props.bucket = props.hasData ? kecBucket.fn(props.total_jiwa) : 0;
-                return { type: 'Feature', geometry: feature.geometry, properties: props };
-            }
-
             const activeDesaSlug = filterDesa ? String(filterDesa).toLowerCase() : '';
             const desaSlugify = name => String(name).toLowerCase().replace(/\s+/g, '-');
 
-            function mergeDesa(feature) {
+            function numVal(props, field) {
+                const v = Number((props || {})[field]);
+                return isFinite(v) ? v : 0;
+            }
+
+            // Gabung properti endpoint (indikator snake_case) dengan metadata kecamatan
+            function mergeKecMeta(feature) {
                 const p = feature.properties || {};
-                const kode = String(p.kd_kecamatan) + '.' + String(p.kd_kelurahan);
-                const d = desaByKode.get(kode);
-                const props = {
-                    kode: kode,
-                    nama: d ? d.nama_desa : (p.nm_kelurahan || ''),
-                    slug: d ? desaSlugify(d.nama_desa) : '',
-                    hasData: !!d,
-                    isActive: !!(d && activeDesaSlug && desaSlugify(d.nama_desa) === activeDesaSlug),
-                    total_jiwa: d ? d.total_jiwa : 0,
-                    total_jiwa_l: d ? Number(d.total_jiwa_l) : 0,
-                    total_jiwa_p: d ? Number(d.total_jiwa_p) : 0,
-                    total_kk: d ? Number(d.total_kk) : 0,
-                    rt_count: d ? Number(d.rt_count) : 0
-                };
-                props.bucket = props.hasData ? desaBucket.fn(props.total_jiwa) : 0;
+                const k = byKode.get(String(p.kd_kecamatan));
+                const props = Object.assign({}, p);
+                props.kode = String(p.kd_kecamatan);
+                props.nama = k ? k.nama : (p.nm_kecamatan || '');
+                props.slug = k ? k.slug : '';
+                props.hasData = !!k;
+                props.isActive = !!(k && activeKec && k.kode === activeKec.kode);
+                props.bucket = 0;
                 return { type: 'Feature', geometry: feature.geometry, properties: props };
             }
 
-            let map;
-            // ===== Style choropleth (pengganti expression fill-color MapLibre) =====
+            // Gabung properti endpoint desa dengan metadata turunan
+            function mergeDesaMeta(feature) {
+                const p = feature.properties || {};
+                const nama = p.nm_kelurahan || '';
+                const props = Object.assign({}, p);
+                props.kode = String(p.kd_kecamatan) + '.' + String(p.kd_kelurahan);
+                props.nama = nama;
+                props.slug = desaSlugify(nama);
+                props.hasData = true;
+                props.isActive = !!(activeDesaSlug && desaSlugify(nama) === activeDesaSlug);
+                props.bucket = 0;
+                return { type: 'Feature', geometry: feature.geometry, properties: props };
+            }
+
+            // Hitung ulang bucket sesuai indikator aktif, restyle layer, perbarui legenda
+            function recalcAndRestyle() {
+                if (kecFeatures.length) {
+                    kecBucket = makeBucketFn(kecFeatures.map(function (f) { return numVal(f.properties, activeField); }));
+                    kecFeatures.forEach(function (f) {
+                        f.properties.bucket = f.properties.hasData ? kecBucket.fn(numVal(f.properties, activeField)) : 0;
+                    });
+                    if (kecGeo) kecGeo.eachLayer(function (l) { l.setStyle(kecStyle(l.feature)); });
+                }
+                if (desaFeatures.length) {
+                    desaBucket = makeBucketFn(desaFeatures.map(function (f) { return numVal(f.properties, activeField); }));
+                    desaFeatures.forEach(function (f) {
+                        f.properties.bucket = f.properties.hasData ? desaBucket.fn(numVal(f.properties, activeField)) : 0;
+                    });
+                    if (desaGeo) desaGeo.eachLayer(function (l) { l.setStyle(desaStyle(l.feature)); });
+                }
+                updateLegend(kecBucket, INDICATOR_LABEL[activeField] || activeField);
+            }
+
+            function applyIndicator(field) {
+                if (!field || !INDICATOR_LABEL[field]) return;
+                activeField = field;
+                recalcAndRestyle();
+            }
+
+            if (indicatorSelect) {
+                indicatorSelect.addEventListener('change', function () { applyIndicator(this.value); });
+            }
+
+            // ===== Style choropleth =====
             function baseFill(props) {
                 return props.isActive ? COLOR_ACTIVE
                     : (props.hasData ? RAMP[props.bucket] : COLOR_NODATA);
@@ -2105,11 +2252,9 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 return { fillColor: blendWhite(baseFill(feature.properties || {}), 0.4), fillOpacity: 0.85 };
             }
 
-            let kecGeo = null, desaGeo = null, kabGeo = null;
-
             // Handler interaksi poligon kecamatan (hover + popup klik)
             function onEachKec(feature, layer) {
-                layer.bindPopup(kecPopupHtml(feature.properties), { className: 'map-popup-kec', closeButton: false, maxWidth: 300 });
+                layer.bindPopup(function (l) { return kecPopupHtml(l.feature.properties); }, { className: 'map-popup-kec', closeButton: false, maxWidth: 300 });
                 layer.on({
                     mouseover: function (e) {
                         e.target.setStyle(hoverStyle(feature));
@@ -2124,7 +2269,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
 
             // Handler interaksi poligon desa (hover + popup klik)
             function onEachDesa(feature, layer) {
-                layer.bindPopup(desaPopupHtml(feature.properties), { className: 'map-popup-desa', closeButton: false, maxWidth: 300 });
+                layer.bindPopup(function (l) { return desaPopupHtml(l.feature.properties); }, { className: 'map-popup-desa', closeButton: false, maxWidth: 300 });
                 layer.on({
                     mouseover: function (e) {
                         e.target.setStyle(hoverStyle(feature));
@@ -2164,9 +2309,9 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 mapTileErr++;
                 if (mapTileErr === 3) {
                     const legend = document.getElementById('map-legend-kec');
-                    if (legend) {
+                    if (legend && !legend.querySelector('.tile-note')) {
                         const note = document.createElement('span');
-                        note.className = 'text-muted';
+                        note.className = 'text-muted tile-note';
                         note.style.fontSize = '.75rem';
                         note.innerHTML = ' &middot; <i class="bi bi-exclamation-triangle"></i> Peta dasar gagal dimuat &mdash; poligon data tetap tampil';
                         legend.appendChild(note);
@@ -2174,29 +2319,44 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 }
             });
 
+            // Popup: nama wilayah + nilai indikator aktif + link detail
+            function pkRow(label, value) {
+                return '<div class="pk-row"><span>' + escHtml(label) + '</span><b>' + fmt(value) + '</b></div>';
+            }
+            function activeIndicatorRow(props) {
+                return pkRow(INDICATOR_LABEL[activeField] || activeField, numVal(props, activeField));
+            }
+
             function kecPopupHtml(k) {
-                return '<div class="pk-name">' + k.nama + '</div>' +
-                    '<div class="pk-row"><span>Total Jiwa</span><b>' + fmt(k.total_jiwa) + '</b></div>' +
-                    '<div class="pk-row"><span>Laki-laki</span><b>' + fmt(k.total_jiwa_l) + '</b></div>' +
-                    '<div class="pk-row"><span>Perempuan</span><b>' + fmt(k.total_jiwa_p) + '</b></div>' +
-                    '<div class="pk-row"><span>Kartu Keluarga</span><b>' + fmt(k.total_kk) + '</b></div>' +
-                    '<div class="pk-row"><span>PUS</span><b>' + fmt(k.total_pus) + '</b></div>' +
-                    '<a class="pk-link" href="' + BASE_URL + k.slug + '">Lihat detail kecamatan →</a>';
+                let html = '<div class="pk-name">' + escHtml(k.nama || '—') + '</div>';
+                html += activeIndicatorRow(k);
+                ['total_jiwa', 'total_kk'].forEach(function (fld) {
+                    if (fld !== activeField) html += pkRow(INDICATOR_LABEL[fld] || fld, numVal(k, fld));
+                });
+                html += '<div class="pk-row"><span>Jiwa L / P</span><b>' + fmt(numVal(k, 'jiwa_l')) + ' / ' + fmt(numVal(k, 'jiwa_p')) + '</b></div>';
+                if (k.slug) {
+                    html += '<a class="pk-link" href="' + BASE_URL + escHtml(k.slug) + '">Lihat detail kecamatan →</a>';
+                }
+                return html;
             }
 
             function desaPopupHtml(d) {
-                return '<div class="pk-name">' + d.nama + '</div>' +
-                    '<div class="pk-row"><span>Total Jiwa</span><b>' + fmt(d.total_jiwa) + '</b></div>' +
-                    '<div class="pk-row"><span>Laki-laki</span><b>' + fmt(d.total_jiwa_l) + '</b></div>' +
-                    '<div class="pk-row"><span>Perempuan</span><b>' + fmt(d.total_jiwa_p) + '</b></div>' +
-                    '<div class="pk-row"><span>Kartu Keluarga</span><b>' + fmt(d.total_kk) + '</b></div>' +
-                    '<div class="pk-row"><span>Laporan</span><b>' + fmt(d.rt_count) + '</b></div>' +
-                    '<a class="pk-link" href="' + BASE_URL + activeKec.slug + '?desa=' + d.slug + '">Lihat detail desa →</a>';
+                let html = '<div class="pk-name">' + escHtml(d.nama || '—') + '</div>';
+                html += activeIndicatorRow(d);
+                ['total_jiwa', 'total_kk'].forEach(function (fld) {
+                    if (fld !== activeField) html += pkRow(INDICATOR_LABEL[fld] || fld, numVal(d, fld));
+                });
+                html += '<div class="pk-row"><span>Jiwa L / P</span><b>' + fmt(numVal(d, 'jiwa_l')) + ' / ' + fmt(numVal(d, 'jiwa_p')) + '</b></div>';
+                if (activeKec && activeKec.slug && d.slug) {
+                    html += '<a class="pk-link" href="' + BASE_URL + escHtml(activeKec.slug) + '?desa=' + encodeURIComponent(d.slug) + '">Lihat detail desa →</a>';
+                }
+                return html;
             }
 
             function showMapError(msg) {
+                if (map) { try { map.remove(); } catch (e) { /* noop */ } map = null; }
                 mapEl.className = 'map-placeholder';
-                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>' + msg + '</div>';
+                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>' + escHtml(msg) + '</div>';
             }
 
             // Garis batas kabupaten selalu di atas (meniru urutan layer MapLibre lama)
@@ -2204,14 +2364,20 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 if (kabGeo) { kabGeo.eachLayer(function (l) { l.bringToFront(); }); }
             }
 
+            // Overlay poligon desa saat filter kecamatan aktif (dari endpoint map/desa)
             function loadDesa(kec) {
-                fetch(GEO_DESA + kec.kode + '.geojson')
+                fetch(API_MAP_DESA + '?id_kecamatan=' + encodeURIComponent(kec.id_kecamatan))
                     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
                     .then(fc => {
-                        const features = (fc.features || []).map(mergeDesa);
+                        const features = (fc.features || []).map(mergeDesaMeta);
                         if (!features.length) return;
+                        desaFeatures = features;
+                        desaBucket = makeBucketFn(desaFeatures.map(function (f) { return numVal(f.properties, activeField); }));
+                        desaFeatures.forEach(function (f) {
+                            f.properties.bucket = f.properties.hasData ? desaBucket.fn(numVal(f.properties, activeField)) : 0;
+                        });
                         if (desaGeo) { map.removeLayer(desaGeo); }
-                        desaGeo = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+                        desaGeo = L.geoJSON({ type: 'FeatureCollection', features: desaFeatures }, {
                             style: desaStyle,
                             onEachFeature: onEachDesa
                         }).addTo(map);
@@ -2220,15 +2386,23 @@ $krsFmt = static function ($v) use ($krsNum): string {
                     .catch(() => { /* peta kecamatan tetap tampil */ });
             }
 
-            fetch(GEO_KEC)
+            // ===== Muat FeatureCollection kecamatan dari endpoint publik =====
+            fetch(API_MAP_KEC)
                 .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
                 .then(fc => {
-                    const features = (fc.features || []).map(mergeKec);
+                    if (!fc || !Array.isArray(fc.features) || !fc.features.length) {
+                        showMapError('Data peta belum tersedia.');
+                        return;
+                    }
+                    kecFeatures = fc.features.map(mergeKecMeta);
 
-                    kecGeo = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+                    kecGeo = L.geoJSON({ type: 'FeatureCollection', features: kecFeatures }, {
                         style: kecStyle,
                         onEachFeature: onEachKec
                     }).addTo(map);
+
+                    // Hitung choropleth + legenda sesuai indikator aktif
+                    recalcAndRestyle();
 
                     if (activeKec) {
                         let activeLayer = null;
@@ -2247,7 +2421,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
                     }
                     raiseKab();
                 })
-                .catch(err => showMapError('Peta tidak dapat dimuat (' + err.message + ').'));
+                .catch(err => showMapError('Peta tidak dapat dimuat (' + ((err && err.message) || 'kesalahan jaringan') + ').'));
 
             // Garis batas kabupaten (konteks; gagal dimuat tidak menghentikan peta)
             fetch(GEO_KAB)
@@ -2262,19 +2436,33 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 })
                 .catch(function () { /* opsional */ });
 
-            // ===== Legenda (isi warna + rentang nilai) =====
-            RAMP.forEach(function (color, i) {
-                const el = document.getElementById('lg-' + i);
-                if (!el) return;
-                const swatch = el.querySelector('.swatch');
-                const label = el.querySelector('b');
-                if (swatch) swatch.style.background = color;
-                if (label) {
-                    const lo = i === 0 ? 0 : (kecBucket.stops[i - 1] + 1);
-                    const hi = kecBucket.stops[i];
-                    label.textContent = fmt(lo) + '–' + fmt(hi);
-                }
-            });
+            // ===== Legenda (warna + rentang nilai, mengikuti indikator aktif) =====
+            function updateLegend(bucket, label) {
+                const indLabel = document.querySelector('#map-legend-kec .lg-ind-label');
+                if (indLabel) indLabel.textContent = label;
+                const barLabel = document.getElementById('lg-indicator-name');
+                if (barLabel) barLabel.textContent = 'Menampilkan: ' + label;
+                RAMP.forEach(function (color, i) {
+                    const el = document.getElementById('lg-' + i);
+                    if (!el) return;
+                    const swatch = el.querySelector('.swatch');
+                    const val = el.querySelector('b');
+                    if (swatch) swatch.style.background = color;
+                    if (!val) return;
+                    if (bucket.flat) {
+                        // Data seragam (mis. semua 0): hanya kelas pertama bermakna
+                        val.textContent = i === 0 ? fmt(bucket.stops[0]) : '–';
+                        return;
+                    }
+                    const stops = bucket.stops;
+                    if (i > 0 && stops[i] === stops[i - 1]) {
+                        val.textContent = '–'; // kelas kosong karena batas identik
+                    } else {
+                        const lo = i === 0 ? 0 : (stops[i - 1] + 1);
+                        val.textContent = fmt(lo) + '–' + fmt(stops[i]);
+                    }
+                });
+            }
 
             // Klik poligon (popup) dan hover highlight ditangani langsung
             // via bindPopup + event layer di onEachKec/onEachDesa.
