@@ -71,6 +71,15 @@ class PublicController extends BaseController
         // KRS tree: kab total + 11 kecamatan (desa di-load via AJAX expand)
         $krs = $this->buildKrsTree(2026, $id_kecamatan_filter);
 
+        // Cakupan Laporan Tempat Pelayanan KB (Tabel1) + Jumlah Pelayanan Peserta KB Baru (Tabel21)
+        // Filter bulan via ?bulan=1..12 (default Agustus)
+        $yankbBulan = (int) ($this->request->getGet('bulan') ?? 8);
+        if ($yankbBulan < 1 || $yankbBulan > 12) {
+            $yankbBulan = 8;
+        }
+        $yankb   = $this->fetchYankbReport('Tabel1', 2026, $yankbBulan);
+        $yankb21 = $this->fetchYankbReport('Tabel21', 2026, $yankbBulan);
+
         $data = [
             'list_kecamatan'  => $list_kecamatan,
             'list_desa'       => $list_desa,
@@ -92,6 +101,14 @@ class PublicController extends BaseController
             'krsUpdatedAt'    => $krs['updated_at'],
             'krsError'        => $krs['error'],
             'krsFilterKec'    => $krs['filter_kec_name'],
+            'yankbHtml'       => $yankb['html'] ?? '',
+            'yankbUpdatedAt'  => $yankb['updated_at'] ?? null,
+            'yankbError'      => $yankb['error'] ?? null,
+            'yankb21Html'     => $yankb21['html'] ?? '',
+            'yankb21UpdatedAt'=> $yankb21['updated_at'] ?? null,
+            'yankb21Error'    => $yankb21['error'] ?? null,
+            'yankbBulan'      => $yankbBulan,
+            'yankbTahun'      => 2026,
         ];
 
         return view('public/landingpage', $data);
@@ -265,6 +282,56 @@ class PublicController extends BaseController
         @file_put_contents($cacheFile, json_encode($payload));
 
         return $payload;
+    }
+
+    /**
+     * Mirror laporan YanKB bulanan per kecamatan dari SIGA BKKBN (JasperReports HTML).
+     * $reportName: 'Tabel1' = Cakupan Laporan Tempat Pelayanan KB,
+     *              'Tabel21' = Jumlah Pelayanan Peserta KB Baru per Metode Kontrasepsi.
+     * Cache file 30 menit per reportName. Bulan 1-12, tahun 4 digit.
+     */
+    private function fetchYankbReport(string $reportName, int $tahun = 2026, int $bulan = 8): array
+    {
+        $cacheKey  = $reportName . '_' . $tahun . '_' . str_pad((string) $bulan, 2, '0', STR_PAD_LEFT);
+        $cacheFile = WRITEPATH . 'cache/yankb_' . $cacheKey . '.html';
+        $ttl = 1800; // 30 menit
+
+        if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $ttl) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false && $cached !== '') {
+                return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => null];
+            }
+        }
+
+        $filter = json_encode([
+            'tahun'          => (string) $tahun,
+            'bulan'          => $bulan,
+            'provinsiId'     => '22',
+            'kabupatenId'    => '322',
+            'reportName'     => $reportName,
+            'reportType'     => 'html',
+            'reportCategory' => 'YanKB-Bulanan-Kec',
+        ]);
+        $url = 'https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport'
+            . '?filterPencarian=' . urlencode($filter);
+
+        $raw = $this->httpGet($url);
+        if ($raw === null || trim($raw) === '') {
+            if (is_file($cacheFile)) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false && $cached !== '') {
+                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => 'Data cache (API tidak terjangkau).'];
+                }
+            }
+            return ['html' => '', 'updated_at' => null, 'error' => 'Gagal mengambil data Cakupan Laporan Tempat Pelayanan KB dari BKKBN.'];
+        }
+
+        if (!is_dir(dirname($cacheFile))) {
+            @mkdir(dirname($cacheFile), 0755, true);
+        }
+        @file_put_contents($cacheFile, $raw);
+
+        return ['html' => $raw, 'updated_at' => date('Y-m-d H:i:s'), 'error' => null];
     }
 
     /** GET remote URL — curl dulu, fallback file_get_contents. */

@@ -33,6 +33,15 @@ $krsNum = static function ($v): int {
 $krsFmt = static function ($v) use ($krsNum): string {
     return number_format($krsNum($v), 0, ',', '.');
 };
+// YanKB: bulan terpilih (1-12) + nama bulan Indonesia
+$yankbBulan  = (int) ($yankbBulan ?? 8);
+$yankbTahun  = (int) ($yankbTahun ?? 2026);
+$bulanNama = [
+    1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+    5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+    9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+];
+$yankbBulanNama = $bulanNama[$yankbBulan] ?? 'Agustus';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -1373,7 +1382,14 @@ $krsFmt = static function ($v) use ($krsNum): string {
         <section class="block" style="padding-top: 0;" id="monitoring-bkkbn">
             <div class="section-head">
                 <h2>Monitoring BKKBN</h2>
-                <span class="crumb">SIGA BKKBN · Tahun 2026 · Tanah Laut</span>
+                <span class="crumb">
+                    SIGA BKKBN · Tahun <?= $yankbTahun ?> · Tanah Laut
+                    <select id="yankb-bulan" class="form-select form-select-sm d-inline-block" style="width:auto; padding:.15rem .6rem; font-size:.78rem; margin-left:.5rem;" aria-label="Filter bulan laporan YanKB">
+                        <?php foreach ($bulanNama as $b => $nama): ?>
+                        <option value="<?= $b ?>" <?= $b === $yankbBulan ? 'selected' : '' ?>><?= $nama ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </span>
             </div>
 
             <ul class="nav nav-tabs sikada-tabs" id="sigaTabs" role="tablist">
@@ -1385,6 +1401,11 @@ $krsFmt = static function ($v) use ($krsNum): string {
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-yankb" type="button" role="tab" aria-selected="false">
                         <i class="bi bi-clipboard-data-fill me-1"></i>Cakupan Laporan Tempat Pelayanan KB
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-yankb21" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-people-fill me-1"></i>Jumlah Pelayanan Peserta KB Baru
                     </button>
                 </li>
             </ul>
@@ -1518,7 +1539,7 @@ $krsFmt = static function ($v) use ($krsNum): string {
                         <div class="krs-toolbar">
                             <div>
                                 <h3 style="color:#ffffff;">Cakupan Laporan Tempat Pelayanan KB — Kabupaten Tanah Laut</h3>
-                                <div class="meta">SIGA BKKBN · Bulan Agustus 2026<?php if (!empty($yankbUpdatedAt)): ?> · update <?= esc($yankbUpdatedAt) ?><?php endif; ?></div>
+                                <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankbUpdatedAt)): ?> · update <?= esc($yankbUpdatedAt) ?><?php endif; ?></div>
                             </div>
                             <span class="badge-live">LIVE MIRROR</span>
                         </div>
@@ -1531,6 +1552,35 @@ $krsFmt = static function ($v) use ($krsNum): string {
                     </div>
                 <?php endif; ?>
             </div><!-- /tab-yankb -->
+
+            <!-- ===== TAB 3: JUMLAH PELAYANAN PESERTA KB BARU (Tabel21) ===== -->
+            <div class="tab-pane fade" id="tab-yankb21" role="tabpanel">
+                <?php if (!empty($yankb21Error)): ?>
+                    <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
+                        <i class="bi bi-exclamation-triangle me-1"></i><?= esc($yankb21Error) ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (empty($yankb21Html)): ?>
+                    <p class="text-muted">Data Jumlah Pelayanan Peserta KB Baru belum tersedia.</p>
+                <?php else: ?>
+                    <div class="krs-shell">
+                        <div class="krs-toolbar">
+                            <div>
+                                <h3 style="color:#ffffff;">Jumlah Pelayanan Peserta KB Baru — Kabupaten Tanah Laut</h3>
+                                <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankb21UpdatedAt)): ?> · update <?= esc($yankb21UpdatedAt) ?><?php endif; ?></div>
+                            </div>
+                            <span class="badge-live">LIVE MIRROR</span>
+                        </div>
+                        <div class="yankb-frame">
+                            <iframe srcdoc="<?= esc($yankb21Html, 'attr') ?>" title="Jumlah Pelayanan Peserta KB Baru" loading="lazy"></iframe>
+                        </div>
+                        <div class="krs-hint">
+                            Sumber data: SIGA BKKBN (live, cache 30 menit). Laporan YanKB bulanan per kecamatan.
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div><!-- /tab-yankb21 -->
 
             </div><!-- /tab-content -->
         </section>
@@ -2071,6 +2121,16 @@ $krsFmt = static function ($v) use ($krsNum): string {
         const autoBtn = document.querySelector('#krs-tree .krs-toggle[data-role="kec"]');
         if (autoBtn) autoBtn.click();
         <?php endif; ?>
+
+        // ===== Filter bulan laporan YanKB (Tabel1/Tabel21) =====
+        const yankbBulanSel = document.getElementById('yankb-bulan');
+        if (yankbBulanSel) {
+            yankbBulanSel.addEventListener('change', function () {
+                const url = new URL(window.location.href);
+                url.searchParams.set('bulan', this.value);
+                window.location.href = url.toString();
+            });
+        }
     });
     </script>
     <script>
