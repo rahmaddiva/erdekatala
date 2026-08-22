@@ -160,8 +160,13 @@ pre code{font-size:.82rem;border-radius:6px;}
 <tr><td><span class="badge badge-success">GET</span></td><td><code>/laporan</code></td><td>Data agregat per Desa (paginasi)</td></tr>
 <tr><td><span class="badge badge-success">GET</span></td><td><code>/laporan/rekap/kecamatan</code></td><td>Rekap total per kecamatan</td></tr>
 <tr><td><span class="badge badge-success">GET</span></td><td><code>/laporan/rekap/desa?id_kecamatan=1</code></td><td>Rekap per desa</td></tr>
+<tr><td><span class="badge badge-success">GET</span></td><td><code>/map/kecamatan</code></td><td><strong>PUBLIK (tanpa API key)</strong> &mdash; FeatureCollection GeoJSON batas kecamatan + indikator statistik gabungan (untuk peta tematik/choropleth)</td></tr>
+<tr><td><span class="badge badge-success">GET</span></td><td><code>/map/desa?id_kecamatan=1</code></td><td><strong>PUBLIK (tanpa API key)</strong> &mdash; FeatureCollection GeoJSON batas desa + indikator statistik gabungan (filter kecamatan opsional)</td></tr>
 </tbody>
 </table>
+<div class="alert alert-info mt-3">
+<i class="fas fa-map mr-2"></i>Endpoint <code>/map/kecamatan</code> dan <code>/map/desa</code> bersifat <strong>publik &mdash; tidak memerlukan API key</strong> dan tidak dihitung dalam kuota harian. Keduanya mengembalikan FeatureCollection GeoJSON (<code>Content-Type: application/geo+json</code>) dengan indikator statistik gabungan (jiwa, KK, pendidikan, pekerjaan, JKN, dokumen, status kawin, umur, KB &amp; PUS) di <code>properties</code> tiap feature, siap dipakai langsung dengan Leaflet <code>L.geoJSON()</code>.
+</div>
 <p class="mb-1"><strong>Cara kirim API key (pilih salah satu):</strong></p>
 <div class="row">
 <div class="col-md-6">

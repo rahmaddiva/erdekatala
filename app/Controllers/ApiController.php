@@ -55,6 +55,8 @@ class ApiController extends BaseController
                 'GET /api/v1/laporan'                 => 'Data laporan agregat (filter: ?id_kecamatan=, ?id_desa=, ?bulan=, ?tahun=)',
                 'GET /api/v1/laporan/rekap/kecamatan' => 'Rekapitulasi per kecamatan',
                 'GET /api/v1/laporan/rekap/desa'      => 'Rekapitulasi per desa (wajib: ?id_kecamatan=)',
+                'GET /api/v1/map/kecamatan'           => 'GeoJSON FeatureCollection per kecamatan + indikator statistik gabungan (PUBLIK, tanpa API key)',
+                'GET /api/v1/map/desa'                => 'GeoJSON FeatureCollection per desa + indikator statistik gabungan (filter: ?id_kecamatan=; PUBLIK, tanpa API key)',
             ],
         ]);
     }

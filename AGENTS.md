@@ -429,9 +429,9 @@ Akun default setelah seeding:
 API publik read-only berbasis API key. Data yang diekspos adalah semua data agregat kependudukan.
 
 - Base URL: `/api/v1/`
-- Auth: `Authorization: Bearer <api_key>` atau query param `?api_key=<key>`
+- Auth: `Authorization: Bearer <api_key>` atau query param `?api_key=<key>` — **kecuali endpoint peta `/api/v1/map/*` yang bersifat publik tanpa API key**
 - Rate limit: 1000 request/hari per key (reset tengah malam)
-- Response format: JSON
+- Response format: JSON (`application/geo+json` untuk endpoint peta)
 - CSRF tidak diterapkan pada `/api/v1/*` (lihat `Filters.php`)
 
 ### Tabel `api_keys`
@@ -465,6 +465,9 @@ GET /api/v1/laporan                  Data laporan agregat per desa (paginasi, fi
 GET /api/v1/laporan/rekap/kecamatan  Rekapitulasi total per kecamatan
 GET /api/v1/laporan/rekap/desa       Rekapitulasi per desa (?id_kecamatan= wajib)
 
+GET /api/v1/map/kecamatan            GeoJSON FeatureCollection per kecamatan + indikator statistik gabungan (PUBLIK, tanpa API key)
+GET /api/v1/map/desa                 GeoJSON FeatureCollection per desa + indikator statistik gabungan (?id_kecamatan= opsional; PUBLIK, tanpa API key)
+
 GET /apikeys                         Admin: daftar semua key (admin_dinas only)
 GET /apikeys/create                  Admin: form buat key manual
 POST /apikeys/store                  Admin: simpan key manual
@@ -492,7 +495,7 @@ POST /apikeys/delete/:id             Admin: hapus key permanen
 ### Catatan Penting
 
 - Route `/api/*` dikecualikan dari filter `loggedin` di `Filters.php`
-- Filter `apikeyauth` hanya diterapkan pada grup `/api/v1/*`
+- Filter `apikeyauth` hanya diterapkan pada grup `/api/v1/*` — **kecuali** `/api/v1/map/*`: endpoint peta (`GET /api/v1/map/kecamatan` & `GET /api/v1/map/desa`) bersifat **publik tanpa API key** dan mengembalikan FeatureCollection GeoJSON (`application/geo+json`) dengan indikator statistik gabungan dari `public/geojson/*` + agregasi `LaporanAgregatModel::getMapKecamatan()`/`getMapDesa()`
 - Halaman `/api/docs`, `/api/guide`, dan `/api/register` tidak perlu auth apapun
 - Key di-generate dengan `bin2hex(random_bytes(32))` -- 64 karakter hex
 - Counter `requests_today` di-reset otomatis di `ApiKeyModel::validateKey()` saat tanggal berubah

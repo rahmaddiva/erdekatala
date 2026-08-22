@@ -208,6 +208,36 @@
                         total_jiwa_l:   { type: "integer" },
                         total_jiwa_p:   { type: "integer" }
                     }
+                },
+                GeojsonFeatureCollection: {
+                    type: "object",
+                    description: "FeatureCollection GeoJSON standar (RFC 7946). Setiap feature membawa properti wilayah asli (kd_kecamatan, nm_kecamatan / kd_kelurahan, nm_kelurahan) ditambah field indikator statistik gabungan (jiwa, KK, pendidikan, pekerjaan, JKN, dokumen adminduk, status kawin, kelompok umur, KB & PUS). Wilayah tanpa laporan tetap memiliki semua field indikator dengan nilai 0.",
+                    properties: {
+                        type: { type: "string", example: "FeatureCollection" },
+                        features: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    type: { type: "string", example: "Feature" },
+                                    geometry: { type: "object", description: "Polygon/MultiPolygon geometri wilayah" },
+                                    properties: {
+                                        type: "object",
+                                        description: "Contoh: kd_kecamatan, nm_kecamatan, total_jiwa, total_kk, jiwa_l, jiwa_p, kk_pend_sd, kk_ker_tani, pend_bpjs, jml_balita, jml_lansia, kb_aktif, jml_pus, dll. (30+ indikator)",
+                                        example: {
+                                            kd_kecamatan: "006",
+                                            nm_kecamatan: "KURAU",
+                                            total_jiwa: 15000,
+                                            total_kk: 4500,
+                                            jml_balita: 1200,
+                                            kk_pend_sd: 900,
+                                            pend_bpjs: 8000
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -344,6 +374,42 @@
                         "200": { description: "OK" },
                         "401": { description: "Unauthorized" },
                         "422": { description: "Parameter id_kecamatan wajib diisi" }
+                    }
+                }
+            },
+            "/api/v1/map/kecamatan": {
+                get: {
+                    tags: ["Peta GeoJSON"],
+                    summary: "GeoJSON Peta Kecamatan + Statistik",
+                    description: "**PUBLIK — tanpa API key.**\n\nMengembalikan FeatureCollection GeoJSON batas seluruh kecamatan di Kabupaten Tanah Laut dengan indikator statistik gabungan (jiwa, KK, pendidikan, pekerjaan, JKN/BPJS, dokumen adminduk, status kawin, kelompok umur, KB & PUS) digabungkan ke `properties` tiap feature. Cocok untuk langsung dipakai Leaflet `L.geoJSON()` guna membangun peta tematik choropleth. Wilayah tanpa laporan tetap tampil dengan nilai indikator 0.",
+                    security: [],
+                    responses: {
+                        "200": {
+                            description: "FeatureCollection GeoJSON (11 fitur kecamatan)",
+                            content: { "application/geo+json": { schema: { "$ref": "#/components/schemas/GeojsonFeatureCollection" } } }
+                        },
+                        "500": { description: "File peta tidak dapat dibaca", content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } } }
+                    }
+                }
+            },
+            "/api/v1/map/desa": {
+                get: {
+                    tags: ["Peta GeoJSON"],
+                    summary: "GeoJSON Peta Desa + Statistik",
+                    description: "**PUBLIK — tanpa API key.**\n\nMengembalikan FeatureCollection GeoJSON batas desa dengan indikator statistik gabungan (sama seperti endpoint kecamatan) digabungkan ke `properties` tiap feature. Tanpa filter: semua desa di kabupaten. Dengan `?id_kecamatan=`: hanya desa di kecamatan tersebut. Kecamatan valid tanpa data laporan tetap mengembalikan features dengan indikator 0; tanpa file peta sama sekali → `features: []`.",
+                    security: [],
+                    parameters: [{
+                        name: "id_kecamatan", in: "query", required: false,
+                        description: "Filter berdasarkan ID kecamatan (integer positif, opsional)",
+                        schema: { type: "integer" }
+                    }],
+                    responses: {
+                        "200": {
+                            description: "FeatureCollection GeoJSON per desa",
+                            content: { "application/geo+json": { schema: { "$ref": "#/components/schemas/GeojsonFeatureCollection" } } }
+                        },
+                        "422": { description: "Parameter id_kecamatan tidak valid", content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } } },
+                        "500": { description: "File peta tidak dapat dibaca", content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } } }
                     }
                 }
             }
