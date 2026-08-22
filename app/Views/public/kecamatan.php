@@ -538,6 +538,42 @@ $slugify = function($name) {
             z-index: 0;
             background: #f7f5f1;
         }
+        .map-indicator-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .5rem;
+            padding: .8rem 1.1rem;
+            background: var(--paper, #ffffff);
+            border-bottom: 1px solid var(--border, #e5e1d8);
+        }
+        .map-indicator-bar label {
+            margin: 0;
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--ink-soft, #1e2d3a);
+        }
+        .map-indicator-bar select {
+            font-family: inherit;
+            font-size: .82rem;
+            color: var(--ink, #0f1923);
+            background: var(--paper-2, #f7f5f1);
+            border: 1px solid var(--border, #e5e1d8);
+            border-radius: 8px;
+            padding: .4rem 2.1rem .4rem .75rem;
+            min-width: 230px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color .15s ease;
+        }
+        .map-indicator-bar select:hover,
+        .map-indicator-bar select:focus { border-color: var(--primary, #dd4814); }
+        .map-indicator-bar .lg-label-ind {
+            margin-left: auto;
+            font-size: .78rem;
+            color: var(--muted, #6b7280);
+            font-style: italic;
+        }
         .leaflet-container {
             background: #f7f5f1;
             font-family: inherit;
@@ -776,17 +812,36 @@ $slugify = function($name) {
                 </div>
             </div>
         </section>
+        <?php endif; ?>
+
+        <?php $mapIndicatorGroups = include APPPATH . 'Views/public/partials/map_indicators.php'; ?>
 
         <!-- ===== PETA SEBARAN PER DESA (Leaflet) ===== -->
         <section class="block" style="padding-bottom: 1.5rem;">
             <div class="section-head">
                 <h2>Peta Sebaran Penduduk per Desa</h2>
-                <span class="crumb">Total jiwa per desa di Kecamatan <?= esc($kecNama) ?></span>
+                <span class="crumb">Indikator agregat per desa di Kecamatan <?= esc($kecNama) ?></span>
             </div>
             <div class="map-shell">
+                <div class="map-indicator-bar">
+                    <label for="ind-desa-select">Indikator:</label>
+                    <select id="ind-desa-select">
+                        <?php foreach ($mapIndicatorGroups as $grup): ?>
+                        <optgroup label="<?= esc($grup['group']) ?>">
+                            <?php foreach ($grup['items'] as $it): ?>
+                            <option value="<?= esc($it['field']) ?>"><?= esc($it['label']) ?></option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                        <?php endforeach; ?>
+                    </select>
+                    <span class="lg-label-ind" id="lg-indicator-name-desa"></span>
+                </div>
                 <div id="map-desa"></div>
                 <div class="map-legend" id="map-legend-desa">
-                    <span class="text-muted">Total Jiwa</span>
+                    <span class="lg-item"><span class="swatch" style="background:#2d6cdf;"></span>Desa terpilih</span>
+                    <span class="lg-item"><span class="swatch" style="background:#e5e1d8;"></span>Tidak ada data</span>
+                    <span class="lg-sep"></span>
+                    <span class="lg-item lg-ind-label"></span>
                     <span class="lg-item" id="dlg-0"><span class="swatch"></span><b></b></span>
                     <span class="lg-item" id="dlg-1"><span class="swatch"></span><b></b></span>
                     <span class="lg-item" id="dlg-2"><span class="swatch"></span><b></b></span>
@@ -796,7 +851,6 @@ $slugify = function($name) {
                 </div>
             </div>
         </section>
-        <?php endif; ?>
 
         <?php if ($hasData): ?>
 
@@ -1521,16 +1575,26 @@ $slugify = function($name) {
     </script>
     <div class="cursor-follower" id="cursorFollower"></div>
     <script>
-        // ===== PETA SEBARAN PER DESA (Leaflet) =====
+        // ===== PETA SEBARAN PER DESA (Leaflet) — tematik multi-indikator =====
+        // Data polygon + statistik dimuat dari endpoint publik
+        // GET /api/v1/map/desa?id_kecamatan=<id> (single source of truth;
+        // join statistik dilakukan di server).
         (function () {
             const mapEl = document.getElementById('map-desa');
             if (!mapEl) return;
 
-            const desaStats = <?= json_encode($desa_stats) ?>;
-            const kecKode = <?= json_encode($kecKode) ?>;
+            const kecId = <?= json_encode((int) ($kecamatan['id_kecamatan'] ?? 0)) ?>;
+            const kecSlug = <?= json_encode($kecSlug) ?>;
             const filterDesa = <?= json_encode($selected_desa ? $slugify($selected_desa['nama_desa']) : '') ?>;
-            const GEO_DESA = <?= json_encode(base_url('geojson/desa/')) ?> + kecKode + '.geojson';
+            const API_MAP_DESA = <?= json_encode(base_url('api/v1/map/desa')) ?>;
             const BASE_URL = <?= json_encode(site_url('/')) ?>;
+
+            // Mapping SENTRAL label Indonesia -> field snake_case (partials/map_indicators.php)
+            const INDICATOR_GROUPS = <?= json_encode($mapIndicatorGroups) ?>;
+            const INDICATOR_LABEL = {};
+            INDICATOR_GROUPS.forEach(function (g) {
+                g.items.forEach(function (it) { INDICATOR_LABEL[it.field] = it.label; });
+            });
 
             if (typeof L === 'undefined') {
                 mapEl.className = 'map-placeholder';
@@ -1539,19 +1603,23 @@ $slugify = function($name) {
             }
 
             const fmt = n => Number(n || 0).toLocaleString('id-ID');
+            const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
             const RAMP = ['#fdeae2', '#f8c9b3', '#f2a483', '#e86f3f', '#dd4814'];
             const COLOR_ACTIVE = '#2d6cdf';
             const COLOR_NODATA = '#e5e1d8';
 
             const desaSlugify = name => String(name).toLowerCase().replace(/\s+/g, '-');
-            const desaByKode = new Map(desaStats.map(d => [d.kode, d]));
 
+            // Klasifikasi 5 kelas (kuantil sederhana); aman untuk data flat/semua 0
             function makeBucketFn(values) {
                 const sorted = values.slice().sort((a, b) => a - b);
                 const q = i => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * i / 5))] : 0;
                 const stops = [q(1), q(2), q(3), q(4), q(5)];
                 return {
                     stops: stops,
+                    flat: stops.every(function (s) { return s === stops[0]; }),
                     fn: function (n) {
                         for (let i = 0; i < stops.length; i++) {
                             if (n <= stops[i]) return i;
@@ -1561,29 +1629,59 @@ $slugify = function($name) {
                 };
             }
 
-            const bucket = makeBucketFn(desaStats.map(d => d.total_jiwa || 0));
+            // ===== Pemilih indikator =====
+            const indicatorSelect = document.getElementById('ind-desa-select');
+            let activeField = (indicatorSelect && indicatorSelect.value) || 'total_jiwa';
+            if (indicatorSelect) indicatorSelect.value = activeField;
 
+            // ===== State layer & feature =====
+            let map;
+            let desaGeo = null;
+            let desaFeatures = [];   // feature desa hasil merge properti endpoint
+            let desaBucket = makeBucketFn([0]);
+
+            function numVal(props, field) {
+                const v = Number((props || {})[field]);
+                return isFinite(v) ? v : 0;
+            }
+
+            // Gabung properti endpoint (indikator snake_case) dengan metadata turunan
             function mergeDesa(feature) {
                 const p = feature.properties || {};
-                const kode = String(p.kd_kecamatan) + '.' + String(p.kd_kelurahan);
-                const d = desaByKode.get(kode);
-                const props = {
-                    kode: kode,
-                    nama: d ? d.nama_desa : (p.nm_kelurahan || ''),
-                    slug: d ? desaSlugify(d.nama_desa) : '',
-                    hasData: !!d,
-                    isActive: !!(d && filterDesa && desaSlugify(d.nama_desa) === filterDesa),
-                    total_jiwa: d ? d.total_jiwa : 0,
-                    total_jiwa_l: d ? Number(d.total_jiwa_l) : 0,
-                    total_jiwa_p: d ? Number(d.total_jiwa_p) : 0,
-                    total_kk: d ? Number(d.total_kk) : 0,
-                    rt_count: d ? Number(d.rt_count) : 0
-                };
-                props.bucket = props.hasData ? bucket.fn(props.total_jiwa) : 0;
+                const nama = p.nm_kelurahan || '';
+                const props = Object.assign({}, p);
+                props.kode = String(p.kd_kecamatan) + '.' + String(p.kd_kelurahan);
+                props.nama = nama;
+                props.slug = desaSlugify(nama);
+                props.hasData = true;
+                props.isActive = !!(filterDesa && desaSlugify(nama) === filterDesa);
+                props.bucket = 0;
                 return { type: 'Feature', geometry: feature.geometry, properties: props };
             }
 
-            // ===== Style choropleth (pengganti expression fill-color MapLibre) =====
+            // Hitung ulang bucket sesuai indikator aktif, restyle layer, perbarui legenda
+            function recalcAndRestyle() {
+                if (desaFeatures.length) {
+                    desaBucket = makeBucketFn(desaFeatures.map(function (f) { return numVal(f.properties, activeField); }));
+                    desaFeatures.forEach(function (f) {
+                        f.properties.bucket = f.properties.hasData ? desaBucket.fn(numVal(f.properties, activeField)) : 0;
+                    });
+                    if (desaGeo) desaGeo.eachLayer(function (l) { l.setStyle(desaStyle(l.feature)); });
+                }
+                updateLegend(desaBucket, INDICATOR_LABEL[activeField] || activeField);
+            }
+
+            function applyIndicator(field) {
+                if (!field || !INDICATOR_LABEL[field]) return;
+                activeField = field;
+                recalcAndRestyle();
+            }
+
+            if (indicatorSelect) {
+                indicatorSelect.addEventListener('change', function () { applyIndicator(this.value); });
+            }
+
+            // ===== Style choropleth =====
             function baseFill(props) {
                 return props.isActive ? COLOR_ACTIVE
                     : (props.hasData ? RAMP[props.bucket] : COLOR_NODATA);
@@ -1607,9 +1705,21 @@ $slugify = function($name) {
                 return { fillColor: blendWhite(baseFill(feature.properties || {}), 0.4), fillOpacity: 0.85 };
             }
 
-            let desaGeo = null;
+            // Handler interaksi poligon desa (hover + popup klik)
+            function onEachDesa(feature, layer) {
+                layer.bindPopup(function (l) { return desaPopupHtml(l.feature.properties); }, { className: 'map-popup-desa', closeButton: false, maxWidth: 300 });
+                layer.on({
+                    mouseover: function (e) {
+                        e.target.setStyle(hoverStyle(feature));
+                        mapEl.style.cursor = 'pointer';
+                    },
+                    mouseout: function (e) {
+                        if (desaGeo) desaGeo.resetStyle(e.target);
+                        mapEl.style.cursor = '';
+                    }
+                });
+            }
 
-            let map;
             try {
                 map = L.map('map-desa', {
                     scrollWheelZoom: false,
@@ -1622,8 +1732,7 @@ $slugify = function($name) {
                 L.control.zoom({ position: 'topright' }).addTo(map);
                 map.attributionControl.setPrefix('');
             } catch (err) {
-                mapEl.className = 'map-placeholder';
-                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Peta tidak dapat diinisialisasi (' + ((err && err.message) || 'kesalahan tak terduga') + ').<br><small>Coba muat ulang halaman atau gunakan browser lain.</small></div>';
+                showMapError('Peta tidak dapat diinisialisasi (' + ((err && err.message) || 'kesalahan tak terduga') + '). Coba muat ulang halaman atau gunakan browser lain.');
                 return;
             }
 
@@ -1638,9 +1747,9 @@ $slugify = function($name) {
                 mapTileErr++;
                 if (mapTileErr === 3) {
                     const legend = document.getElementById('map-legend-desa');
-                    if (legend) {
+                    if (legend && !legend.querySelector('.tile-note')) {
                         const note = document.createElement('span');
-                        note.className = 'text-muted';
+                        note.className = 'text-muted tile-note';
                         note.style.fontSize = '.75rem';
                         note.innerHTML = ' &middot; <i class="bi bi-exclamation-triangle"></i> Peta dasar gagal dimuat &mdash; poligon data tetap tampil';
                         legend.appendChild(note);
@@ -1648,37 +1757,50 @@ $slugify = function($name) {
                 }
             });
 
-            function desaPopupHtml(d) {
-                return '<div class="pk-name">' + d.nama + '</div>' +
-                    '<div class="pk-row"><span>Total Jiwa</span><b>' + fmt(d.total_jiwa) + '</b></div>' +
-                    '<div class="pk-row"><span>Laki-laki</span><b>' + fmt(d.total_jiwa_l) + '</b></div>' +
-                    '<div class="pk-row"><span>Perempuan</span><b>' + fmt(d.total_jiwa_p) + '</b></div>' +
-                    '<div class="pk-row"><span>Kartu Keluarga</span><b>' + fmt(d.total_kk) + '</b></div>' +
-                    '<div class="pk-row"><span>Laporan</span><b>' + fmt(d.rt_count) + '</b></div>' +
-                    '<a class="pk-link" href="' + BASE_URL + <?= json_encode($kecSlug) ?> + '?desa=' + d.slug + '">Lihat detail desa →</a>';
+            // Popup: nama desa + nilai indikator aktif + link detail
+            function pkRow(label, value) {
+                return '<div class="pk-row"><span>' + escHtml(label) + '</span><b>' + fmt(value) + '</b></div>';
+            }
+            function activeIndicatorRow(props) {
+                return pkRow(INDICATOR_LABEL[activeField] || activeField, numVal(props, activeField));
             }
 
-            fetch(GEO_DESA)
+            function desaPopupHtml(d) {
+                let html = '<div class="pk-name">' + escHtml(d.nama || '—') + '</div>';
+                html += activeIndicatorRow(d);
+                ['total_jiwa', 'total_kk'].forEach(function (fld) {
+                    if (fld !== activeField) html += pkRow(INDICATOR_LABEL[fld] || fld, numVal(d, fld));
+                });
+                html += '<div class="pk-row"><span>Jiwa L / P</span><b>' + fmt(numVal(d, 'jiwa_l')) + ' / ' + fmt(numVal(d, 'jiwa_p')) + '</b></div>';
+                if (kecSlug && d.slug) {
+                    html += '<a class="pk-link" href="' + BASE_URL + escHtml(kecSlug) + '?desa=' + encodeURIComponent(d.slug) + '">Lihat detail desa →</a>';
+                }
+                return html;
+            }
+
+            function showMapError(msg) {
+                if (map) { try { map.remove(); } catch (e) { /* noop */ } map = null; }
+                mapEl.className = 'map-placeholder';
+                mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>' + escHtml(msg) + '</div>';
+            }
+
+            // ===== Muat FeatureCollection desa dari endpoint publik =====
+            fetch(API_MAP_DESA + '?id_kecamatan=' + encodeURIComponent(kecId))
                 .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
                 .then(fc => {
-                    const features = (fc.features || []).map(mergeDesa);
+                    if (!fc || !Array.isArray(fc.features) || !fc.features.length) {
+                        showMapError('Data peta belum tersedia.');
+                        return;
+                    }
+                    desaFeatures = fc.features.map(mergeDesa);
 
-                    desaGeo = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+                    desaGeo = L.geoJSON({ type: 'FeatureCollection', features: desaFeatures }, {
                         style: desaStyle,
-                        onEachFeature: function (feature, layer) {
-                            layer.bindPopup(desaPopupHtml(feature.properties), { className: 'map-popup-desa', closeButton: false, maxWidth: 300 });
-                            layer.on({
-                                mouseover: function (e) {
-                                    e.target.setStyle(hoverStyle(feature));
-                                    mapEl.style.cursor = 'pointer';
-                                },
-                                mouseout: function (e) {
-                                    if (desaGeo) desaGeo.resetStyle(e.target);
-                                    mapEl.style.cursor = '';
-                                }
-                            });
-                        }
+                        onEachFeature: onEachDesa
                     }).addTo(map);
+
+                    // Hitung choropleth + legenda sesuai indikator aktif
+                    recalcAndRestyle();
 
                     let activeLayer = null;
                     desaGeo.eachLayer(function (l) {
@@ -1690,27 +1812,38 @@ $slugify = function($name) {
                         map.fitBounds(desaGeo.getBounds(), { padding: [40, 40] });
                     }
                 })
-                .catch(function (err) {
-                    mapEl.className = 'map-placeholder';
-                    mapEl.innerHTML = '<div class="text-center"><i class="bi bi-map" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>Peta tidak dapat dimuat (' + err.message + ').</div>';
-                });
+                .catch(err => showMapError('Peta tidak dapat dimuat (' + ((err && err.message) || 'kesalahan jaringan') + ').'));
 
-            // ===== Legenda (isi warna + rentang nilai) =====
-            RAMP.forEach(function (color, i) {
-                const el = document.getElementById('dlg-' + i);
-                if (!el) return;
-                const swatch = el.querySelector('.swatch');
-                const label = el.querySelector('b');
-                if (swatch) swatch.style.background = color;
-                if (label) {
-                    const lo = i === 0 ? 0 : (bucket.stops[i - 1] + 1);
-                    const hi = bucket.stops[i];
-                    label.textContent = fmt(lo) + '–' + fmt(hi);
-                }
-            });
+            // ===== Legenda (warna + rentang nilai, mengikuti indikator aktif) =====
+            function updateLegend(bucket, label) {
+                const indLabel = document.querySelector('#map-legend-desa .lg-ind-label');
+                if (indLabel) indLabel.textContent = label;
+                const barLabel = document.getElementById('lg-indicator-name-desa');
+                if (barLabel) barLabel.textContent = 'Menampilkan: ' + label;
+                RAMP.forEach(function (color, i) {
+                    const el = document.getElementById('dlg-' + i);
+                    if (!el) return;
+                    const swatch = el.querySelector('.swatch');
+                    const val = el.querySelector('b');
+                    if (swatch) swatch.style.background = color;
+                    if (!val) return;
+                    if (bucket.flat) {
+                        // Data seragam (mis. semua 0): hanya kelas pertama bermakna
+                        val.textContent = i === 0 ? fmt(bucket.stops[0]) : '–';
+                        return;
+                    }
+                    const stops = bucket.stops;
+                    if (i > 0 && stops[i] === stops[i - 1]) {
+                        val.textContent = '–'; // kelas kosong karena batas identik
+                    } else {
+                        const lo = i === 0 ? 0 : (stops[i - 1] + 1);
+                        val.textContent = fmt(lo) + '–' + fmt(stops[i]);
+                    }
+                });
+            }
 
             // Klik poligon (popup) dan hover highlight ditangani langsung
-            // via bindPopup + event layer di onEachFeature.
+            // via bindPopup + event layer di onEachDesa.
         })();
     </script>
     <script>
