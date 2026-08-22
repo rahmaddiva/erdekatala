@@ -25,7 +25,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="<?= isset($laporan) ? '/laporan/update/' . $laporan['id_laporan'] : '/laporan/store' ?>"
+        <form action="<?= isset($laporan['id_laporan']) ? '/laporan/update/' . $laporan['id_laporan'] : '/laporan/store' ?>"
             method="post">
             <?= csrf_field() ?>
             <div class="card card-primary card-outline card-tabs">
@@ -275,7 +275,7 @@
                         <a href="/laporan" class="btn btn-secondary">Batal</a>
                         <button type="submit" class="btn btn-success btn-submit">
                             <i class="fas fa-save"></i>
-                            <?= isset($laporan) ? 'Update Laporan' : 'Simpan Laporan Baru' ?>
+                            <?= isset($laporan['id_laporan']) ? 'Update Laporan' : 'Simpan Laporan Baru' ?>
                         </button>
                     </div>
                 </div>

@@ -64,7 +64,7 @@ class LaporanAgregatController extends BaseController
         }
 
         $data = array_merge([
-            'title'     => $laporan ? 'Edit Laporan' : 'Input Laporan Baru',
+            'title'     => !empty($laporan['id_laporan']) ? 'Edit Laporan' : 'Input Laporan Baru',
             'laporan'   => $laporan,
             'list_desa' => $list_desa,
             'bulan'     => $this->bulanList,
@@ -642,6 +642,7 @@ class LaporanAgregatController extends BaseController
         // --- VALIDASI KONSISTENSI (soft, A/B/C2) ---
         $warnings = $consistency->check($post);
         if (!empty($warnings) && $this->request->getPost('force_save') !== '1') {
+            $post['id_laporan'] = $id;
             return $this->renderForm(['warnings' => $warnings], $post);
         }
 
