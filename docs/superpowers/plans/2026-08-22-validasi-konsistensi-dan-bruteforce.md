@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Bahasa: PHP 8.1+; framework CodeIgniter 4; session file-based.
-- Output HTML wajib `esc()`; data dari PHP ke JS via `esc(json_encode(...))`.
+- Output HTML wajib `esc()`; data dari PHP ke JS di dalam tag `<script>` via `json_encode(..., JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP)` tanpa `esc()` — `esc()` konteks html mengubah `"` menjadi `&quot;` yang tidak didekode browser di elemen raw-text `<script>` (SyntaxError); konvensi existing lihat `templates/main.php`.
 - CSRF token harus tetap menyertai semua POST form (token sudah ada di form existing; tidak boleh dihapus).
 - Validasi input harus di sisi server — dialog SweetAlert hanya menampilkan hasil, bukan tempat logika aturan.
 - Semua pesan error/warning dalam bahasa Indonesia.
@@ -545,7 +545,7 @@ Ganti isi `store()` (sekarang kira-kira baris 547–582) menjadi:
         // --- VALIDASI KONSISTENSI (soft, A/B/C2) ---
         $warnings = $consistency->check($data);
         if (!empty($warnings) && $this->request->getPost('force_save') !== '1') {
-            return $this->renderForm(['warnings' => $warnings]);
+            return $this->renderForm(['warnings' => $warnings], $data);
         }
 
         $data['id_user'] = $userId;
@@ -699,7 +699,7 @@ Tambahkan blok berikut di akhir section `scripts` (di dalam `$(document).ready(.
 
 ```javascript
         // ===== Dialog peringatan konsistensi (dari server) =====
-        const WARNINGS = <?= esc(json_encode($warnings ?? [])) ?>;
+        const WARNINGS = <?= json_encode($warnings ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP) ?>;
         if (WARNINGS.length > 0) {
             const daftar = WARNINGS.map(function (w, i) { return (i + 1) + '. ' + w.message; }).join('\n');
             Swal.fire({
@@ -723,7 +723,7 @@ Tambahkan blok berikut di akhir section `scripts` (di dalam `$(document).ready(.
         }
 ```
 
-Catatan: `text:` SweetAlert2 dirender sebagai teks murni (aman dari XSS); `esc(json_encode(...))` melindungi sisi PHP→JS.
+Catatan: `text:` SweetAlert2 dirender sebagai teks murni (aman dari XSS); `json_encode` dengan `JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP` membuat output aman di dalam `<script>` tanpa `esc()` (yang justru merusak JSON).
 
 - [ ] **Step 4: Verifikasi render view**
 

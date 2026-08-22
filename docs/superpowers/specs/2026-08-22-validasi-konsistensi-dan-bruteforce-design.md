@@ -105,7 +105,7 @@ Berlaku sama untuk `LaporanAgregatController::store()` dan `update()`:
 2. **`validateBasic()`** → jika ada hard error: `redirect()->back()->withInput()->with('error', ...)` (perilaku standar).
 3. Cek duplikat periode (existing, tidak berubah — hanya di `store()`).
 4. **`check()`** → kumpulkan warnings.
-5. Jika warnings tidak kosong **dan** POST tidak mengandung `force_save=1`: render ulang view form secara langsung (tanpa redirect) dengan variabel `$warnings` berisi daftar warning. Nilai isian dipertahankan via `old()`.
+5. Jika warnings tidak kosong **dan** POST tidak mengandung `force_save=1`: render ulang view form secara langsung (tanpa redirect) dengan variabel `$warnings` berisi daftar warning. Controller meneruskan data POST sebagai `$laporan` agar isian terisi kembali (`old()` di vendor CI4 ini hanya membaca flash session hasil `redirect()->withInput()`, tidak fallback ke POST).
 6. Jika `force_save=1`: simpan seperti biasa; warnings diabaikan. Audit log (`laporan_log`) dicatat normal (aksi `create`/`update`) — tidak ada penanda khusus bahwa laporan disimpan dengan warning.
 
 ### 2.5 Perubahan view form (`app/Views/laporan/form.php`)
@@ -114,7 +114,7 @@ Berlaku sama untuk `LaporanAgregatController::store()` dan `update()`:
 2. **Fix bug 85+**: array `$groups` berubah dari `'85_plus'` menjadi `'85_atas'`; label khusus untuk grup terakhir ditampilkan sebagai "85+" (bukan "85-atas").
 3. **Dialog warning**: jika view menerima `$warnings` tidak kosong, tampilkan SweetAlert2 modal saat halaman dimuat:
    - Judul: "Data Belum Konsisten"
-   - Isi: daftar warning (di-`esc()`; diinjeksi ke JS via `json_encode` + `esc()`)
+   - Isi: daftar warning (SweetAlert2 `text:` merender sebagai teks murni; data diinjeksi ke JS via `json_encode(..., JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP)` — tanpa `esc()`, karena `esc()` konteks html menghasilkan `&quot;` yang tidak didekode browser di dalam tag `<script>` dan memicu SyntaxError)
    - Tombol **"Perbaiki Data"** (sekunder): menutup dialog, user mengedit form.
    - Tombol **"Tetap Simpan"** (primer, warning): menambahkan hidden input `force_save=1` ke form lalu submit.
 4. Hidden input `force_save` tidak dirender secara default; hanya diinjeksi JS saat "Tetap Simpan" diklik.
