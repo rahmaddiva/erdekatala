@@ -489,7 +489,7 @@ Tambahkan method berikut tepat setelah `__construct()` (sebelum `generatePdf`):
         }
 
         $data = array_merge([
-            'title'     => $laporan ? 'Edit Laporan' : 'Input Laporan Baru',
+            'title'     => !empty($laporan['id_laporan']) ? 'Edit Laporan' : 'Input Laporan Baru',
             'laporan'   => $laporan,
             'list_desa' => $list_desa,
             'bulan'     => $this->bulanList,
@@ -586,6 +586,7 @@ Ganti isi `update($id)` (sekarang kira-kira baris 616–636) menjadi:
         // --- VALIDASI KONSISTENSI (soft, A/B/C2) ---
         $warnings = $consistency->check($post);
         if (!empty($warnings) && $this->request->getPost('force_save') !== '1') {
+            $post['id_laporan'] = $id; // agar view mendeteksi mode edit (action & tombol)
             return $this->renderForm(['warnings' => $warnings], $post);
         }
 
@@ -677,6 +678,7 @@ Ubah pola nilai input di `form.php`:
 2. Select bulan (±baris 77): ganti blok penentu `selected` menjadi membandingkan `old('bulan', $laporan['bulan'] ?? date('n'))` dengan `$val`.
 3. Input tahun (±baris 86): `value="<?= old('tahun', $laporan['tahun'] ?? date('Y')) ?>"`.
 4. Semua input numerik lain (pola `value="<?= $laporan[$field] ?? 0 ?>"` di loop `$pokok`, `$pend`, `$kerja`, `$kawin`, `$misc1`, `$misc2`, `$misc3` dan dua loop piramida `u<?= $g ?>_l`/`_p`): ganti menjadi `value="<?= old($field, $laporan[$field] ?? 0) ?>"` dan `value="<?= old('u'.$g.'_l', $laporan['u'.$g.'_l'] ?? 0) ?>"` / `..._p` serupa.
+5. Deteksi mode edit di view diubah dari `isset($laporan)` menjadi key-presence `isset($laporan['id_laporan'])` (action form ±baris 28 dan label tombol ±baris 278), dan `renderForm()` menentukan title via `!empty($laporan['id_laporan'])` — karena pada render ulang warning `$laporan` berisi array POST yang tidak memiliki `id_laporan` (create) sehingga `isset($laporan)` saja salah mendeteksi mode; `update()` menginjeksi `$post['id_laporan'] = $id` di cabang warning agar mode edit tetap terdeteksi.
 
 - [ ] **Step 2: Fix field umur 85+**
 
