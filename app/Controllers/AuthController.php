@@ -7,6 +7,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\UserModel;
 use App\Models\NotifikasiModel;
 use App\Models\KecamatanModel;
+use App\Libraries\LoginThrottle;
 class AuthController extends BaseController
 {
 
@@ -177,8 +178,23 @@ class AuthController extends BaseController
         $username = $this->request->getPost('username');
         $password = $this->request->getPost('password');
         $remember = $this->request->getPost('remember');
+
+        // --- PROTEKSI BRUTE-FORCE ---
+        $throttle = new LoginThrottle();
+        $ip = $this->request->getIPAddress();
+
+        if ($sisa = $throttle->isLocked($username, $ip)) {
+            $menit = (int) ceil($sisa / 60);
+            return redirect()->back()->withInput()->with(
+                'error',
+                "Terlalu banyak percobaan login yang gagal. Silakan coba lagi dalam {$menit} menit."
+            );
+        }
+
         $user = $this->userModel->where('username', $username)->first();
         if ($user && password_verify($password, $user['password'])) {
+            $throttle->clear($username, $ip);
+
             // regenerate session ID to prevent session fixation
             $this->session->regenerate(true);
             $this->session->set([
@@ -204,6 +220,7 @@ class AuthController extends BaseController
 
             return redirect()->to('/dashboard');
         } else {
+            $throttle->registerFailure($username, $ip);
             return redirect()->back()->withInput()->with('error', 'Username atau password salah');
         }
     }
