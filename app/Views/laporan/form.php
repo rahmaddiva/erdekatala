@@ -62,7 +62,7 @@
                                     <select name="id_desa" class="form-control select2bs4" required>
                                         <option value="">-- Pilih Desa --</option>
                                         <?php foreach ($list_desa as $desa): ?>
-                                            <option value="<?= $desa['id_desa'] ?>" <?= (isset($laporan) && $laporan['id_desa'] == $desa['id_desa']) ? 'selected' : '' ?>>
+                                            <option value="<?= $desa['id_desa'] ?>" <?= (old('id_desa', $laporan['id_desa'] ?? '') == $desa['id_desa'] && old('id_desa', $laporan['id_desa'] ?? '') !== '') ? 'selected' : '' ?>>
                                                 <?= esc($desa['nama_desa']) ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -74,7 +74,7 @@
                                         <?php
                                         $nama_bulan = [1 => "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
                                         foreach ($nama_bulan as $val => $name): ?>
-                                            <option value="<?= $val ?>" <?= (isset($laporan) && $laporan['bulan'] == $val) ? 'selected' : (date('n') == $val ? 'selected' : '') ?>>
+                                            <option value="<?= $val ?>" <?= (old('bulan', $laporan['bulan'] ?? date('n')) == $val) ? 'selected' : '' ?>>
                                                 <?= $name ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -83,7 +83,7 @@
                                 <div class="col-md-4">
                                     <label>Tahun</label>
                                     <input type="number" name="tahun" class="form-control"
-                                        value="<?= $laporan['tahun'] ?? date('Y') ?>" required>
+                                        value="<?= old('tahun', $laporan['tahun'] ?? date('Y')) ?>" required>
                                 </div>
                             </div>
                             <hr>
@@ -99,7 +99,7 @@
                                     <div class="col-md-3">
                                         <label><?= $label ?></label>
                                         <input type="number" name="<?= $field ?>" class="form-control"
-                                            value="<?= $laporan[$field] ?? 0 ?>" min="0">
+                                            value="<?= old($field, $laporan[$field] ?? 0) ?>" min="0">
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -123,7 +123,7 @@
                                         <div class="form-group mb-1">
                                             <small><?= $l ?></small>
                                             <input type="number" name="<?= $f ?>" class="form-control form-control-sm"
-                                                value="<?= $laporan[$f] ?? 0 ?>">
+                                                value="<?= old($f, $laporan[$f] ?? 0) ?>">
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -144,7 +144,7 @@
                                         <div class="form-group mb-1">
                                             <small><?= $l ?></small>
                                             <input type="number" name="<?= $f ?>" class="form-control form-control-sm"
-                                                value="<?= $laporan[$f] ?? 0 ?>">
+                                                value="<?= old($f, $laporan[$f] ?? 0) ?>">
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -161,7 +161,7 @@
                                         <div class="form-group mb-1">
                                             <small><?= $l ?></small>
                                             <input type="number" name="<?= $f ?>" class="form-control form-control-sm"
-                                                value="<?= $laporan[$f] ?? 0 ?>">
+                                                value="<?= old($f, $laporan[$f] ?? 0) ?>">
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -171,18 +171,18 @@
                         <div class="tab-pane fade" id="tab-piramida">
                             <div class="row">
                                 <?php
-                                $groups = ['0_4', '5_9', '10_14', '15_19', '20_24', '25_29', '30_34', '35_39', '40_44', '45_49', '50_54', '55_59', '60_64', '65_69', '70_74', '75_79', '80_84', '85_plus'];
+                                $groups = ['0_4', '5_9', '10_14', '15_19', '20_24', '25_29', '30_34', '35_39', '40_44', '45_49', '50_54', '55_59', '60_64', '65_69', '70_74', '75_79', '80_84', '85_atas'];
                                 ?>
                                 <div class="col-md-6 border-right">
                                     <h5 class="text-center text-primary">Laki-Laki (L)</h5>
                                     <?php foreach ($groups as $g): ?>
                                         <div class="form-group row mb-1">
                                             <label class="col-sm-5 col-form-label-sm">Umur
-                                                <?= str_replace('_', '-', $g) ?></label>
+                                                <?= $g === '85_atas' ? '85+' : str_replace('_', '-', $g) ?></label>
                                             <div class="col-sm-7">
                                                 <input type="number" name="u<?= $g ?>_l"
                                                     class="form-control form-control-sm"
-                                                    value="<?= $laporan["u{$g}_l"] ?? 0 ?>">
+                                                    value="<?= old('u'.$g.'_l', $laporan["u{$g}_l"] ?? 0) ?>">
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -192,11 +192,11 @@
                                     <?php foreach ($groups as $g): ?>
                                         <div class="form-group row mb-1">
                                             <label class="col-sm-5 col-form-label-sm">Umur
-                                                <?= str_replace('_', '-', $g) ?></label>
+                                                <?= $g === '85_atas' ? '85+' : str_replace('_', '-', $g) ?></label>
                                             <div class="col-sm-7">
                                                 <input type="number" name="u<?= $g ?>_p"
                                                     class="form-control form-control-sm"
-                                                    value="<?= $laporan["u{$g}_p"] ?? 0 ?>">
+                                                    value="<?= old('u'.$g.'_p', $laporan["u{$g}_p"] ?? 0) ?>">
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -222,7 +222,7 @@
                                         <div class="form-group mb-1">
                                             <small><?= $l ?></small>
                                             <input type="number" name="<?= $f ?>" class="form-control form-control-sm"
-                                                value="<?= $laporan[$f] ?? 0 ?>">
+                                                value="<?= old($f, $laporan[$f] ?? 0) ?>">
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -242,7 +242,7 @@
                                         <div class="form-group mb-1">
                                             <small><?= $l ?></small>
                                             <input type="number" name="<?= $f ?>" class="form-control form-control-sm"
-                                                value="<?= $laporan[$f] ?? 0 ?>">
+                                                value="<?= old($f, $laporan[$f] ?? 0) ?>">
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -260,7 +260,7 @@
                                         <div class="form-group mb-1">
                                             <small><?= $l ?></small>
                                             <input type="number" name="<?= $f ?>" class="form-control form-control-sm"
-                                                value="<?= $laporan[$f] ?? 0 ?>">
+                                                value="<?= old($f, $laporan[$f] ?? 0) ?>">
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -361,6 +361,30 @@
                 if (result.isConfirmed) fetchAndFill(false);
             });
         });
+
+        // ===== Dialog peringatan konsistensi (dari server) =====
+        const WARNINGS = <?= esc(json_encode($warnings ?? [])) ?>;
+        if (WARNINGS.length > 0) {
+            const daftar = WARNINGS.map(function (w, i) { return (i + 1) + '. ' + w.message; }).join('\n');
+            Swal.fire({
+                title: 'Data Belum Konsisten',
+                text: daftar,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Tetap Simpan',
+                cancelButtonText: 'Perbaiki Data',
+                confirmButtonColor: '#d33',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    if (!$('input[name="force_save"]').length) {
+                        $('form').first().append('<input type="hidden" name="force_save" value="1">');
+                    }
+                    $('form').first().submit();
+                }
+            });
+        }
     });
 </script>
 <?= $this->endSection() ?>
