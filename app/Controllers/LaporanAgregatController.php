@@ -7,6 +7,7 @@ use App\Models\LaporanAgregatModel;
 use App\Models\LaporanLogModel;
 use App\Models\DesaModel;
 use App\Models\KecamatanModel;
+use App\Libraries\LaporanConsistency;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -46,6 +47,31 @@ class LaporanAgregatController extends BaseController
             11 => 'November',
             12 => 'Desember'
         ];
+    }
+
+    /**
+     * Render form laporan (create/edit) — dipakai create(), edit(), dan
+     * render ulang saat validasi konsistensi menemukan warning.
+     */
+    private function renderForm(array $extra = [], ?array $laporan = null)
+    {
+        $user = session()->get();
+
+        if ($user['role'] == 'admin_desa') {
+            $list_desa = $this->desaModel->where('id_desa', $user['id_desa'])->findAll();
+        } else {
+            $list_desa = $this->desaModel->orderBy('nama_desa', 'ASC')->findAll();
+        }
+
+        $data = array_merge([
+            'title'     => $laporan ? 'Edit Laporan' : 'Input Laporan Baru',
+            'laporan'   => $laporan,
+            'list_desa' => $list_desa,
+            'bulan'     => $this->bulanList,
+            'warnings'  => [],
+        ], $extra);
+
+        return view('laporan/form', $data);
     }
 
     private function generatePdf($laporan, $user, array $sections = [])
@@ -520,28 +546,11 @@ class LaporanAgregatController extends BaseController
     // Form Input Baru
     public function create()
     {
-        $user = session()->get();
-
-        if ($user['role'] == 'admin_kecamatan') {
+        if (session()->get('role') == 'admin_kecamatan') {
             return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat menginput laporan.');
         }
 
-        // Ambil daftar desa berdasarkan Role
-        if ($user['role'] == 'admin_desa') {
-            $list_desa = $this->desaModel->where('id_desa', $user['id_desa'])->findAll();
-        } elseif ($user['role'] == 'admin_kecamatan') {
-            $list_desa = $this->desaModel->where('id_kecamatan', $user['id_kecamatan'])->orderBy('nama_desa', 'ASC')->findAll();
-        } else {
-            $list_desa = $this->desaModel->orderBy('nama_desa', 'ASC')->findAll();
-        }
-
-        $data = [
-            'title'     => 'Input Laporan Baru',
-            'list_desa' => $list_desa,
-            'bulan'     => $this->bulanList
-        ];
-
-        return view('laporan/form', $data);
+        return $this->renderForm();
     }
 
     public function store()
@@ -557,6 +566,13 @@ class LaporanAgregatController extends BaseController
             return redirect()->back()->with('error', 'Sesi habis, silakan login ulang.');
         }
 
+        // --- VALIDASI DASAR (hard, C1) ---
+        $consistency = new LaporanConsistency();
+        $basicErrors = $consistency->validateBasic($data);
+        if (!empty($basicErrors)) {
+            return redirect()->back()->withInput()->with('error', implode(' ', $basicErrors));
+        }
+
         // --- VALIDASI DUPLIKAT ---
         $exists = $this->laporanModel->where([
             'id_desa' => $data['id_desa'],
@@ -570,6 +586,12 @@ class LaporanAgregatController extends BaseController
                 "Data untuk desa tersebut pada periode <b>" . $this->bulanList[$data['bulan']] . " " . $data['tahun'] . "</b> sudah ada! 
             <a href='/laporan/edit/" . $exists['id_laporan'] . "' class='alert-link'>Klik di sini untuk edit data tersebut.</a>"
             );
+        }
+
+        // --- VALIDASI KONSISTENSI (soft, A/B/C2) ---
+        $warnings = $consistency->check($data);
+        if (!empty($warnings) && $this->request->getPost('force_save') !== '1') {
+            return $this->renderForm(['warnings' => $warnings]);
         }
 
         $data['id_user'] = $userId;
@@ -594,22 +616,7 @@ class LaporanAgregatController extends BaseController
         if (!$laporan)
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
 
-        // Ambil list desa berdasarkan role
-        if ($user['role'] == 'admin_desa') {
-            $list_desa = $this->desaModel->where('id_desa', $user['id_desa'])->findAll();
-        } elseif ($user['role'] == 'admin_kecamatan') {
-            $list_desa = $this->desaModel->where('id_kecamatan', $user['id_kecamatan'])->orderBy('nama_desa', 'ASC')->findAll();
-        } else {
-            $list_desa = $this->desaModel->orderBy('nama_desa', 'ASC')->findAll();
-        }
-
-        $data = [
-            'title'     => 'Edit Laporan',
-            'laporan'   => $laporan,
-            'list_desa' => $list_desa,
-            'bulan'     => $this->bulanList
-        ];
-        return view('laporan/form', $data);
+        return $this->renderForm([], $laporan);
     }
 
     // Update Data
@@ -620,7 +627,23 @@ class LaporanAgregatController extends BaseController
         }
 
         $old  = $this->laporanModel->find($id);
+        if (!$old) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
         $post = $this->request->getPost();
+
+        // --- VALIDASI DASAR (hard, C1) ---
+        $consistency = new LaporanConsistency();
+        $basicErrors = $consistency->validateBasic($post);
+        if (!empty($basicErrors)) {
+            return redirect()->back()->withInput()->with('error', implode(' ', $basicErrors));
+        }
+
+        // --- VALIDASI KONSISTENSI (soft, A/B/C2) ---
+        $warnings = $consistency->check($post);
+        if (!empty($warnings) && $this->request->getPost('force_save') !== '1') {
+            return $this->renderForm(['warnings' => $warnings], $post);
+        }
 
         if ($this->laporanModel->update($id, $post)) {
             $diff = $this->buildDiff($old, $post);
