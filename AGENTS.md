@@ -436,19 +436,26 @@ API publik read-only berbasis API key. Data yang diekspos adalah semua data agre
 
 ### Tabel `api_keys`
 
-|Kolom|Keterangan|
-|---|---|
-|id|PK|
-|key_value|64-char hex random, unique|
-|label|Nama pengingat key|
-|owner_name|Nama pemilik|
-|owner_email|Email pemilik|
-|owner_org|Instansi/organisasi (opsional)|
-|daily_limit|Maks request per hari (default 1000)|
-|requests_today|Counter hari ini (reset tiap hari)|
-|last_reset_date|Tanggal terakhir reset counter|
-|total_requests|Total kumulatif request|
-|status|ENUM: active, revoked|
+Skema aktual DB (diverifikasi via `INFORMATION_SCHEMA.COLUMNS`, 2026-08-22). Tabel dibuat oleh migration `2026-06-25-000001_CreateApiKeys` + `2026-06-27-000001_AddOwnerFieldsToApiKeys`. Migration `2026-06-25-081545_CreateApiKeysTable` (yang mendefinisikan kolom `key_value`, `label`, `status`, dst) TIDAK pernah diterapkan karena tabel sudah ada — `createTable('api_keys', true)` di sana bersifat if-not-exists sehingga dilewati. Dokumentasi lama (key_value/label/daily_limit/requests_today/status) tidak sesuai kenyataan.
+
+|Kolom|Tipe|Keterangan|
+|---|---|---|
+|id|INT UNSIGNED AUTO_INCREMENT|PK|
+|name|VARCHAR(100) NOT NULL|Nama aplikasi/project|
+|owner_name|VARCHAR(100) NULL|Nama pemohon (registrasi publik)|
+|owner_org|VARCHAR(150) NULL|Instansi/organisasi pemohon|
+|email|VARCHAR(150) NOT NULL|Email kontak pemohon|
+|api_key|VARCHAR(64) NOT NULL, UNIQUE|**Hash SHA-256** dari key plaintext — bukan plaintext (lihat catatan di bawah)|
+|is_active|TINYINT(1) NOT NULL DEFAULT 1|1=aktif, 0=nonaktif|
+|rate_limit|INT NOT NULL DEFAULT 1000|Maks request per hari|
+|created_by|INT UNSIGNED NULL|FK → `users.id_user` (ON DELETE SET NULL); NULL=self-service registrasi publik, terisi jika dibuat admin|
+|last_used_at|DATETIME NULL|Waktu terakhir key dipakai (`ApiKeyModel::incrementUsage`)|
+|created_at|DATETIME NULL|Timestamp dibuat|
+|updated_at|DATETIME NULL|Timestamp diperbarui|
+
+**Penyimpanan hash SHA-256:** kolom `api_key` menyimpan **hash SHA-256** (`hash('sha256', $plaintext)` via `ApiKeyModel::hashKey()`), sehingga key plaintext **tidak bisa dibaca ulang dari DB**. Plaintext (64-char hex dari `ApiKeyModel::generateKey()` = `bin2hex(random_bytes(32))`) hanya ditampilkan sekali — di halaman sukses registrasi (`register_success.php`) atau saat admin membuat key manual. Filter `ApiKeyAuth` mencocokkan key dari request dengan meng-hash-nya lalu lookup kolom `api_key`. Untuk testing endpoint ber-key, daftarkan key baru via `POST /api/register` (perlu CSRF token) — jangan coba ambil key dari DB.
+
+**Rate limit tanpa kolom counter:** tidak ada kolom `requests_today`/`last_reset_date`/`total_requests`. Counter harian disimpan sebagai file `writable/cache/api_rl_<md5hash>_<YYYYMMDD>.txt` dengan `flock` atomic di `ApiKeyModel::validateKey()`; reset harian otomatis dari nama file berbasis tanggal. Log request tercatat di tabel terpisah `api_key_logs` (migration `2026-06-25-000002_CreateApiKeyLogs`).
 
 ### Endpoint API
 
