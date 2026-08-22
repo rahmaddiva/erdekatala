@@ -591,7 +591,7 @@ class LaporanAgregatController extends BaseController
         // --- VALIDASI KONSISTENSI (soft, A/B/C2) ---
         $warnings = $consistency->check($data);
         if (!empty($warnings) && $this->request->getPost('force_save') !== '1') {
-            return $this->renderForm(['warnings' => $warnings]);
+            return $this->renderForm(['warnings' => $warnings], $data);
         }
 
         $data['id_user'] = $userId;

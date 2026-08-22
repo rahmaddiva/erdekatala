@@ -363,7 +363,7 @@
         });
 
         // ===== Dialog peringatan konsistensi (dari server) =====
-        const WARNINGS = <?= esc(json_encode($warnings ?? [])) ?>;
+        const WARNINGS = <?= json_encode($warnings ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP) ?>;
         if (WARNINGS.length > 0) {
             const daftar = WARNINGS.map(function (w, i) { return (i + 1) + '. ' + w.message; }).join('\n');
             Swal.fire({
