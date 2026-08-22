@@ -504,5 +504,5 @@ POST /apikeys/delete/:id             Admin: hapus key permanen
 - Route `/api/*` dikecualikan dari filter `loggedin` di `Filters.php`
 - Filter `apikeyauth` hanya diterapkan pada grup `/api/v1/*` — **kecuali** `/api/v1/map/*`: endpoint peta (`GET /api/v1/map/kecamatan` & `GET /api/v1/map/desa`) bersifat **publik tanpa API key** dan mengembalikan FeatureCollection GeoJSON (`application/geo+json`) dengan indikator statistik gabungan dari `public/geojson/*` + agregasi `LaporanAgregatModel::getMapKecamatan()`/`getMapDesa()`
 - Halaman `/api/docs`, `/api/guide`, dan `/api/register` tidak perlu auth apapun
-- Key di-generate dengan `bin2hex(random_bytes(32))` -- 64 karakter hex
-- Counter `requests_today` di-reset otomatis di `ApiKeyModel::validateKey()` saat tanggal berubah
+- Key di-generate dengan `bin2hex(random_bytes(32))` -- 64 karakter hex; yang disimpan di kolom `api_keys.api_key` adalah **hash SHA-256**-nya (plaintext tidak bisa dibaca ulang dari DB)
+- Rate limit harian memakai file counter atomic (`writable/cache/api_rl_<md5hash>_<YYYYMMDD>.txt` + `flock`) di `ApiKeyModel::validateKey()` — reset harian otomatis dari nama file berbasis tanggal (bukan kolom `requests_today`)
