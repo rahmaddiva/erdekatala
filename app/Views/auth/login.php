@@ -14,233 +14,201 @@
     <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
 
     <style>
-        .cursor-follower {
-            position: fixed;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2px solid rgba(192, 57, 43, 0.6);
-            pointer-events: none;
-            z-index: 9999;
-            top: 0;
-            left: 0;
-            opacity: 0;
-        }
-        .cursor-follower.active { opacity: 1; }
-    </style>
-    <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Source Sans Pro', sans-serif;
             min-height: 100vh;
             display: flex;
-        }
-
-        /* Panel kiri */
-        .login-left {
-            width: 55%;
-            background: linear-gradient(150deg, #c0392b 0%, #7b241c 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
-            padding: 60px 50px;
-            color: #fff;
-            position: relative;
+            justify-content: center;
+            padding: 24px;
+            background: linear-gradient(150deg, #fdf3f2 0%, #fce8e5 100%);
             overflow: hidden;
         }
 
-        .login-left::before {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
+        /* Dekorasi lingkaran blur */
+        .blob {
+            position: fixed;
             border-radius: 50%;
-            background: rgba(255,255,255,0.05);
-            top: -100px;
+            pointer-events: none;
+            filter: blur(80px);
+            z-index: 0;
+        }
+
+        .blob-1 {
+            width: 420px;
+            height: 420px;
+            background: rgba(192, 57, 43, 0.18);
+            top: -120px;
             right: -100px;
         }
 
-        .login-left::after {
-            content: '';
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.05);
-            bottom: -80px;
-            left: -80px;
+        .blob-2 {
+            width: 360px;
+            height: 360px;
+            background: rgba(192, 57, 43, 0.14);
+            bottom: -110px;
+            left: -90px;
         }
 
-        .login-left .logo-wrap {
-            margin-bottom: 36px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .login-left .logo-wrap img {
-            width: 220px;
-            filter: brightness(0) invert(1);
-        }
-
-        .login-left .tagline {
-            font-size: 1.05rem;
-            opacity: 0.9;
-            text-align: center;
-            line-height: 1.7;
-            max-width: 380px;
-            position: relative;
-            z-index: 1;
-            margin-bottom: 40px;
-        }
-
-        .login-left .feature-list {
-            list-style: none;
+        /* Kartu login */
+        .login-card {
             position: relative;
             z-index: 1;
             width: 100%;
-            max-width: 380px;
-        }
-
-        .login-left .feature-list li {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 0.92rem;
-            opacity: 0.9;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-        }
-
-        .login-left .feature-list li:last-child {
-            border-bottom: none;
-        }
-
-        .login-left .feature-list li i {
-            font-size: 1rem;
-            opacity: 0.8;
-            width: 20px;
+            max-width: 400px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(192, 57, 43, 0.12);
+            padding: 40px 36px 28px;
             text-align: center;
         }
 
-        .login-left .instansi {
-            margin-top: 40px;
-            font-size: 0.8rem;
-            opacity: 0.65;
-            text-align: center;
-            position: relative;
-            z-index: 1;
-            line-height: 1.6;
+        .login-card .logo-wrap img {
+            width: 90px;
+            margin-bottom: 18px;
         }
 
-        /* Panel kanan */
-        .login-right {
-            width: 45%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 60px 40px;
-            background: #1a1a2e;
-        }
-
-        .login-form-wrap {
-            width: 100%;
-            max-width: 360px;
-        }
-
-        .login-form-wrap h2 {
-            color: #fff;
+        .login-card h2 {
             font-size: 1.5rem;
-            font-weight: 600;
+            font-weight: 700;
+            color: #2d2d2d;
             margin-bottom: 6px;
         }
 
-        .login-form-wrap .sub {
-            color: #aaa;
+        .login-card .tagline {
+            color: #6c757d;
             font-size: 0.875rem;
-            margin-bottom: 30px;
+            line-height: 1.6;
+            margin-bottom: 28px;
         }
 
-        .login-form-wrap .form-control {
-            background: #262640;
-            border: 1px solid #3a3a5c;
-            color: #fff;
-            border-radius: 6px;
+        /* Field dengan ikon di dalam */
+        .login-card form { text-align: left; }
+
+        .login-card .input-field { position: relative; }
+
+        .login-card .input-field > i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #adb5bd;
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 2;
         }
 
-        .login-form-wrap .form-control:focus {
-            background: #2e2e50;
+        .login-card .input-field .form-control {
+            border: 1px solid #d6d6d6;
+            border-radius: 8px;
+            padding-left: 40px;
+            height: 46px;
+            color: #333;
+        }
+
+        .login-card .input-field .form-control::placeholder {
+            color: #9aa0a6;
+        }
+
+        .login-card .input-field .form-control:focus {
             border-color: #c0392b;
-            color: #fff;
-            box-shadow: 0 0 0 0.2rem rgba(192,57,43,0.25);
+            box-shadow: 0 0 0 0.2rem rgba(192, 57, 43, 0.12);
         }
 
-        .login-form-wrap .form-control::placeholder {
-            color: #666;
+        /* Checkbox & tombol */
+        .login-card .remember-row {
+            margin-bottom: 24px;
         }
 
-        .login-form-wrap .input-group-text {
-            background: #262640;
-            border: 1px solid #3a3a5c;
-            color: #888;
+        .login-card .remember-row label {
+            color: #6c757d;
+            font-size: 0.875rem;
         }
 
-        .login-form-wrap .btn-masuk {
+        .login-card .btn-masuk {
             background: #c0392b;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 10px;
+            height: 46px;
             font-size: 0.95rem;
             font-weight: 600;
             letter-spacing: 0.5px;
             transition: background 0.2s;
         }
 
-        .login-form-wrap .btn-masuk:hover {
+        .login-card .btn-masuk:hover {
             background: #a93226;
         }
 
-        .login-form-wrap label {
-            color: #aaa;
-            font-size: 0.875rem;
+        /* Footer instansi */
+        .login-card .instansi {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #f0f0f0;
+            font-size: 0.75rem;
+            color: #adb5bd;
+            line-height: 1.6;
+            text-align: center;
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .login-left {
-                width: 100%;
-                padding: 40px 30px;
-            }
-            .login-left .feature-list { display: none; }
-            .login-right {
-                width: 100%;
-                padding: 40px 24px;
-            }
+        @media (max-width: 576px) {
+            body { padding: 16px; }
+            .login-card { padding: 32px 24px 24px; }
+            .blob-1 { width: 260px; height: 260px; }
+            .blob-2 { width: 220px; height: 220px; }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Panel Kiri: Info Sistem -->
-    <div class="login-left">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="login-card">
         <div class="logo-wrap">
             <img src="<?= base_url('assets/dist/img/erdekatala.png') ?>" alt="Erdekatala">
         </div>
 
-        <p class="tagline">
-            Sistem Informasi Kependudukan Agregat<br>
-            Kabupaten Tanah Laut
-        </p>
+        <h2>Erdekatala</h2>
+        <p class="tagline">Sistem Informasi Kependudukan Agregat<br>Kabupaten Tanah Laut</p>
 
-        <ul class="feature-list">
-            <li><i class="fas fa-map-marker-alt"></i> Pendataan hingga tingkat Desa</li>
-            <li><i class="fas fa-chart-bar"></i> Visualisasi statistik kependudukan</li>
-            <li><i class="fas fa-file-export"></i> Ekspor laporan Excel &amp; PDF</li>
-            <li><i class="fas fa-plug"></i> Akses data via Public API</li>
-        </ul>
+        <?php if (session()->getFlashdata('error')): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?= session()->getFlashdata('error') ?>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        <?php endif; ?>
+
+        <form action="<?= base_url('proses_login') ?>" method="post">
+            <?= csrf_field() ?>
+
+            <div class="input-field mb-3">
+                <i class="fas fa-user"></i>
+                <input type="text" name="username" class="form-control" placeholder="Username"
+                    required autofocus value="<?= esc(old('username')) ?>">
+            </div>
+
+            <div class="input-field mb-4">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="password" class="form-control" placeholder="Password" required>
+            </div>
+
+            <div class="remember-row">
+                <div class="icheck-danger">
+                    <input type="checkbox" name="remember" id="remember" value="1">
+                    <label for="remember">Ingat Saya</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-danger btn-block btn-masuk">Masuk</button>
+        </form>
 
         <p class="instansi">
             DP3AP2KB Kabupaten Tanah Laut<br>
@@ -248,85 +216,9 @@
         </p>
     </div>
 
-    <!-- Panel Kanan: Form Login -->
-    <div class="login-right">
-        <div class="login-form-wrap">
-            <h2>Selamat Datang</h2>
-            <p class="sub">Masuk untuk melanjutkan ke sistem</p>
-
-            <?php if (session()->getFlashdata('error')): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?= session()->getFlashdata('error') ?>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            <?php endif; ?>
-
-            <form action="<?= base_url('proses_login') ?>" method="post">
-                <?= csrf_field() ?>
-
-                <div class="input-group mb-3">
-                    <input type="text" name="username" class="form-control" placeholder="Username"
-                        required autofocus value="<?= esc(old('username')) ?>">
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <span class="fas fa-user"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="input-group mb-4">
-                    <input type="password" name="password" class="form-control" placeholder="Password" required>
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <span class="fas fa-lock"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row align-items-center mb-3">
-                    <div class="col-7">
-                        <div class="icheck-danger">
-                            <input type="checkbox" name="remember" id="remember" value="1">
-                            <label for="remember">Ingat Saya</label>
-                        </div>
-                    </div>
-                    <div class="col-5">
-                        <button type="submit" class="btn btn-danger btn-block btn-masuk">Masuk</button>
-                    </div>
-                </div>
-
-            </form>
-        </div>
-    </div>
-
     <script src="<?= base_url('assets/plugins/jquery/jquery.min.js') ?>"></script>
     <script src="<?= base_url('assets/plugins/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url('assets/dist/js/adminlte.min.js') ?>"></script>
-    <div class="cursor-follower" id="cursorFollower"></div>
-    <script>
-        (function() {
-            var f = document.getElementById('cursorFollower');
-            var mx = 0, my = 0, fx = 0, fy = 0;
-            var speed = 0.08;
-            document.addEventListener('mousemove', function(e) {
-                mx = e.clientX;
-                my = e.clientY;
-                if (!f.classList.contains('active')) f.classList.add('active');
-            });
-            document.addEventListener('mouseleave', function() {
-                f.classList.remove('active');
-            });
-            (function loop() {
-                fx += (mx - fx) * speed;
-                fy += (my - fy) * speed;
-                f.style.left = (fx - 10) + 'px';
-                f.style.top = (fy - 10) + 'px';
-                requestAnimationFrame(loop);
-            })();
-        })();
-    </script>
 </body>
 
 </html>
