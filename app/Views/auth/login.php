@@ -24,7 +24,7 @@
             justify-content: center;
             padding: 24px;
             background: linear-gradient(150deg, #fdf3f2 0%, #fce8e5 100%);
-            overflow: hidden;
+            overflow-y: auto;
         }
 
         /* Dekorasi lingkaran blur */
