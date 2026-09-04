@@ -48,11 +48,13 @@
                         <div class="tab-pane fade show active" id="tab-umum">
                             <div class="row mb-3">
                                 <div class="col-md-12">
-                                    <button type="button" id="btn-recycle" class="btn btn-outline-info btn-sm">
-                                        <i class="fas fa-sync-alt"></i> Muat Ulang Data Bulan Lalu
-                                    </button>
-                                    <small class="text-muted d-block mt-1">*Pilih Desa terlebih dahulu sebelum
-                                        menyalin data.</small>
+                                    <?php if (!isset($laporan['id_laporan'])): // tombol recycle hanya di form input baru ?>
+                                        <button type="button" id="btn-recycle" class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-sync-alt"></i> Muat Ulang Data Bulan Lalu
+                                        </button>
+                                        <small class="text-muted d-block mt-1">*Pilih Desa terlebih dahulu sebelum
+                                            menyalin data.</small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <div class="row">
@@ -345,6 +347,8 @@
         }
 
         $('#btn-recycle').on('click', function () {
+            if (!isCreateMode) return; // pengaman ekstra: hanya relevan di form input baru
+
             var idDesa = $('select[name="id_desa"]').val();
             if (!idDesa) {
                 Swal.fire({ icon: 'warning', title: 'Pilih Desa', text: 'Silakan pilih Desa terlebih dahulu!' });

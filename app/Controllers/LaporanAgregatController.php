@@ -503,7 +503,29 @@ class LaporanAgregatController extends BaseController
 
     public function getPreviousData()
     {
-        $id_desa = $this->request->getGet('id_desa');
+        $user = session()->get();
+
+        // --- Otorisasi lintas wilayah (DoD PRD #3: tidak ada kebocoran data antar wilayah) ---
+        // admin_desa hanya boleh mengambil data desanya sendiri; param id_desa dari klien diabaikan.
+        if ($user['role'] === 'admin_desa') {
+            $id_desa = $user['id_desa'];
+        } elseif ($user['role'] === 'admin_kecamatan') {
+            // admin_kecamatan tidak terlibat input laporan (konsisten dengan create/store)
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Admin kecamatan tidak dapat mengambil data untuk form input laporan.',
+            ]);
+        } else {
+            $id_desa = $this->request->getGet('id_desa');
+        }
+
+        if (!$id_desa) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Parameter desa wajib diisi.',
+            ]);
+        }
+
         $bulan   = (int) $this->request->getGet('bulan');
         $tahun   = (int) $this->request->getGet('tahun');
 
