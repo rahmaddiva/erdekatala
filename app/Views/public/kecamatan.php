@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Normalisasi data untuk tampilan
 $jiwaL      = (int)($totals['jiwa_l'] ?? 0);
 $jiwaP      = (int)($totals['jiwa_p'] ?? 0);
@@ -1736,7 +1736,7 @@ $slugify = function($name) {
                 return;
             }
 
-            const tiles = L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+            const tiles = L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png<?= $cartoApiKey ? '?key=' . $cartoApiKey : '' ?>', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.carto.com/attributions">CARTO</a>'
             }).addTo(map);

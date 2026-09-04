@@ -107,8 +107,11 @@ class PublicController extends BaseController
             'yankb21Html'     => $yankb21['html'] ?? '',
             'yankb21UpdatedAt'=> $yankb21['updated_at'] ?? null,
             'yankb21Error'    => $yankb21['error'] ?? null,
+            'yankbData'       => $this->parseYankbHtml($yankb['html'] ?? ''),
+            'yankb21Data'     => $this->parseYankbHtml($yankb21['html'] ?? ''),
             'yankbBulan'      => $yankbBulan,
             'yankbTahun'      => 2026,
+            'cartoApiKey'     => env('carto.apiKey', ''),
         ];
 
         return view('public/landingpage', $data);
@@ -334,6 +337,144 @@ class PublicController extends BaseController
         return ['html' => $raw, 'updated_at' => date('Y-m-d H:i:s'), 'error' => null];
     }
 
+    /**
+     * Parse HTML JasperReports YanKB menjadi struktur tabel terstruktur
+     * (headers multi-row + data rows). Return [] jika tidak dikenali.
+     */
+    private function parseYankbHtml(string $html): array
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return [];
+        }
+
+        $dom = new \DOMDocument();
+        \libxml_use_internal_errors(true);
+        $dom->loadHTML($html);
+        \libxml_clear_errors();
+        $xp = new \DOMXPath($dom);
+
+        $trs = $xp->query('//table[contains(@class,"jrPage")]/tr');
+        if (!$trs || $trs->length === 0) {
+            return [];
+        }
+
+        // Kumpulkan semua baris sebagai array sel
+        $allRows = [];
+        foreach ($trs as $tr) {
+            $cells = [];
+            foreach ($xp->query('./td', $tr) as $td) {
+                $text = trim(preg_replace('/\s+/', ' ', $td->textContent));
+                $cells[] = [
+                    't'  => $text,
+                    'rs' => (int) ($td->getAttribute('rowspan') ?: 1),
+                    'cs' => (int) ($td->getAttribute('colspan') ?: 1),
+                ];
+            }
+            if ($cells) {
+                $allRows[] = $cells;
+            }
+        }
+
+        // Cari index baris 'KODE' → awal header
+        $headerStart = -1;
+        foreach ($allRows as $i => $row) {
+            $merged = implode('', array_map(fn($c) => $c['t'], $row));
+            $clean = preg_replace('/\s+/', '', $merged);
+            if (strpos($clean, 'KODE') !== false && strpos($clean, 'KECAMATAN') !== false) {
+                $headerStart = $i;
+                break;
+            }
+        }
+        if ($headerStart < 0) {
+            return [];
+        }
+
+        // 4 baris header
+        $headerRows = array_slice($allRows, $headerStart, 4);
+        $dataRows   = array_slice($allRows, $headerStart + 4);
+
+        // Buang sel kosong di tepi kiri/kanan (colspan 1, teks kosong)
+        $stripEdges = static function (array &$rows): void {
+            foreach ($rows as &$row) {
+                while ($row && $row[0]['t'] === '' && $row[0]['cs'] === 1) {
+                    array_shift($row);
+                }
+                while ($row && end($row)['t'] === '' && end($row)['cs'] === 1) {
+                    array_pop($row);
+                }
+            }
+            unset($row);
+        };
+        $stripEdges($headerRows);
+        $stripEdges($dataRows);
+
+        // Filter data rows: hanya baris dengan minimal 1 sel non-kosong
+        $dataRows = array_values(array_filter($dataRows, fn($r) => implode('', array_column($r, 't')) !== ''));
+
+        // Tandai baris total (terakhir, teks 'total')
+        $totalIdx = -1;
+        foreach ($dataRows as $i => $r) {
+            $first = $r[0]['t'] ?? '';
+            if (stripos($first, 'total') !== false) {
+                $totalIdx = $i;
+            }
+        }
+
+        // Bersihkan label Jasper yang menggabung kata
+        $cleanLabel = static function (string $t): string {
+            $t = str_replace(['YANGADA', 'YANGLAPOR', 'BIDANJEJARING'], ['YANG ADA', 'YANG LAPOR', 'BIDAN JEJARING'], $t);
+            $t = preg_replace('/\(/', ' (', $t);
+            return trim(preg_replace('/\s+/', ' ', $t));
+        };
+
+        // Bangun output
+        $rows = [];
+        foreach ($dataRows as $i => $r) {
+            $cells = [];
+            foreach ($r as $cell) {
+                $cells[] = ['t' => $cleanLabel($cell['t']), 'cs' => $cell['cs']];
+            }
+            $rows[] = ['cells' => $cells, 'total' => ($i === $totalIdx)];
+        }
+
+        // Hitung posisi kolom separator grup dari header (grid expand rowspan/colspan)
+        $seps = [];
+        $grid = [];
+        foreach ($headerRows as $ri => $row) {
+            $c = 0;
+            foreach ($row as $cell) {
+                while (isset($grid[$ri][$c])) $c++;
+                $endCol = $c + $cell['cs'];
+                if ($cell['cs'] > 1) {
+                    $seps[] = $endCol;
+                }
+                for ($dr = 0; $dr < $cell['rs']; $dr++) {
+                    for ($dc = 0; $dc < $cell['cs']; $dc++) {
+                        $grid[$ri + $dr][$c + $dc] = true;
+                    }
+                }
+                $c = $endCol;
+            }
+        }
+        $seps = array_values(array_unique($seps));
+        sort($seps);
+
+        // Bersihkan label header juga
+        foreach ($headerRows as &$row) {
+            foreach ($row as &$cell) {
+                $cell['t'] = $cleanLabel($cell['t']);
+            }
+        }
+        unset($row, $cell);
+
+        return [
+            'headers' => $headerRows,
+            'rows'    => $rows,
+            'seps'    => $seps,
+        ];
+    }
+
     /** GET remote URL — curl dulu, fallback file_get_contents. */
     private function httpGet(string $url): ?string
     {
@@ -443,6 +584,7 @@ class PublicController extends BaseController
             'ageLabels'      => $chart['ageLabels'],
             'piramidaL'      => $chart['piramidaL'],
             'piramidaP'      => $chart['piramidaP'],
+            'cartoApiKey'    => env('carto.apiKey', ''),
         ];
 
         return view('public/kecamatan', $data);

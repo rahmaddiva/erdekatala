@@ -42,6 +42,40 @@ $bulanNama = [
     9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
 ];
 $yankbBulanNama = $bulanNama[$yankbBulan] ?? 'Agustus';
+// Render tabel YanKB gaya krs-tree dari data terstruktur (fallback iframe jika parse gagal)
+$renderYankbTable = static function (array $data): string {
+    if (empty($data['headers']) || empty($data['rows'])) {
+        return '';
+    }
+    $seps = $data['seps'] ?? [];
+    $h = '<div class="krs-scroll"><table class="krs-tree krs-yankb">';
+    $h .= '<thead>';
+    foreach ($data['headers'] as $ri => $row) {
+        $h .= '<tr' . ($ri === 0 ? ' class="krs-grp"' : '') . '>';
+        foreach ($row as $cell) {
+            $attr = '';
+            if (($cell['rs'] ?? 1) > 1) $attr .= ' rowspan="' . (int) $cell['rs'] . '"';
+            if (($cell['cs'] ?? 1) > 1) $attr .= ' colspan="' . (int) $cell['cs'] . '"';
+            $h .= '<th' . $attr . '>' . esc($cell['t']) . '</th>';
+        }
+        $h .= '</tr>';
+    }
+    $h .= '</thead><tbody>';
+    foreach ($data['rows'] as $row) {
+        $h .= '<tr' . (!empty($row['total']) ? ' class="krs-kab"' : '') . '>';
+        foreach ($row['cells'] as $i => $cell) {
+            $col = $i + 1;
+            $cls = ($col === 1) ? 'kode' : (($col === 2) ? 'wilayah' : 'n');
+            if (!empty($row['total']) && $col === 1) $cls = 'wilayah';
+            if (in_array($col, $seps, true)) $cls .= ' sep';
+            $csAttr = (($cell['cs'] ?? 1) > 1) ? ' colspan="' . (int) $cell['cs'] . '"' : '';
+            $h .= '<td class="' . trim($cls) . '"' . $csAttr . '>' . esc($cell['t']) . '</td>';
+        }
+        $h .= '</tr>';
+    }
+    $h .= '</tbody></table></div>';
+    return $h;
+};
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -769,14 +803,23 @@ $yankbBulanNama = $bulanNama[$yankbBulan] ?? 'Agustus';
             padding: .65rem 1.1rem; font-size: .8rem; color: var(--muted);
             border-top: 1px solid var(--border); background: var(--paper-2);
         }
-        /* ===== YAN-KB REPORT (iframe srcdoc, mirror SIGA) ===== */
-        .yankb-frame { overflow-x: auto; }
-        .yankb-frame iframe {
-            display: block; width: 100%; min-width: 1008px; height: 70vh;
-            border: 0; background: #fff;
-        }
+		/* ===== YAN-KB REPORT (iframe srcdoc, mirror SIGA) ===== */
+		.yankb-frame { overflow-x: auto; }
+		.yankb-frame iframe {
+		    display: block; width: 100%; min-width: 1008px; height: 70vh;
+		    border: 0; background: #fff;
+		}
+		/* ===== YAN-KB NATIVE TABLE (gaya krs-tree, fallback iframe) ===== */
+		table.krs-tree.krs-yankb { min-width: 960px; }
+		table.krs-tree.krs-yankb thead th { white-space: nowrap; }
+		table.krs-tree.krs-yankb thead tr:nth-child(3) th { top: 4rem; z-index: 2; }
+		table.krs-tree.krs-yankb thead tr:nth-child(4) th { top: 6rem; z-index: 2; }
+		table.krs-tree.krs-yankb tbody td.kode { text-align: center; color: #4a5878; font-weight: 600; }
+		table.krs-tree.krs-yankb tbody td.n { text-align: right; }
+		table.krs-tree.krs-yankb tbody td.sep { border-right: 2px solid #9aabc4; }
+		table.krs-tree.krs-yankb tbody td.wilayah { min-width: 160px; max-width: 220px; }
 
-        @media (max-width: 768px) {
+		@media (max-width: 768px) {
             .hero { padding: 3rem 0 2.5rem; }
             .hero-meta { gap: 1rem; }
             .section-head { flex-direction: column; align-items: flex-start; }
@@ -1524,63 +1567,71 @@ $yankbBulanNama = $bulanNama[$yankbBulan] ?? 'Agustus';
 
             </div><!-- /tab-krs -->
 
-            <!-- ===== TAB 2: CAKUPAN LAPORAN TEMPAT PELAYANAN KB ===== -->
-            <div class="tab-pane fade" id="tab-yankb" role="tabpanel">
-                <?php if (!empty($yankbError)): ?>
-                    <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
-                        <i class="bi bi-exclamation-triangle me-1"></i><?= esc($yankbError) ?>
-                    </div>
-                <?php endif; ?>
+			<!-- ===== TAB 2: CAKUPAN LAPORAN TEMPAT PELAYANAN KB ===== -->
+			<div class="tab-pane fade" id="tab-yankb" role="tabpanel">
+			    <?php if (!empty($yankbError)): ?>
+			        <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
+			            <i class="bi bi-exclamation-triangle me-1"></i><?= esc($yankbError) ?>
+			        </div>
+			    <?php endif; ?>
 
-                <?php if (empty($yankbHtml)): ?>
-                    <p class="text-muted">Data Cakupan Laporan Tempat Pelayanan KB belum tersedia.</p>
-                <?php else: ?>
-                    <div class="krs-shell">
-                        <div class="krs-toolbar">
-                            <div>
-                                <h3 style="color:#ffffff;">Cakupan Laporan Tempat Pelayanan KB — Kabupaten Tanah Laut</h3>
-                                <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankbUpdatedAt)): ?> · update <?= esc($yankbUpdatedAt) ?><?php endif; ?></div>
-                            </div>
-                            <span class="badge-live">LIVE MIRROR</span>
-                        </div>
-                        <div class="yankb-frame">
-                            <iframe srcdoc="<?= esc($yankbHtml, 'attr') ?>" title="Cakupan Laporan Tempat Pelayanan KB" loading="lazy"></iframe>
-                        </div>
-                        <div class="krs-hint">
-                            Sumber data: SIGA BKKBN (live, cache 30 menit). Laporan YanKB bulanan per kecamatan.
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </div><!-- /tab-yankb -->
+			    <?php if (empty($yankbHtml) && empty($yankbData['rows'])): ?>
+			        <p class="text-muted">Data Cakupan Laporan Tempat Pelayanan KB belum tersedia.</p>
+			    <?php else: ?>
+			        <div class="krs-shell">
+			            <div class="krs-toolbar">
+			                <div>
+			                    <h3 style="color:#ffffff;">Cakupan Laporan Tempat Pelayanan KB — Kabupaten Tanah Laut</h3>
+			                    <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankbUpdatedAt)): ?> · update <?= esc($yankbUpdatedAt) ?><?php endif; ?></div>
+			                </div>
+			                <span class="badge-live">LIVE MIRROR</span>
+			            </div>
+			<?php if (!empty($yankbData['rows'])): ?>
+			    <?= $renderYankbTable($yankbData) ?>
+			<?php else: ?>
+			            <div class="yankb-frame">
+			                <iframe srcdoc="<?= esc($yankbHtml, 'attr') ?>" title="Cakupan Laporan Tempat Pelayanan KB" loading="lazy"></iframe>
+			            </div>
+			<?php endif; ?>
+			            <div class="krs-hint">
+			                Sumber data: SIGA BKKBN (live, cache 30 menit). Laporan YanKB bulanan per kecamatan.
+			            </div>
+			        </div>
+			    <?php endif; ?>
+			</div><!-- /tab-yankb -->
 
-            <!-- ===== TAB 3: JUMLAH PELAYANAN PESERTA KB BARU (Tabel21) ===== -->
-            <div class="tab-pane fade" id="tab-yankb21" role="tabpanel">
-                <?php if (!empty($yankb21Error)): ?>
-                    <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
-                        <i class="bi bi-exclamation-triangle me-1"></i><?= esc($yankb21Error) ?>
-                    </div>
-                <?php endif; ?>
+			<!-- ===== TAB 3: JUMLAH PELAYANAN PESERTA KB BARU (Tabel21) ===== -->
+			<div class="tab-pane fade" id="tab-yankb21" role="tabpanel">
+			    <?php if (!empty($yankb21Error)): ?>
+			        <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
+			            <i class="bi bi-exclamation-triangle me-1"></i><?= esc($yankb21Error) ?>
+			        </div>
+			    <?php endif; ?>
 
-                <?php if (empty($yankb21Html)): ?>
-                    <p class="text-muted">Data Jumlah Pelayanan Peserta KB Baru belum tersedia.</p>
-                <?php else: ?>
-                    <div class="krs-shell">
-                        <div class="krs-toolbar">
-                            <div>
-                                <h3 style="color:#ffffff;">Jumlah Pelayanan Peserta KB Baru — Kabupaten Tanah Laut</h3>
-                                <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankb21UpdatedAt)): ?> · update <?= esc($yankb21UpdatedAt) ?><?php endif; ?></div>
-                            </div>
-                            <span class="badge-live">LIVE MIRROR</span>
-                        </div>
-                        <div class="yankb-frame">
-                            <iframe srcdoc="<?= esc($yankb21Html, 'attr') ?>" title="Jumlah Pelayanan Peserta KB Baru" loading="lazy"></iframe>
-                        </div>
-                        <div class="krs-hint">
-                            Sumber data: SIGA BKKBN (live, cache 30 menit). Laporan YanKB bulanan per kecamatan.
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </div><!-- /tab-yankb21 -->
+			    <?php if (empty($yankb21Html) && empty($yankb21Data['rows'])): ?>
+			        <p class="text-muted">Data Jumlah Pelayanan Peserta KB Baru belum tersedia.</p>
+			    <?php else: ?>
+			        <div class="krs-shell">
+			            <div class="krs-toolbar">
+			                <div>
+			                    <h3 style="color:#ffffff;">Jumlah Pelayanan Peserta KB Baru — Kabupaten Tanah Laut</h3>
+			                    <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankb21UpdatedAt)): ?> · update <?= esc($yankb21UpdatedAt) ?><?php endif; ?></div>
+			                </div>
+			                <span class="badge-live">LIVE MIRROR</span>
+			            </div>
+			<?php if (!empty($yankb21Data['rows'])): ?>
+			    <?= $renderYankbTable($yankb21Data) ?>
+			<?php else: ?>
+			            <div class="yankb-frame">
+			                <iframe srcdoc="<?= esc($yankb21Html, 'attr') ?>" title="Jumlah Pelayanan Peserta KB Baru" loading="lazy"></iframe>
+			            </div>
+			<?php endif; ?>
+			            <div class="krs-hint">
+			                Sumber data: SIGA BKKBN (live, cache 30 menit). Laporan YanKB bulanan per kecamatan.
+			            </div>
+			        </div>
+			    <?php endif; ?>
+			</div><!-- /tab-yankb21 -->
 
             </div><!-- /tab-content -->
         </section>
@@ -2131,6 +2182,23 @@ $yankbBulanNama = $bulanNama[$yankbBulan] ?? 'Agustus';
                 window.location.href = url.toString();
             });
         }
+
+        // ===== Sticky header 4-baris tabel YanKB (hitungan dinamis, tab tersembunyi) =====
+        const fixYankbSticky = () => {
+            document.querySelectorAll('table.krs-yankb').forEach(tbl => {
+                let acc = 0;
+                tbl.querySelectorAll('thead tr').forEach(tr => {
+                    tr.querySelectorAll('th').forEach(th => th.style.top = acc + 'px');
+                    acc += tr.offsetHeight;
+                });
+            });
+        };
+        // Tab toggle: hitung ulang saat tab ditampilkan (height=0 saat hidden)
+        document.querySelectorAll('#monitoring-bkkbn button[data-bs-toggle="tab"]').forEach(btn => {
+            btn.addEventListener('shown.bs.tab', fixYankbSticky);
+        });
+        // Panggil sekali untuk tab aktif (default tab-krs)
+        setTimeout(fixYankbSticky, 100);
     });
     </script>
     <script>
@@ -2358,7 +2426,7 @@ $yankbBulanNama = $bulanNama[$yankbBulan] ?? 'Agustus';
                 return;
             }
 
-            const tiles = L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+            const tiles = L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png<?= $cartoApiKey ? '?key=' . $cartoApiKey : '' ?>', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.carto.com/attributions">CARTO</a>'
             }).addTo(map);
