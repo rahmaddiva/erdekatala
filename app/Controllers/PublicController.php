@@ -80,6 +80,10 @@ class PublicController extends BaseController
         $yankb   = $this->fetchYankbReport('Tabel1', 2026, $yankbBulan);
         $yankb21 = $this->fetchYankbReport('Tabel21', 2026, $yankbBulan);
 
+        // Dallap: rekap program Bangga Kencana per kecamatan (matriks ringkas).
+        // 5 laporan tahunan + BKB bulanan (mengikuti filter ?bulan=).
+        $dallap = $this->fetchDallapMatrix(2026, $yankbBulan);
+
         $data = [
             'list_kecamatan'  => $list_kecamatan,
             'list_desa'       => $list_desa,
@@ -111,10 +115,45 @@ class PublicController extends BaseController
             'yankb21Data'     => $this->parseYankbHtml($yankb21['html'] ?? ''),
             'yankbBulan'      => $yankbBulan,
             'yankbTahun'      => 2026,
+            'dallapRows'      => $dallap['rows'],
+            'dallapDefs'      => $dallap['defs'],
+            'dallapUpdatedAt' => $dallap['updated_at'],
+            'dallapError'     => $dallap['error'],
+            'dallapTahun'     => 2026,
             'cartoApiKey'     => env('carto.apiKey', ''),
         ];
 
         return view('public/landingpage', $data);
+    }
+
+    /**
+     * AJAX: matriks per-desa untuk 1 kecamatan (Dallap), dipanggil dari dropdown
+     * di tab Rekap Program Bangga Kencana. $kecSlug = slug kecamatan.
+     */
+    public function getDallapDesa(string $kecSlug)
+    {
+        $namaKec = $this->kecamatanModel
+            ->where('LOWER(REPLACE(nama_kecamatan, " ", "-"))', strtolower($kecSlug))
+            ->first();
+        if (!$namaKec) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'kecamatan tidak dikenal', 'rows' => []]);
+        }
+        $bkkbnId = $this->resolveBkkbnKecamatanId($namaKec['nama_kecamatan']);
+        if (!$bkkbnId) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'kecamatan tidak punya id BKKBN', 'rows' => []]);
+        }
+        $bulan = (int) ($this->request->getGet('bulan') ?? 8);
+        if ($bulan < 1 || $bulan > 12) {
+            $bulan = 8;
+        }
+        $m = $this->fetchDallapMatrix(2026, $bulan, $bkkbnId, $namaKec['nama_kecamatan']);
+        return $this->response->setJSON([
+            'nama_kecamatan' => $namaKec['nama_kecamatan'],
+            'defs'           => $m['defs'],
+            'rows'           => $m['rows'],
+            'updated_at'     => $m['updated_at'],
+            'error'          => $m['error'],
+        ]);
     }
 
     /**
@@ -260,7 +299,9 @@ class PublicController extends BaseController
             if (is_file($cacheFile)) {
                 $cached = json_decode(file_get_contents($cacheFile), true);
                 if (is_array($cached) && isset($cached['rows'])) {
-                    $cached['error'] = 'Data cache (API tidak terjangkau).';
+                    $asOf = strtotime((string) ($cached['updated_at'] ?? '')) ?: filemtime($cacheFile);
+                    $cached['error'] = 'Menampilkan data tersimpan per ' . date('d M Y, H:i', $asOf)
+                        . ' — sumber data BKKBN sementara tidak terjangkau.';
                     return $cached;
                 }
             }
@@ -335,6 +376,180 @@ class PublicController extends BaseController
         @file_put_contents($cacheFile, $raw);
 
         return ['html' => $raw, 'updated_at' => date('Y-m-d H:i:s'), 'error' => null];
+    }
+
+    /** Definis laporan Dallap: reportName => [label, kolom jumlah (1-based), kategori, bulanan?]. */
+    private function dallapReports(): array
+    {
+        return [
+            'Tabel2A'  => ['label' => 'PKB',        'qtyCol' => 3, 'category' => 'Dallap-Tahunan', 'monthly' => false],
+            'Tabel11A' => ['label' => 'UPPKA',      'qtyCol' => 4, 'category' => 'Dallap-Tahunan', 'monthly' => false],
+            'Tabel3A'  => ['label' => 'BKB',        'qtyCol' => 3, 'category' => 'Dallap-Bulanan', 'monthly' => true],
+            'Tabel10A' => ['label' => 'BKL',        'qtyCol' => 4, 'category' => 'Dallap-Tahunan', 'monthly' => false],
+            'Tabel9B'  => ['label' => 'BKR',        'qtyCol' => 3, 'category' => 'Dallap-Tahunan', 'monthly' => false],
+            'Tabel12A' => ['label' => 'PIK Remaja', 'qtyCol' => 3, 'category' => 'Dallap-Tahunan', 'monthly' => false],
+        ];
+    }
+
+    /**
+     * Matriks Rekap Bangga Kencana: 6 laporan Dallap level kecamatan (default),
+     * atau per-desa jika $idKecamatanBkkbn diberikan. Cache HTML 30 menit per
+     * (report, level, bulan). Return ['defs','rows','updated_at','error'];
+     * rows = [['nama'=>..., 'kode'=>..., 'qty'=>[reportName=>int|null]]].
+     */
+    private function fetchDallapMatrix(int $tahun = 2026, int $bulan = 8, ?int $idKecamatanBkkbn = null, ?string $namaKecamatan = null): array
+    {
+        $defs = $this->dallapReports();
+        $qty = [];
+        $kode = [];
+        $errors = [];
+        $updated = null;
+
+        foreach ($defs as $reportName => $def) {
+            $r = $this->fetchDallapReport($reportName, $def, $tahun, $bulan, $idKecamatanBkkbn);
+            if ($r['updated_at'] !== null && ($updated === null || $r['updated_at'] > $updated)) {
+                $updated = $r['updated_at'];
+            }
+            if ($r['error'] !== null) {
+                $errors[] = $def['label'] . ': ' . $r['error'];
+            }
+            $parsed = $this->parseDallapRows($r['html'] ?? '', (int) $def['qtyCol'], $idKecamatanBkkbn !== null ? 'desa' : 'kec');
+            foreach ($parsed['rows'] as $nama => $p) {
+                $qty[$nama][$reportName] = $p['qty'];
+                if (!isset($kode[$nama])) {
+                    $kode[$nama] = $p['kode'];
+                }
+            }
+        }
+
+        $rows = [];
+        foreach (array_keys($qty) as $nama) {
+            $row = ['nama' => $nama, 'kode' => $kode[$nama] ?? null, 'qty' => []];
+            foreach ($defs as $reportName => $def) {
+                $row['qty'][$reportName] = $qty[$nama][$reportName] ?? null;
+            }
+            $rows[] = $row;
+        }
+        usort($rows, fn($a, $b) => ((int) ($a['kode'] ?? 99)) <=> ((int) ($b['kode'] ?? 99)));
+
+        return [
+            'defs'        => $defs,
+            'rows'        => $rows,
+            'updated_at'  => $updated,
+            'error'       => $errors ? implode(' ', $errors) : null,
+            'nama_kecamatan' => $namaKecamatan,
+        ];
+    }
+
+    /** Fetch 1 laporan Dallap level kabupaten/kecamatan/desa; return ['html','updated_at','error']. */
+    private function fetchDallapReport(string $reportName, array $def, int $tahun, int $bulan, ?int $idKecamatanBkkbn = null): array
+    {
+        $suffix = $def['monthly'] ? '_' . str_pad((string) $bulan, 2, '0', STR_PAD_LEFT) : '';
+        $suffix .= $idKecamatanBkkbn ? '_kec' . $idKecamatanBkkbn : '';
+        $cacheFile = WRITEPATH . 'cache/dallap_' . $reportName . '_' . $tahun . $suffix . '.html';
+        $ttl = 1800; // 30 menit
+
+        if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $ttl) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false && $cached !== '') {
+                return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => null];
+            }
+        }
+
+        $filter = ['tahun' => (string) $tahun, 'provinsiId' => '22', 'kabupatenId' => '322',
+            'reportName' => $reportName, 'reportType' => 'html', 'reportCategory' => $def['category']];
+        if ($def['monthly']) {
+            $filter['bulan'] = $bulan;
+        }
+        if ($idKecamatanBkkbn !== null) {
+            $filter['kecamatanId'] = (string) $idKecamatanBkkbn;
+        }
+        $url = 'https://siga-api-gateway.bkkbn.go.id/report-siga-dallap-ocp/viewReport'
+            . '?filterPencarian=' . urlencode(json_encode($filter));
+
+        $raw = $this->httpGet($url);
+        if ($raw === null || trim($raw) === '') {
+            if (is_file($cacheFile)) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false && $cached !== '') {
+                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => 'Data cache (API tidak terjangkau).'];
+                }
+            }
+            return ['html' => '', 'updated_at' => null, 'error' => 'Gagal mengambil data ' . $def['label'] . ' dari BKKBN.'];
+        }
+
+        if (!is_dir(dirname($cacheFile))) {
+            @mkdir(dirname($cacheFile), 0755, true);
+        }
+        @file_put_contents($cacheFile, $raw);
+
+        return ['html' => $raw, 'updated_at' => date('Y-m-d H:i:s'), 'error' => null];
+    }
+
+    /**
+     * Parse kolom jumlah (1-based) per baris wilayah dari HTML JasperReports Dallap.
+     * Level 'kec': baris = kecamatan (kode 01-11, header KECAMATAN).
+     * Level 'desa': baris = desa (kode 4 digit, header KELURAHAN).
+     * Return ['rows'=>[NAMA=>['kode'=>int,'qty'=>int]], 'nama_kecamatan'=>?string].
+     * Baris JUMLAH TOTAL dilewati (jumlah dihitung ulang client-side).
+     */
+    private function parseDallapRows(string $html, int $qtyCol, string $level = 'kec'): array
+    {
+        $html = trim($html);
+        $out = ['rows' => [], 'nama_kecamatan' => null];
+        if ($html === '') {
+            return $out;
+        }
+        $dom = new \DOMDocument();
+        \libxml_use_internal_errors(true);
+        $dom->loadHTML($html);
+        \libxml_clear_errors();
+        $xp = new \DOMXPath($dom);
+
+        $trs = $xp->query('//table[contains(@class,"jrPage")]/tr');
+        if (!$trs || $trs->length === 0) {
+            $trs = $xp->query('//table//tr');
+        }
+        if (!$trs || $trs->length === 0) {
+            return $out;
+        }
+
+        // Level desa: judul "Kec : NAMA" dipakai sebagai nama kecamatan
+        if ($level === 'desa') {
+            foreach ($xp->query('//span | //td') as $s) {
+                $t = trim(preg_replace('/\s+/', ' ', $s->textContent));
+                if (preg_match('/^Kec\s*:\s*(.+)$/', $t, $m)) {
+                    $out['nama_kecamatan'] = trim($m[1]);
+                    break;
+                }
+            }
+        }
+
+        $codeRe = $level === 'desa' ? '/^\d{4}$/' : '/^\d{1,3}$/';
+        foreach ($trs as $tr) {
+            $cells = [];
+            foreach ($xp->query('./td', $tr) as $td) {
+                $cells[] = trim(preg_replace('/\s+/', ' ', $td->textContent));
+            }
+            // Buang spacer kosong di tepi (khas JasperReports) seperti parseYankbHtml
+            while ($cells && reset($cells) === '') {
+                array_shift($cells);
+            }
+            while ($cells && end($cells) === '') {
+                array_pop($cells);
+            }
+            if (count($cells) < $qtyCol) {
+                continue;
+            }
+            $kode = $cells[0];
+            $nama = strtoupper(trim($cells[1] ?? ''));
+            if (!preg_match($codeRe, (string) $kode) || $nama === '' || is_numeric($nama) || stripos($nama, 'total') !== false) {
+                continue;
+            }
+            $qty = (int) str_replace([',', '.', ' '], '', (string) ($cells[$qtyCol - 1] ?? 0));
+            $out['rows'][$nama] = ['kode' => (int) $kode, 'qty' => $qty];
+        }
+        return $out;
     }
 
     /**

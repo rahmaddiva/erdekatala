@@ -10,6 +10,7 @@ $routes->get('/', 'PublicController::landingpage');
 $routes->get('/public/landingpage', 'PublicController::landingpage');
 $routes->get('/getDesaByKecamatan/(:num)', 'PublicController::getDesaByKecamatan/$1');
 $routes->get('/getDesaByKecamatanSlug/(:segment)', 'PublicController::getDesaByKecamatanSlug/$1');
+$routes->get('/getDallapDesa/(:segment)', 'PublicController::getDallapDesa/$1');
 $routes->get('/public/krs-desa/(:num)', 'PublicController::getKrsDesa/$1');
 
 // Auth Routes

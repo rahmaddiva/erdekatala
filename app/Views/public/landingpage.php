@@ -1451,14 +1451,20 @@ $renderYankbTable = static function (array $data): string {
                         <i class="bi bi-people-fill me-1"></i>Jumlah Pelayanan Peserta KB Baru
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-dallap" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-grid-3x3-gap-fill me-1"></i>Rekap Program Bangga Kencana
+                    </button>
+                </li>
             </ul>
 
             <div class="tab-content">
             <div class="tab-pane fade show active" id="tab-krs" role="tabpanel">
 
             <?php if (!empty($krsError)): ?>
-                <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.9rem;">
-                    <i class="bi bi-exclamation-triangle me-1"></i><?= esc($krsError) ?>
+                <?php $krsHasData = !empty($krsKecamatan); ?>
+                <div class="alert <?= $krsHasData ? 'alert-info' : 'alert-warning' ?> py-2 px-3 mb-3" style="font-size:.9rem;">
+                    <i class="bi bi-<?= $krsHasData ? 'info-circle' : 'exclamation-triangle' ?> me-1"></i><?= esc($krsError) ?>
                 </div>
             <?php endif; ?>
 
@@ -1632,6 +1638,87 @@ $renderYankbTable = static function (array $data): string {
 			        </div>
 			    <?php endif; ?>
 			</div><!-- /tab-yankb21 -->
+
+			<!-- ===== TAB 4: REKAP PROGRAM BANGGA KENCANA (Dallap) ===== -->
+			<div class="tab-pane fade" id="tab-dallap" role="tabpanel">
+			    <?php
+			    $dallapDefs = $dallapDefs ?? [];
+			    $dallapRows = $dallapRows ?? [];
+			    $dallapHasData = !empty($dallapDefs) && !empty($dallapRows);
+			    // slug per kecamatan dari list_kecamatan (DB), dinormalisasi sama
+			    // seperti resolveBkkbnKecamatanId(): 'Bati-Bati' (DB) == 'BATI BATI' (BKKBN)
+			    $dallapNorm = static function (string $s): string {
+			        $s = strtoupper(trim(str_replace(['_', '-'], ' ', $s)));
+			        return preg_replace('/\s+/', ' ', $s) ?? $s;
+			    };
+			    $dallapSlug = [];
+			    foreach (($list_kecamatan ?? []) as $k) {
+			        $dallapSlug[$dallapNorm($k['nama_kecamatan'])] = $k['slug']
+			            ?: strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
+			    }
+			    if (!empty($dallapError)):
+			    ?>
+			        <div class="alert <?= $dallapHasData ? 'alert-info' : 'alert-warning' ?> py-2 px-3 mb-3" style="font-size:.9rem;">
+			            <i class="bi bi-<?= $dallapHasData ? 'info-circle' : 'exclamation-triangle' ?> me-1"></i><?= esc($dallapError) ?>
+			        </div>
+			    <?php endif; ?>
+
+			    <?php if (!$dallapHasData): ?>
+			        <p class="text-muted">Data Rekap Program Bangga Kencana belum tersedia.</p>
+			    <?php else: ?>
+			        <div class="krs-shell">
+			            <div class="krs-toolbar">
+			                <div>
+			                    <h3 style="color:#ffffff;">Rekap Program Bangga Kencana — Kabupaten Tanah Laut</h3>
+			                    <div class="meta">SIGA BKKBN · Tahun <?= $dallapTahun ?? 2026 ?><?php if (!empty($dallapUpdatedAt)): ?> · update <?= esc($dallapUpdatedAt) ?><?php endif; ?> · klik ▶ untuk lihat rincian per desa</div>
+			                </div>
+			                <span class="badge-live">LIVE MIRROR</span>
+			            </div>
+			            <div class="krs-scroll"><table class="krs-tree" id="dallap-tree">
+			                <thead>
+			                    <tr>
+			                        <th>No</th>
+			                        <th>Nama Kecamatan</th>
+			                        <?php foreach ($dallapDefs as $reportName => $def): ?>
+			                            <th><?= esc($def['label']) ?></th>
+			                        <?php endforeach; ?>
+			                    </tr>
+			                </thead>
+			                <tbody>
+			                    <?php $no = 1; $dallapTotals = array_fill_keys(array_keys($dallapDefs), 0); ?>
+			                    <?php foreach ($dallapRows as $row): ?>
+		                    <?php $rName = $dallapNorm($row['nama']); $rSlug = $dallapSlug[$rName] ?? ''; ?>
+			                    <tr class="dallap-kec" id="dlp-<?= esc($rSlug ?: $no) ?>" data-parent="<?= esc($rSlug ?: $no) ?>" data-slug="<?= esc($rSlug) ?>">
+			                        <td class="kode"><?= $no++ ?></td>
+			                        <td class="wilayah">
+			                            <?php if ($rSlug): ?>
+			                            <button type="button" class="krs-toggle" data-role="dlp" data-slug="<?= esc($rSlug) ?>" aria-label="Expand desa">▶</button>
+			                            <?php else: ?>
+			                            <span class="krs-toggle leaf">·</span>
+			                            <?php endif; ?>
+			                            <?= esc(ucwords(strtolower($row['nama']))) ?>
+			                        </td>
+			                        <?php foreach ($dallapDefs as $reportName => $def): ?>
+			                            <?php $v = $row['qty'][$reportName] ?? null; ?>
+			                            <?php if ($v !== null) $dallapTotals[$reportName] += $v; ?>
+			                            <td class="n"><?= $v === null ? '<span class="text-muted">-</span>' : number_format($v, 0, ',', '.') ?></td>
+			                        <?php endforeach; ?>
+			                    </tr>
+			                    <?php endforeach; ?>
+			                    <tr class="krs-kab">
+			                        <td class="wilayah" colspan="2">JUMLAH TOTAL</td>
+			                        <?php foreach ($dallapDefs as $reportName => $def): ?>
+			                            <td class="n"><?= number_format($dallapTotals[$reportName], 0, ',', '.') ?></td>
+			                        <?php endforeach; ?>
+			                    </tr>
+			                </tbody>
+			            </table></div>
+			            <div class="krs-hint">
+			                Sumber data: SIGA BKKBN (live, cache 30 menit). Kolom: PKB = penyuluh KB, UPPKA = kelompok UPPKA, BKB = kelompok BKB (bulanan, mengikuti filter bulan), BKL/BKR = kelompok BKL/BKR, PIK Remaja = PIK-R. Angka = jumlah kelompok/penyuluh per kecamatan; klik ▶ untuk rincian per desa.
+			            </div>
+			        </div>
+			    <?php endif; ?>
+			</div><!-- /tab-dallap -->
 
             </div><!-- /tab-content -->
         </section>
@@ -2172,6 +2259,89 @@ $renderYankbTable = static function (array $data): string {
         const autoBtn = document.querySelector('#krs-tree .krs-toggle[data-role="kec"]');
         if (autoBtn) autoBtn.click();
         <?php endif; ?>
+
+        // ===== Dallap: expand desa per kecamatan (lazy-load via AJAX) =====
+        const dallapDesaUrl = '<?= site_url('getDallapDesa') ?>';
+        const dallapLoaded = new Set();
+
+        document.querySelectorAll('#dallap-tree .krs-toggle[data-role="dlp"]').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const slug = this.dataset.slug;
+                const parentRow = this.closest('tr');
+                if (!parentRow || !slug) return;
+
+                const parentId = parentRow.id;
+                const open = this.classList.contains('open');
+                if (open) {
+                    document.querySelectorAll(`#dallap-tree tr[data-parent="${parentId}"]`).forEach(tr => tr.remove());
+                    this.classList.remove('open');
+                    this.textContent = '▶';
+                    return;
+                }
+
+                this.classList.add('open');
+                this.textContent = '▼';
+
+                const loadTr = document.createElement('tr');
+                loadTr.className = 'krs-loading';
+                loadTr.dataset.parent = parentId;
+                loadTr.innerHTML = `<td class="wilayah" colspan="8"><i class="bi bi-arrow-repeat"></i> Memuat desa...</td>`;
+                parentRow.after(loadTr);
+
+                try {
+                    const res = await fetch(dallapDesaUrl + '/' + encodeURIComponent(slug), { headers: { 'Accept': 'application/json' } });
+                    const json = await res.json();
+                    loadTr.remove();
+                    if (!res.ok || !json || json.error) {
+                        const errTr = document.createElement('tr');
+                        errTr.className = 'krs-loading';
+                        errTr.dataset.parent = parentId;
+                        errTr.innerHTML = `<td class="wilayah" colspan="8">${(json && json.error) || 'Gagal memuat data desa.'}</td>`;
+                        parentRow.after(errTr);
+                        this.classList.remove('open');
+                        this.textContent = '▶';
+                        return;
+                    }
+
+                    const defs = json.defs || {};
+                    let anchor = parentRow;
+                    (json.rows || []).forEach((r, di) => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'dallap-desa';
+                        tr.dataset.parent = parentId;
+                        let cells = `<td class="kode">${di + 1}</td><td class="wilayah"><span class="krs-toggle leaf">·</span>${(r.nama || '-').replace(/</g, '&lt;')}</td>`;
+                        Object.keys(defs).forEach(rn => {
+                            const v = (r.qty && r.qty[rn] !== undefined && r.qty[rn] !== null) ? r.qty[rn] : null;
+                            cells += `<td class="n">${v === null ? '-' : Number(v).toLocaleString('id-ID')}</td>`;
+                        });
+                        tr.innerHTML = cells;
+                        anchor.after(tr);
+                        anchor = tr;
+                    });
+
+                    const totTr = document.createElement('tr');
+                    totTr.className = 'krs-kab';
+                    totTr.dataset.parent = parentId;
+                    let totCells = `<td class="wilayah" colspan="2">JUMLAH TOTAL</td>`;
+                    Object.keys(defs).forEach(rn => {
+                        let s = 0;
+                        (json.rows || []).forEach(r => { const v = (r.qty && r.qty[rn]); if (v !== null && v !== undefined) s += v; });
+                        totCells += `<td class="n">${s.toLocaleString('id-ID')}</td>`;
+                    });
+                    totTr.innerHTML = totCells;
+                    anchor.after(totTr);
+                } catch (e) {
+                    loadTr.remove();
+                    const errTr = document.createElement('tr');
+                    errTr.className = 'krs-loading';
+                    errTr.dataset.parent = parentId;
+                    errTr.innerHTML = `<td class="wilayah" colspan="8">Gagal memuat data desa.</td>`;
+                    parentRow.after(errTr);
+                    this.classList.remove('open');
+                    this.textContent = '▶';
+                }
+            });
+        });
 
         // ===== Filter bulan laporan YanKB (Tabel1/Tabel21) =====
         const yankbBulanSel = document.getElementById('yankb-bulan');
