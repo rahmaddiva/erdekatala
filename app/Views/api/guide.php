@@ -16,7 +16,7 @@
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    border: 2px solid rgba(221, 72, 20, 0.6);
+    border: 2px solid rgba(0, 91, 172, 0.6);
     pointer-events: none;
     z-index: 9999;
     top: 0;
@@ -27,10 +27,10 @@
 </style>
 <style>
 :root{
-    --ink:#0f1923; --ink-2:#1a2733;
-    --primary:#dd4814; --primary-d:#b83a10;
-    --paper:#f7f5f1; --paper-2:#ffffff;
-    --line:#e5e1d8; --muted:#6b7280;
+    --ink:#0a2a4a; --ink-2:#103a5c;
+    --primary:#005bac; --primary-d:#004a8c;
+    --paper:#eef3f8; --paper-2:#ffffff;
+    --line:#d5dfee; --muted:#6b7280;
 }
 body{background:var(--paper);font-family:"Source Sans 3",sans-serif;color:var(--ink);}
 h1,h2,h3,h4,h5{font-family:"Libre Baskerville",serif;}
@@ -66,13 +66,13 @@ pre code{font-size:.82rem;border-radius:6px;}
 .sidebar .nav-link{color:#555;padding:6px 12px;border-left:2px solid transparent;font-weight:500;}
 .sidebar .nav-link:hover,.sidebar .nav-link.active{color:var(--primary);border-left:2px solid var(--primary);}
 .base-url-box{background:rgba(15,25,35,0.04);border:1px solid var(--line);border-radius:6px;padding:12px 16px;font-family:monospace;font-size:.9rem;color:var(--ink);}
-.key-box{background:rgba(221,72,20,0.06);border:1px solid rgba(221,72,20,0.25);border-radius:6px;padding:12px 16px;font-family:monospace;font-size:.88rem;color:var(--ink);}
+.key-box{background:rgba(0,91,172,0.06);border:1px solid rgba(0,91,172,0.25);border-radius:6px;padding:12px 16px;font-family:monospace;font-size:.88rem;color:var(--ink);}
 .card{background:var(--paper-2);border:1px solid var(--line);}
 .table-bordered{border:1px solid var(--line);}
 .table thead th{background:rgba(15,25,35,0.04);color:var(--muted);border-bottom:2px solid var(--line);font-weight:600;}
 .table td,.table th{border-top:1px solid var(--line);}
-.alert-warning{background:rgba(221,72,20,0.08);border:1px solid rgba(221,72,20,0.25);color:var(--ink);}
-.alert-warning hr{border-top-color:rgba(221,72,20,0.2);}
+.alert-warning{background:rgba(0,91,172,0.08);border:1px solid rgba(0,91,172,0.25);color:var(--ink);}
+.alert-warning hr{border-top-color:rgba(0,91,172,0.2);}
 .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}
 .btn-primary:hover{background:var(--primary-d);border-color:var(--primary-d);}
 .btn-success{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}
@@ -162,6 +162,9 @@ pre code{font-size:.82rem;border-radius:6px;}
 <tr><td><span class="badge badge-success">GET</span></td><td><code>/laporan/rekap/desa?id_kecamatan=1</code></td><td>Rekap per desa</td></tr>
 <tr><td><span class="badge badge-success">GET</span></td><td><code>/map/kecamatan</code></td><td><strong>PUBLIK (tanpa API key)</strong> &mdash; FeatureCollection GeoJSON batas kecamatan + indikator statistik gabungan (untuk peta tematik/choropleth)</td></tr>
 <tr><td><span class="badge badge-success">GET</span></td><td><code>/map/desa?id_kecamatan=1</code></td><td><strong>PUBLIK (tanpa API key)</strong> &mdash; FeatureCollection GeoJSON batas desa + indikator statistik gabungan (filter kecamatan opsional)</td></tr>
+<tr><td><span class="badge badge-success">GET</span></td><td><code>/bkkbn/krs?tahun=2026</code></td><td>Cermin Monitoring KRS BKKBN per kecamatan (cache 30 menit; <strong>bukan data Erdekatala</strong>)</td></tr>
+<tr><td><span class="badge badge-success">GET</span></td><td><code>/bkkbn/dallap?tahun=2026&amp;bulan=8</code></td><td>Cermin Rekap Bangga Kencana BKKBN per kecamatan (cache 30 menit; <strong>bukan data Erdekatala</strong>)</td></tr>
+<tr><td><span class="badge badge-success">GET</span></td><td><code>/bkkbn/yankb?report=Tabel1&amp;tahun=2026&amp;bulan=8</code></td><td>Cermin YanKB BKKBN Tabel1/Tabel21 per kecamatan (cache 30 menit; <strong>bukan data Erdekatala</strong>)</td></tr>
 </tbody>
 </table>
 <div class="alert alert-info mt-3">
@@ -326,7 +329,7 @@ async function loadRekap() {
         type: 'bar',
         data: {
             labels,
-            datasets: [{ label: 'Total Jiwa', data: values, backgroundColor: '#dd4814' }]
+            datasets: [{ label: 'Total Jiwa', data: values, backgroundColor: '#005bac' }]
         }
     });
 }
@@ -608,5 +611,6 @@ window.addEventListener("scroll", () => {
         })();
     })();
 </script>
+    <?= $this->setVar('variant', 'bg')->include('templates/theme_toggle') ?>
 </body>
 </html>

@@ -84,7 +84,7 @@ $renderYankbTable = static function (array $data): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Erdekatala - Sistem Informasi Kependudukan Kabupaten Tanah Laut</title>
-    <meta name="description" content="Portal data agregat kependudukan tingkat Desa-Kecamatan di Kabupaten Tanah Laut, Kalimantan Selatan.">
+    <meta name="description" content="Portal data kependudukan tingkat Desa-Kecamatan di Kabupaten Tanah Laut, Kalimantan Selatan.">
     <link rel="icon" type="image/png" href="<?= base_url('assets/dist/img/erdekatala.png') ?>">
     <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
 
@@ -113,7 +113,7 @@ $renderYankbTable = static function (array $data): string {
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            border: 2px solid rgba(221, 72, 20, 0.6);
+            border: 2px solid rgba(0, 91, 172, 0.6);
             pointer-events: none;
             z-index: 9999;
             top: 0;
@@ -124,15 +124,16 @@ $renderYankbTable = static function (array $data): string {
     </style>
     <style>
         :root {
-            --primary:   #dd4814;
-            --primary-d: #b0380f;
-            --ink:       #0f1923;
-            --ink-soft:  #1e2d3a;
+            --primary:   #005bac;
+            --primary-d: #004a8c;
+            --primary-l: #8ec7f0;
+            --ink:       #0a2a4a;
+            --ink-soft:  #1e3a5c;
             --paper:     #ffffff;
-            --paper-2:   #f7f5f1;
-            --paper-3:   #efece6;
+            --paper-2:   #eef3f8;
+            --paper-3:   #e2eaf2;
             --muted:     #6b7280;
-            --border:    #e5e1d8;
+            --border:    #d5dfee;
             --accent-l:  #2d6cdf;
             --accent-p:  #d6336c;
             --good:      #2f9e44;
@@ -235,7 +236,7 @@ $renderYankbTable = static function (array $data): string {
             width: 55%;
             height: 100%;
             background:
-                radial-gradient(circle at 80% 20%, rgba(221,72,20,.22), transparent 55%),
+                radial-gradient(circle at 80% 20%, rgba(0,91,172,.22), transparent 55%),
                 radial-gradient(circle at 95% 75%, rgba(45,108,223,.15), transparent 50%);
             pointer-events: none;
         }
@@ -256,14 +257,14 @@ $renderYankbTable = static function (array $data): string {
             font-weight: 600;
             letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: var(--primary);
+            color: var(--primary-l);
             margin-bottom: 1rem;
         }
         .hero .eyebrow::before {
             content: "";
             width: 28px;
             height: 2px;
-            background: var(--primary);
+            background: var(--primary-l);
         }
         .hero h1 {
             font-size: clamp(2rem, 4.2vw, 3.1rem);
@@ -274,7 +275,7 @@ $renderYankbTable = static function (array $data): string {
         }
         .hero h1 em {
             font-style: italic;
-            color: var(--primary);
+            color: var(--primary-l);
         }
         .hero p.lead {
             font-size: 1.12rem;
@@ -350,7 +351,7 @@ $renderYankbTable = static function (array $data): string {
         .filter-bar input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(221,72,20,.12);
+            box-shadow: 0 0 0 3px rgba(0,91,172,.12);
             background: var(--paper);
         }
         .filter-bar .btn-filter {
@@ -530,7 +531,7 @@ $renderYankbTable = static function (array $data): string {
         }
         .info-strip .info-icon {
             font-size: 1.8rem;
-            color: var(--primary);
+            color: var(--primary-l);
             flex-shrink: 0;
         }
         .info-strip h4 { color: #fff; margin: 0 0 0.2rem; font-size: 1.05rem; }
@@ -549,7 +550,7 @@ $renderYankbTable = static function (array $data): string {
             margin-bottom: 1rem;
         }
         footer.sikada-footer a { color: rgba(255,255,255,.65); }
-        footer.sikada-footer a:hover { color: var(--primary); }
+        footer.sikada-footer a:hover { color: var(--primary-l); }
         footer.sikada-footer .footer-bottom {
             border-top: 1px solid rgba(255,255,255,.1);
             padding-top: 1.25rem;
@@ -588,12 +589,9 @@ $renderYankbTable = static function (array $data): string {
             border: none;
             border-bottom: 3px solid transparent;
             color: var(--muted);
-            font-weight: 600;
-            font-size: 0.9rem;
-            padding: 0.85rem 1.1rem;
-            border-radius: 0;
-            white-space: nowrap;
-            transition: all .2s ease;
+            font-weight: 600; font-size: 0.9rem;
+            padding: 0.85rem 1.1rem; border-radius: 0;
+            white-space: nowrap; transition: all .2s ease;
         }
         .sikada-tabs .nav-link:hover {
             color: var(--primary);
@@ -605,6 +603,11 @@ $renderYankbTable = static function (array $data): string {
             background: transparent;
         }
         .tab-pane { padding-top: 1.5rem; }
+        #monitoring-bkkbn .tab-pane { padding-top: .5rem; }
+        #monitoring-bkkbn .krs-shell { margin-bottom: .75rem; }
+        #monitoring-bkkbn .krs-toolbar { padding: .6rem .9rem; gap: .5rem; }
+        #monitoring-bkkbn .krs-toolbar h3 { font-size: .9rem; }
+        #monitoring-bkkbn .krs-hint { padding: .45rem .9rem; }
 
         /* ===== DATA TABLE ===== */
         .dt-wrap {
@@ -646,7 +649,7 @@ $renderYankbTable = static function (array $data): string {
             padding: 0.6rem 1rem;
         }
         table.dataTable tbody tr:hover td {
-            background: rgba(221,72,20,.03) !important;
+            background: rgba(0,91,172,.03) !important;
         }
         .dt-num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
         .dt-total { font-weight: 700; color: var(--primary); }
@@ -691,7 +694,7 @@ $renderYankbTable = static function (array $data): string {
         .krs-toolbar {
             display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
             gap: .75rem; padding: .9rem 1.1rem;
-            background: linear-gradient(135deg, #1a2744 0%, #243556 100%);
+            background: linear-gradient(135deg, #103a5c 0%, #243556 100%);
             color: #fff;
         }
         .krs-toolbar h3 {
@@ -714,7 +717,7 @@ $renderYankbTable = static function (array $data): string {
         }
         table.krs-tree thead th {
             position: sticky; top: 0; z-index: 3;
-            background: #e8eef6; color: #1a2744;
+            background: #e8eef6; color: #103a5c;
             font-weight: 700; font-size: .68rem; text-transform: uppercase;
             letter-spacing: .03em; white-space: nowrap;
             padding: .55rem .45rem;
@@ -740,7 +743,7 @@ $renderYankbTable = static function (array $data): string {
         }
         table.krs-tree tbody td.n { text-align: right; font-weight: 600; color: #243049; }
         table.krs-tree tbody td.wilayah {
-            text-align: left; font-weight: 600; color: #1a2744;
+            text-align: left; font-weight: 600; color: #103a5c;
             position: sticky; left: 0; z-index: 1;
             min-width: 220px; max-width: 280px;
             border-right: 2px solid #a8b6cc;
@@ -767,30 +770,65 @@ $renderYankbTable = static function (array $data): string {
             padding-left: 2.6rem; border: 1px solid #cfd8e6;
         }
         table.krs-tree .pct { color: var(--primary); font-weight: 700; }
-        /* pemisah tebal antar grup metrik (body: col 1=wilayah, 2–24=metrik) */
+        /* pemisah tebal antar grup metrik (sesuai PDF Rekap; body: col 1=nama, 2–24=metrik) */
+        table.krs-tree tbody td:nth-child(3),
         table.krs-tree tbody td:nth-child(5),
-        table.krs-tree tbody td:nth-child(9),
-        table.krs-tree tbody td:nth-child(12),
-        table.krs-tree tbody td:nth-child(15),
-        table.krs-tree tbody td:nth-child(18),
-        table.krs-tree tbody td:nth-child(19),
-        table.krs-tree tbody td:nth-child(21) {
+        table.krs-tree tbody td:nth-child(8),
+        table.krs-tree tbody td:nth-child(11),
+        table.krs-tree tbody td:nth-child(14),
+        table.krs-tree tbody td:nth-child(17),
+        table.krs-tree tbody td:nth-child(20),
+        table.krs-tree tbody td:nth-child(23) {
             border-right: 2px solid #9aabc4;
         }
-        table.krs-tree thead tr:nth-child(2) th:nth-child(4),
+        /* nth-child = indeks sel dalam tr-nya masing-masing (bukan kolom fisik):
+           r2: child3=c3, child5=c5, child6=PUS c8, child7=c11, child8=c14, child9=c17, child10=c20, child13=c23
+           r3: child1=c8, child3=c11, child5=c14, child7=c17, child10=c20 (c3/c5/c23 sudah dibawa sel rowspan3 dari r2)
+           r4: child3=c8, child5=c11, child7=c14, child9=c17 (c20 tak punya sel di r4, dibawa rowspan PRI) */
+        table.krs-tree thead tr:nth-child(2) th:nth-child(3),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(5),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(6),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(7),
         table.krs-tree thead tr:nth-child(2) th:nth-child(8),
-        table.krs-tree thead tr:nth-child(2) th:nth-child(11),
-        table.krs-tree thead tr:nth-child(2) th:nth-child(14),
-        table.krs-tree thead tr:nth-child(2) th:nth-child(17),
-        table.krs-tree thead tr:nth-child(2) th:nth-child(18),
-        table.krs-tree thead tr:nth-child(2) th:nth-child(20) {
+        table.krs-tree thead tr:nth-child(2) th:nth-child(9),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(10),
+        table.krs-tree thead tr:nth-child(2) th:nth-child(13),
+        table.krs-tree thead tr:nth-child(3) th:nth-child(1),
+        table.krs-tree thead tr:nth-child(3) th:nth-child(3),
+        table.krs-tree thead tr:nth-child(3) th:nth-child(5),
+        table.krs-tree thead tr:nth-child(3) th:nth-child(7),
+        table.krs-tree thead tr:nth-child(3) th:nth-child(10),
+        table.krs-tree thead tr:nth-child(4) th:nth-child(3),
+        table.krs-tree thead tr:nth-child(4) th:nth-child(5),
+        table.krs-tree thead tr:nth-child(4) th:nth-child(7),
+        table.krs-tree thead tr:nth-child(4) th:nth-child(9),
+        table.krs-tree thead tr:nth-child(5) th:nth-child(3),
+        table.krs-tree thead tr:nth-child(5) th:nth-child(5),
+        table.krs-tree thead tr:nth-child(5) th:nth-child(8),
+        table.krs-tree thead tr:nth-child(5) th:nth-child(11),
+        table.krs-tree thead tr:nth-child(5) th:nth-child(14),
+        table.krs-tree thead tr:nth-child(5) th:nth-child(17),
+        table.krs-tree thead tr:nth-child(5) th:nth-child(20),
+        table.krs-tree thead tr:nth-child(5) th:nth-child(23) {
             border-right: 2px solid #9aabc4;
         }
+        /* sticky 5 baris header KRS (top = akumulasi tinggi baris, diukur dari render) */
+        table#krs-tree thead tr:nth-child(2) th { top: 29px; }
+        table#krs-tree thead tr:nth-child(3) th { top: 58px; z-index: 2; }
+        table#krs-tree thead tr:nth-child(4) th { top: 87px; z-index: 2; }
+        table#krs-tree thead tr.krs-idx th {
+            top: 116px; z-index: 2;
+            background: #d9edf9; color: #0f6c94;
+            padding: .15rem .25rem; font-size: .55rem;
+        }
+        table#krs-tree thead tr.krs-idx th:first-child { background: #d9edf9; }
+        /* baris super (colspan lebar) tidak ikut sticky-left agar tidak menutupi kolom */
+        table#krs-tree thead tr:first-child th:first-child { position: static; }
         .krs-toggle {
             display: inline-flex; align-items: center; justify-content: center;
             width: 1.35rem; height: 1.35rem; margin-right: .4rem;
             border: 1px solid #c5d0e0; border-radius: 4px;
-            background: #fff; color: #1a2744; cursor: pointer;
+            background: #fff; color: #103a5c; cursor: pointer;
             font-size: .7rem; line-height: 1; vertical-align: middle;
             transition: all .15s ease;
         }
@@ -803,6 +841,24 @@ $renderYankbTable = static function (array $data): string {
             padding: .65rem 1.1rem; font-size: .8rem; color: var(--muted);
             border-top: 1px solid var(--border); background: var(--paper-2);
         }
+        /* ===== KRS 24 kolom: padatkan agar muat container + kunci header kolom-1 ===== */
+        table#krs-tree { min-width: 0; width: 100%; font-size: .68rem; }
+        table#krs-tree thead th { padding: .4rem .25rem; font-size: .6rem; }
+        table#krs-tree tbody td { padding: .25rem .3rem; }
+        table#krs-tree tbody td.wilayah { min-width: 150px; max-width: 170px; }
+        table#krs-tree thead th:first-child {
+            position: sticky; left: 0; z-index: 6;
+            background: #d4deec;
+        }
+        table#krs-tree thead tr:nth-child(2) th:first-child { background: #e8eef6; }
+        /* ===== REKAP BANGGA KENCANA: 8 kolom saja — fit container, tanpa scroll horizontal ===== */
+        table#dallap-tree { min-width: 0; }
+        /* ===== PUS & KB AKTIF: 4 kolom, isi lebar penuh, angka tidak terlipat ===== */
+        table#puskb-tree { width: 100%; min-width: 0; }
+        table#puskb-tree thead th { white-space: nowrap; }
+        table#puskb-tree tbody td.wilayah { min-width: 0; max-width: none; }
+        table#puskb-tree tbody td.n { min-width: 130px; }
+
 		/* ===== YAN-KB REPORT (iframe srcdoc, mirror SIGA) ===== */
 		.yankb-frame { overflow-x: auto; }
 		.yankb-frame iframe {
@@ -810,11 +866,11 @@ $renderYankbTable = static function (array $data): string {
 		    border: 0; background: #fff;
 		}
 		/* ===== YAN-KB NATIVE TABLE (gaya krs-tree, fallback iframe) ===== */
-		table.krs-tree.krs-yankb { min-width: 960px; }
+\t\ttable.krs-tree.krs-yankb { min-width: 960px; font-size: .72rem; }
 		table.krs-tree.krs-yankb thead th { white-space: nowrap; }
 		table.krs-tree.krs-yankb thead tr:nth-child(3) th { top: 4rem; z-index: 2; }
 		table.krs-tree.krs-yankb thead tr:nth-child(4) th { top: 6rem; z-index: 2; }
-		table.krs-tree.krs-yankb tbody td.kode { text-align: center; color: #4a5878; font-weight: 600; }
+\t\ttable.krs-tree.krs-yankb tbody td { padding: .3rem .35rem; }
 		table.krs-tree.krs-yankb tbody td.n { text-align: right; }
 		table.krs-tree.krs-yankb tbody td.sep { border-right: 2px solid #9aabc4; }
 		table.krs-tree.krs-yankb tbody td.wilayah { min-width: 160px; max-width: 220px; }
@@ -962,6 +1018,10 @@ $renderYankbTable = static function (array $data): string {
             </a>
             <div class="nav-right d-none d-md-flex">
                 <a href="<?= site_url('/api/docs') ?>" class="nav-link-sikada"><i class="bi bi-code-slash me-1"></i>API</a>
+                <button class="nav-theme-btn" type="button" aria-label="Ganti mode gelap/terang" title="Mode gelap/terang">
+                    <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
                 <a href="<?= site_url('/login') ?>" class="btn-login"><i class="bi bi-box-arrow-in-right me-1"></i>Masuk</a>
             </div>
             <a href="<?= site_url('/login') ?>" class="btn-login d-md-none"><i class="bi bi-box-arrow-in-right"></i></a>
@@ -972,8 +1032,8 @@ $renderYankbTable = static function (array $data): string {
     <header class="hero">
         <div class="container position-relative">
             <span class="eyebrow">Portal Data Kependudukan</span>
-            <h1>Erdekatala - <em>Agregat Data</em><br>tingkat Desa di Kabupaten Tanah Laut</h1>
-            <p class="lead">Pemantauan terpadu data jiwa, kartu keluarga, pendidikan, pekerjaan, piramida penduduk, serta cakupan JKN/BPJS dan KB-PUS dari hulu ke hilir, langsung dari lapangan.</p>
+            <h1>Erdekatala<br><em>Elektronik Rumah Data Kependudukan Tanah Laut</em></h1>
+            <p class="lead">Singkatan dari <em>Elektronik Rumah Data Kependudukan Tanah Laut</em> — pemantauan terpadu data jiwa, kartu keluarga, pendidikan, pekerjaan, piramida penduduk, serta cakupan JKN/BPJS dan KB-PUS dari hulu ke hilir, langsung dari lapangan.</p>
             <div class="hero-meta">
                 <div class="item">
                     <span class="v">11</span>
@@ -1033,7 +1093,7 @@ $renderYankbTable = static function (array $data): string {
             <div class="empty-state">
                 <i class="bi bi-inboxes"></i>
                 <h3>Belum ada data laporan</h3>
-                <p>Tidak ada laporan agregat pada wilayah yang dipilih. Silakan pilih kecamatan/desa lain atau hubungi admin desa untuk melakukan input laporan.</p>
+                <p>Tidak ada laporan pada wilayah yang dipilih. Silakan pilih kecamatan/desa lain atau hubungi admin desa untuk melakukan input laporan.</p>
             </div>
         <?php else: ?>
 
@@ -1062,7 +1122,7 @@ $renderYankbTable = static function (array $data): string {
                     <i class="bi bi-heart-pulse-fill icon"></i>
                     <div class="label">PUS</div>
                     <div class="value"><?= number_format($pus, 0, ',', '.') ?></div>
-                    <div class="sub">Pasangan Usia Subur</div>
+                    <div class="sub">Pasangan Usia Subur · Laporan Desa</div>
                 </div>
             </div>
 
@@ -1071,7 +1131,7 @@ $renderYankbTable = static function (array $data): string {
                 <i class="bi bi-info-circle-fill info-icon"></i>
                 <div>
                     <h4>Skop data saat ini: <?= esc($pendudukKey) ?><?= !empty($filter_kec_slug) ? ' - ' . esc($filter_desa_slug ? 'Desa terpilih' : 'Kecamatan terpilih') : ' (seluruh Kabupaten)' ?></h4>
-                    <p>Data diturunkan dari laporan agregat desa yang telah diinput oleh admin desa. Filter menyesuaikan tampilan seluruh chart di bawah.</p>
+                    <p>Data diturunkan dari laporan desa yang telah diinput oleh admin desa. Filter menyesuaikan tampilan seluruh chart di bawah.</p>
                 </div>
             </div>
         </section>
@@ -1356,19 +1416,19 @@ $renderYankbTable = static function (array $data): string {
                                 </tr>
                                 <?php endforeach; ?>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
                                     <td class="dt-sub">KB Aktif</td>
                                     <td class="dt-num"><?= $fmt($kbAktif) ?></td>
                                     <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($kbAktif / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
                                     <td class="dt-sub">Jumlah PUS</td>
                                     <td class="dt-num"><?= $fmt($pus) ?></td>
                                     <td class="dt-num dt-pct">—</td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
                                     <td class="dt-sub">Penggunaan Alat Kontrasepsi</td>
                                     <td class="dt-num"><?= $fmt($alatKontra) ?></td>
                                     <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($alatKontra / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
@@ -1389,7 +1449,7 @@ $renderYankbTable = static function (array $data): string {
         <section class="block" style="padding-top: 0;" id="peta-sebaran">
             <div class="section-head">
                 <h2>Peta Sebaran Kependudukan</h2>
-                <span class="crumb">11 kecamatan · Indikator agregat per kecamatan</span>
+                <span class="crumb">11 kecamatan · Indikator per kecamatan</span>
             </div>
             <div class="map-shell">
                 <div class="map-indicator-bar">
@@ -1408,7 +1468,7 @@ $renderYankbTable = static function (array $data): string {
                 <div id="map-kecamatan"></div>
             <div class="map-legend" id="map-legend-kec">
                 <span class="lg-item"><span class="swatch" style="background:#2d6cdf;"></span>Kecamatan terpilih</span>
-                <span class="lg-item"><span class="swatch" style="background:#e5e1d8;"></span>Tidak ada data</span>
+                <span class="lg-item"><span class="swatch" style="background:#d5dfee;"></span>Tidak ada data</span>
                 <span class="lg-sep"></span>
                 <span class="lg-item lg-ind-label"></span>
                 <span class="lg-item" id="lg-0"><span class="swatch"></span><b></b></span>
@@ -1433,8 +1493,8 @@ $renderYankbTable = static function (array $data): string {
                         <?php endforeach; ?>
                     </select>
                 </span>
-            </div>
 
+            </div>
             <ul class="nav nav-tabs sikada-tabs" id="sigaTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-krs" type="button" role="tab" aria-selected="true">
@@ -1456,8 +1516,13 @@ $renderYankbTable = static function (array $data): string {
                         <i class="bi bi-grid-3x3-gap-fill me-1"></i>Rekap Program Bangga Kencana
                     </button>
                 </li>
-            </ul>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-puskb" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-heart-pulse-fill me-1"></i>PUS &amp; KB Aktif (SIGA)
+                    </button>
+                </li>
 
+            </ul>
             <div class="tab-content">
             <div class="tab-pane fade show active" id="tab-krs" role="tabpanel">
 
@@ -1471,16 +1536,13 @@ $renderYankbTable = static function (array $data): string {
             <?php if (empty($krsKecamatan)): ?>
                 <p class="text-muted">Data Monitoring KRS belum tersedia.</p>
             <?php else:
-                $renderKrsCells = function (array $r) use ($krsFmt, $krsNum): string {
-                    $ph = $krsNum($r['pushamilVervalAda'] ?? 0) + $krsNum($r['pushamilVervalBaru'] ?? 0);
-                    $bd = $krsNum($r['badutaVervalAda'] ?? 0) + $krsNum($r['badutaVervalBaru'] ?? 0);
-                    $bl = $krsNum($r['balitaVervalAda'] ?? 0) + $krsNum($r['balitaVervalBaru'] ?? 0);
+                $renderKrsCells = function (array $r) use ($krsFmt): string {
+                    // Urutan & label kolom mengikuti "Monitoring Verval KRS (Rekap).pdf"
                     return
                         '<td class="n">' . $krsFmt($r['kelurahanAda'] ?? 0) . '</td>' .
                         '<td class="n">' . $krsFmt($r['kelurahanTarget'] ?? 0) . '</td>' .
                         '<td class="n">' . $krsFmt($r['kelurahanVerval'] ?? 0) . '</td>' .
-                        '<td class="n">' . $krsFmt($r['cakupanKelurahanVerval'] ?? 0) . '%</td>' .
-                        '<td class="n">' . $krsFmt($r['pusSasaran'] ?? 0) . '</td>' .
+                        '<td class="n">' . number_format((float) ($r['cakupanKelurahanVerval'] ?? 0), 2, '.', '') . '</td>' .
                         '<td class="n">' . $krsFmt($r['pusVervalAda'] ?? 0) . '</td>' .
                         '<td class="n">' . $krsFmt($r['pusVervalBaru'] ?? 0) . '</td>' .
                         '<td class="n">' . $krsFmt($r['pusVervalAdaBaru'] ?? 0) . '</td>' .
@@ -1493,14 +1555,15 @@ $renderYankbTable = static function (array $data): string {
                         '<td class="n">' . $krsFmt($r['balitaSasaran'] ?? 0) . '</td>' .
                         '<td class="n">' . $krsFmt($r['balitaVervalAda'] ?? 0) . '</td>' .
                         '<td class="n">' . $krsFmt($r['balitaVervalBaru'] ?? 0) . '</td>' .
-                        '<td class="n">' . $krsFmt($r['keluargaSasaranCatin'] ?? 0) . '</td>' .
                         '<td class="n">' . $krsFmt($r['sasaranPrioritas'] ?? 0) . '</td>' .
                         '<td class="n">' . $krsFmt($r['prioritasTerverval'] ?? 0) . '</td>' .
-                        '<td class="n">' . $krsFmt($r['totalSasaran'] ?? 0) . '</td>' .
-                        '<td class="n">' . $krsFmt($r['totalVervalAdaBaru'] ?? 0) . '</td>' .
-                        '<td class="n pct">' . esc(($r['persenTarget'] ?? '0') . '%') . '</td>';
+                        '<td class="n">' . $krsFmt($r['adaBaruLainTerverval'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['totalVervalAda'] ?? 0) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['totalVervalBaru'] ?? 0) . '</td>' .
+                        // (22) TOTAL: field `total` dari BKKBN selalu "0"/absen (PDF Rekap cetak null di kolom ini) → tampilkan '-' tanpa informasi
+                        '<td class="n">' . (($r['total'] ?? null) === null || $r['total'] === '' || (int) str_replace([',', '.'], '', (string) $r['total']) === 0 ? '-' : $krsFmt($r['total'])) . '</td>' .
+                        '<td class="n">' . $krsFmt($r['keluargaSasaranCatin'] ?? 0) . '</td>';
                 };
-                $colspan = 24; // wilayah + 23 metrik
             ?>
             <div class="krs-shell">
                 <div class="krs-toolbar">
@@ -1513,26 +1576,50 @@ $renderYankbTable = static function (array $data): string {
                 <div class="krs-scroll">
                     <table class="krs-tree" id="krs-tree">
                         <thead>
+                            <!-- Header 5 baris, mengikuti "Monitoring Verval KRS (Rekap).pdf" -->
                             <tr class="krs-grp">
-                                <th rowspan="2">Provinsi / Kab / Kec / Desa</th>
-                                <th colspan="4">Desa / Kelurahan</th>
-                                <th colspan="4">PUS</th>
-                                <th colspan="3">PUS Hamil</th>
-                                <th colspan="3">Baduta</th>
-                                <th colspan="3">Balita</th>
-                                <th colspan="1">Catin</th>
-                                <th colspan="2">Prioritas</th>
-                                <th colspan="3">Total</th>
+                                <th colspan="17">Jumlah Sasaran KRS (Baseline)</th>
+                                <th colspan="7">Jumlah Sasaran KRS Verval</th>
                             </tr>
                             <tr>
-                                <th>Ada</th><th>Target</th><th>Verval</th><th>Cakupan</th>
-                                <th>Sasaran</th><th>Ada</th><th>Baru</th><th>Ada+Baru</th>
-                                <th>Sasaran</th><th>Ada</th><th>Baru</th>
-                                <th>Sasaran</th><th>Ada</th><th>Baru</th>
-                                <th>Sasaran</th><th>Ada</th><th>Baru</th>
-                                <th>Sasaran</th>
-                                <th>Sasaran</th><th>Terverval</th>
-                                <th>Sasaran</th><th>Verval</th><th>% Target</th>
+                                <th rowspan="3">Nama Kecamatan</th>
+                                <th rowspan="3">Jumlah Desa/Kelurahan (ada)</th>
+                                <th rowspan="3">Jumlah Desa/Kelurahan (Target)</th>
+                                <th rowspan="3">Jumlah Desa / Kelurahan Telah di Verval</th>
+                                <th rowspan="3">Cakupan Desa / Kelurahan Telah di Verval</th>
+                                <th colspan="3">PUS</th>
+                                <th colspan="3">PUS Hamil / Ibu Hamil</th>
+                                <th colspan="3">keluarga Punya Anak 0 - 23 Bulan</th>
+                                <th colspan="3">Kelurga Punya Anak 24 - 59 Bulan</th>
+                                <th colspan="3">TOTAL SASARAN PRIORITAS</th>
+                                <th rowspan="3">Jumlah Kelurga Ada</th>
+                                <th rowspan="3">Jumlah Keluarga Baru</th>
+                                <th rowspan="3">TOTAL</th>
+                                <th rowspan="3">Keluarga Sasaran Catin</th>
+                            </tr>
+                            <tr>
+                                <th colspan="3">Verval</th>
+                                <th rowspan="2">Sasaran</th>
+                                <th colspan="2">Verval</th>
+                                <th rowspan="2">Sasaran</th>
+                                <th colspan="2">Verval</th>
+                                <th rowspan="2">Sasaran</th>
+                                <th colspan="2">Verval</th>
+                                <th rowspan="2">Sasaran Prioritas</th>
+                                <th rowspan="2">Prioritas Terverval</th>
+                                <th rowspan="2">Selain Ada / Baru Terverval</th>
+                            </tr>
+                            <tr>
+                                <th>Ada</th><th>Baru</th><th>Jumlah</th>
+                                <th>Ada</th><th>Baru</th>
+                                <th>Ada</th><th>Baru</th>
+                                <th>Ada</th><th>Baru</th>
+                            </tr>
+                            <tr class="krs-idx">
+                                <th>(1)</th><th>(2)</th><th>(3)</th><th>(4)</th><th>(4/3*100)</th>
+                                <th>(5)</th><th>(6)</th><th>(7)</th><th>(8)</th><th>(9)</th><th>(10)</th>
+                                <th>(11)</th><th>(12)</th><th>(13)</th><th>(14)</th><th>(15)</th><th>(16)</th>
+                                <th>(17)</th><th>(18)</th><th>(19)</th><th>(20)</th><th>(21)</th><th>(22)</th><th>(23)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1566,7 +1653,7 @@ $renderYankbTable = static function (array $data): string {
                     </table>
                 </div>
                 <div class="krs-hint">
-                    Sumber data: SIGA BKKBN (live, cache 30 menit). Struktur mirip portal Monitoring VERVAL KRS.
+                    Sumber data: SIGA BKKBN (live, cache 30 menit). Kolom & nomor (1)–(23) mengikuti format laporan Monitoring Verval KRS (Rekap).
                 </div>
             </div>
             <?php endif; ?>
@@ -1714,12 +1801,78 @@ $renderYankbTable = static function (array $data): string {
 			                </tbody>
 			            </table></div>
 			            <div class="krs-hint">
-			                Sumber data: SIGA BKKBN (live, cache 30 menit). Kolom: PKB = penyuluh KB, UPPKA = kelompok UPPKA, BKB = kelompok BKB (bulanan, mengikuti filter bulan), BKL/BKR = kelompok BKL/BKR, PIK Remaja = PIK-R. Angka = jumlah kelompok/penyuluh per kecamatan; klik ▶ untuk rincian per desa.
+                Sumber data: SIGA BKKBN (live, cache 30 menit). Kolom: PKB = penyuluh KB, UPPKA = kelompok UPPKA, BKB = kelompok BKB (bulanan, mengikuti filter bulan), BKL/BKR = kelompok BKL/BKR, PIK Remaja = PIK-R, PUS (SIGA) = jumlah PUS, KB Aktif (SIGA) = peserta KB aktif (keduanya bulanan, mengikuti filter bulan). Angka = jumlah per kecamatan; klik ▶ untuk rincian per desa. Data "KB &amp; PUS · Laporan Desa" pada tabel di atas berasal dari input admin desa, bukan dari SIGA.
 			            </div>
 			        </div>
 			    <?php endif; ?>
 			</div><!-- /tab-dallap -->
 
+			<!-- ===== TAB 5: PUS & KB AKTIF (SIGA Dallap bulanan) ===== -->
+			<div class="tab-pane fade" id="tab-puskb" role="tabpanel">
+			    <?php
+			    $pkCols = ['Tabel10' => 'PUS', 'Tabel11' => 'KB Aktif'];
+			    $pkHasData = !empty($dallapRows) && (isset($dallapDefs['Tabel10']) || isset($dallapDefs['Tabel11']));
+			    if (!empty($dallapError)):
+			    ?>
+			        <div class="alert <?= $pkHasData ? 'alert-info' : 'alert-warning' ?> py-2 px-3 mb-3" style="font-size:.9rem;">
+			            <i class="bi bi-<?= $pkHasData ? 'info-circle' : 'exclamation-triangle' ?> me-1"></i><?= esc($dallapError) ?>
+			        </div>
+			    <?php endif; ?>
+
+			    <?php if (!$pkHasData): ?>
+			        <p class="text-muted">Data PUS &amp; KB Aktif (SIGA) belum tersedia.</p>
+			    <?php else: ?>
+			        <div class="krs-shell">
+			            <div class="krs-toolbar">
+			                <div>
+			                    <h3 style="color:#ffffff;">PUS &amp; KB Aktif — Kabupaten Tanah Laut</h3>
+			                    <div class="meta">SIGA BKKBN · Dallap Tabel10/11 · Bulan <?= $yankbBulanNama ?> <?= $dallapTahun ?? 2026 ?><?php if (!empty($dallapUpdatedAt)): ?> · update <?= esc($dallapUpdatedAt) ?><?php endif; ?> · klik ▶ untuk rincian per desa</div>
+			                </div>
+			                <span class="badge-live">LIVE MIRROR</span>
+			            </div>
+			            <div class="krs-scroll"><table class="krs-tree" id="puskb-tree">
+			                <thead>
+			                    <tr>
+			                        <th>No</th>
+			                        <th>Kecamatan / Desa</th>
+			                        <th>Jumlah PUS</th>
+			                        <th>Peserta KB Aktif</th>
+			                    </tr>
+			                </thead>
+			                <tbody>
+			                    <?php $pkNo = 1; $pkTot = ['Tabel10' => 0, 'Tabel11' => 0]; ?>
+			                    <?php foreach ($dallapRows as $row): ?>
+			                    <?php $pkName = $dallapNorm($row['nama']); $pkSlug = $dallapSlug[$pkName] ?? ''; ?>
+			                    <tr class="dallap-kec" id="pkb-<?= esc($pkSlug ?: $pkNo) ?>" data-parent="<?= esc($pkSlug ?: $pkNo) ?>" data-slug="<?= esc($pkSlug) ?>">
+			                        <td class="kode"><?= $pkNo++ ?></td>
+			                        <td class="wilayah">
+			                            <?php if ($pkSlug): ?>
+			                            <button type="button" class="krs-toggle" data-role="pkb" data-slug="<?= esc($pkSlug) ?>" aria-label="Expand desa">▶</button>
+			                            <?php else: ?>
+			                            <span class="krs-toggle leaf">·</span>
+			                            <?php endif; ?>
+			                            <?= esc(ucwords(strtolower($row['nama']))) ?>
+			                        </td>
+			                        <?php foreach ($pkCols as $rn => $lbl): ?>
+			                            <?php $pv = $row['qty'][$rn] ?? null; ?>
+			                            <?php if ($pv !== null) $pkTot[$rn] += $pv; ?>
+			                            <td class="n"><?= $pv === null ? '<span class="text-muted">-</span>' : number_format($pv, 0, ',', '.') ?></td>
+			                        <?php endforeach; ?>
+			                    </tr>
+			                    <?php endforeach; ?>
+			                    <tr class="krs-kab">
+			                        <td class="wilayah" colspan="2">JUMLAH TOTAL</td>
+			                        <td class="n"><?= number_format($pkTot['Tabel10'], 0, ',', '.') ?></td>
+			                        <td class="n"><?= number_format($pkTot['Tabel11'], 0, ',', '.') ?></td>
+			                    </tr>
+			                </tbody>
+			            </table></div>
+			            <div class="krs-hint">
+			                Sumber data: SIGA BKKBN Dallap Tabel10 (PUS) &amp; Tabel11 (KB Aktif), bulanan mengikuti filter bulan. Berbeda dengan "KB &amp; PUS · Laporan Desa" yang berasal dari input admin desa.
+			            </div>
+			        </div>
+			    <?php endif; ?>
+			</div><!-- /tab-puskb -->
             </div><!-- /tab-content -->
         </section>
 
@@ -1751,7 +1904,7 @@ $renderYankbTable = static function (array $data): string {
                     <img src="<?= base_url('assets/dist/img/erdekatala.png') ?>" alt="Erdekatala" class="brand-mark">
                     <h5>Erdekatala</h5>
                     <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
-                        Sistem informasi kependudukan agregat berbasis Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
+                        Singkatan dari Elektronik Rumah Data Kependudukan Tanah Laut — sistem informasi kependudukan berbasis Desa-Kecamatan untuk Pemerintah Kabupaten Tanah Laut, Kalimantan Selatan.
                     </p>
                 </div>
                 <div class="col-lg-3 col-6">
@@ -1766,13 +1919,13 @@ $renderYankbTable = static function (array $data): string {
                 <div class="col-lg-4 col-6">
                     <h5>Tentang Data</h5>
                     <p style="font-size: 0.88rem; color: rgba(255,255,255,.55);">
-                        Data pada portal ini bersifat agregat dan diperbarui oleh admin desa setiap periode pelaporan.
+                        Data "Laporan Desa" (termasuk KB &amp; PUS) diperbarui oleh admin desa setiap periode pelaporan; data berlabel "SIGA" adalah cerminan resmi BKKBN (cache 30 menit).
                     </p>
                 </div>
             </div>
             <div class="footer-bottom">
                 <span>&copy; <?= date('Y') ?> Pemerintah Kabupaten Tanah Laut.</span>
-                <span>Desa-Kecamatan-Laporan-Agregat</span>
+                <span>Elektronik Rumah Data Kependudukan Tanah Laut</span>
             </div>
         </div>
     </footer>
@@ -1781,25 +1934,29 @@ $renderYankbTable = static function (array $data): string {
     <script>
         // ponytail: window-scope so DT ready() block can call these
         const rendered = new Set();
-        let renderPiramida, renderSosio, renderKesehatan;
+        let renderGender, renderPiramida, renderSosio, renderKesehatan;
 
         document.addEventListener("DOMContentLoaded", function () {
-        // Palette konsisten
+        // Palette konsisten — sadar dark-mode (dibaca ulang tiap render).
+        const isDarkChart = () => document.body.classList.contains('dark-mode');
+        const chartTheme = () => isDarkChart()
+            ? { ink: "#e8eef6", muted: "#8fa1b8", border: "#33475f" }
+            : { ink: "#0a2a4a", muted: "#6b7280", border: "#d5dfee" };
         const C = {
-            primary: "#dd4814",
-            ink:     "#0f1923",
+            primary: "#005bac",
+            get ink()    { return chartTheme().ink; },
             blue:    "#2d6cdf",
             pink:    "#d6336c",
             green:   "#2f9e44",
             amber:   "#f59e0b",
-            muted:   "#6b7280",
-            paper:   "#f7f5f1",
-            border:  "#e5e1d8"
+            get muted()  { return chartTheme().muted; },
+            paper:   "#eef3f8",
+            get border() { return chartTheme().border; }
         };
-        const PALETTE7 = ["#dd4814","#2d6cdf","#2f9e44","#d6336c","#8b5cf6","#f59e0b","#0d9488"];
-        const GUIDE = { "line-color": C.border, "line-style": "dotted" };
-        const AX = { "font-color": C.ink, "font-size": 11 };
-        const TIP = { borderRadius: 4, padding: 8, "background-color": C.ink, "font-color": "#fff" };
+        const PALETTE7 = ["#005bac","#2d6cdf","#2f9e44","#d6336c","#8b5cf6","#f59e0b","#0d9488"];
+        const GUIDE = { get "line-color"() { return C.border; }, "line-style": "dotted" };
+        const AX = { get "font-color"() { return C.ink; }, "font-size": 11 };
+        const TIP = { borderRadius: 4, padding: 8, get "background-color"() { return C.ink; }, get "font-color"() { return isDarkChart() ? "#0a1730" : "#fff"; } };
 
         // Data untuk chart yang di-defer (disiapkan di sini agar tersedia saat tab dibuka)
         const ageLabels    = <?= json_encode($ageLabels) ?>;
@@ -1819,6 +1976,7 @@ $renderYankbTable = static function (array $data): string {
         const dokValues    = <?= json_encode(array_map('intval', array_values($dokumen))) ?>;
 
         // ============ TAB POKOK — render langsung (tab aktif) ============
+        renderGender = function () {
         zingchart.render({
             id: "zc-gender",
             height: 260,
@@ -1858,6 +2016,8 @@ $renderYankbTable = static function (array $data): string {
                 ]
             }
         });
+        };
+        renderGender();
 
         // ============ LAZY RENDER: hanya saat tab pertama kali dibuka ============
         renderPiramida = function () {
@@ -2153,6 +2313,17 @@ $renderYankbTable = static function (array $data): string {
             });
         }
 
+        // Render ulang chart yang tampil saat mode gelap/terang berubah (palet dibaca ulang via getter).
+        document.addEventListener('erdekatala:theme', function () {
+            var pane = document.querySelector('.tab-pane.active');
+            var key = pane ? pane.id.replace('tab-', '') : 'pokok';
+            rendered.delete('piramida'); rendered.delete('sosio'); rendered.delete('kesehatan');
+            if (key === 'piramida' && typeof renderPiramida === 'function') { renderPiramida(); rendered.add('piramida'); }
+            else if (key === 'sosio' && typeof renderSosio === 'function') { renderSosio(); rendered.add('sosio'); }
+            else if (key === 'kesehatan' && typeof renderKesehatan === 'function') { renderKesehatan(); rendered.add('kesehatan'); }
+            else if (typeof renderGender === 'function') { renderGender(); }
+        });
+
         // ===== KRS tree expand (lazy-load desa) =====
         const krsDesaUrl = '<?= site_url('public/krs-desa') ?>';
         const krsLoaded = new Set();
@@ -2164,19 +2335,21 @@ $renderYankbTable = static function (array $data): string {
             return krsNum(v).toLocaleString('id-ID');
         }
         function krsCells(r) {
+            // Urutan kolom sama dengan renderKrsCells (format PDF Rekap)
             return [
                 r.kelurahanAda, r.kelurahanTarget, r.kelurahanVerval,
-                (r.cakupanKelurahanVerval ?? 0) + '%',
-                r.pusSasaran, r.pusVervalAda, r.pusVervalBaru, r.pusVervalAdaBaru,
+                Number(r.cakupanKelurahanVerval ?? 0).toFixed(2),
+                r.pusVervalAda, r.pusVervalBaru, r.pusVervalAdaBaru,
                 r.pusHamilSasaran, r.pushamilVervalAda, r.pushamilVervalBaru,
                 r.badutaSasaran, r.badutaVervalAda, r.badutaVervalBaru,
                 r.balitaSasaran, r.balitaVervalAda, r.balitaVervalBaru,
-                r.keluargaSasaranCatin, r.sasaranPrioritas, r.prioritasTerverval,
-                r.totalSasaran, r.totalVervalAdaBaru, (r.persenTarget ?? '0') + '%'
+                r.sasaranPrioritas, r.prioritasTerverval, r.adaBaruLainTerverval,
+                r.totalVervalAda, r.totalVervalBaru, r.total, r.keluargaSasaranCatin
             ].map((v, i) => {
-                const cls = (i === 22) ? 'n pct' : 'n';
-                const val = (typeof v === 'string' && v.includes('%')) ? v : krsFmt(v);
-                return `<td class="${cls}">${val}</td>`;
+                if (i === 3) return `<td class="n">${v}</td>`;
+                if (i === 21) return `<td class="n">${(+String(v ?? '').replace(/[.,]/g, '')) ? krsFmt(v) : '-'}</td>`;
+                const val = (v === null || v === undefined || v === '') ? '-' : krsFmt(v);
+                return `<td class="n">${val}</td>`;
             }).join('');
         }
 
@@ -2343,6 +2516,87 @@ $renderYankbTable = static function (array $data): string {
             });
         });
 
+        // ===== PUS & KB Aktif: expand desa per kecamatan (reuse getDallapDesa, 2 kolom) =====
+        const pkbCols = ['Tabel10', 'Tabel11'];
+        const pkbBulan = new URLSearchParams(window.location.search).get('bulan') || '<?= (int)($yankbBulan ?? 8) ?>';
+        document.querySelectorAll('#puskb-tree .krs-toggle[data-role="pkb"]').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const slug = this.dataset.slug;
+                const parentRow = this.closest('tr');
+                if (!parentRow || !slug) return;
+
+                const parentId = parentRow.id;
+                const open = this.classList.contains('open');
+                if (open) {
+                    document.querySelectorAll(`#puskb-tree tr[data-parent="${parentId}"]`).forEach(tr => tr.remove());
+                    this.classList.remove('open');
+                    this.textContent = '▶';
+                    return;
+                }
+
+                this.classList.add('open');
+                this.textContent = '▼';
+
+                const loadTr = document.createElement('tr');
+                loadTr.className = 'krs-loading';
+                loadTr.dataset.parent = parentId;
+                loadTr.innerHTML = `<td class="wilayah" colspan="4"><i class="bi bi-arrow-repeat"></i> Memuat desa...</td>`;
+                parentRow.after(loadTr);
+
+                try {
+                    const res = await fetch(dallapDesaUrl + '/' + encodeURIComponent(slug) + '?bulan=' + encodeURIComponent(pkbBulan), { headers: { 'Accept': 'application/json' } });
+                    const json = await res.json();
+                    loadTr.remove();
+                    if (!res.ok || !json || json.error) {
+                        const errTr = document.createElement('tr');
+                        errTr.className = 'krs-loading';
+                        errTr.dataset.parent = parentId;
+                        errTr.innerHTML = `<td class="wilayah" colspan="4">${(json && json.error) || 'Gagal memuat data desa.'}</td>`;
+                        parentRow.after(errTr);
+                        this.classList.remove('open');
+                        this.textContent = '▶';
+                        return;
+                    }
+
+                    let anchor = parentRow;
+                    (json.rows || []).forEach((r, di) => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'dallap-desa';
+                        tr.dataset.parent = parentId;
+                        let cells = `<td class="kode">${di + 1}</td><td class="wilayah"><span class="krs-toggle leaf">·</span>${(r.nama || '-').replace(/</g, '&lt;')}</td>`;
+                        pkbCols.forEach(rn => {
+                            const v = (r.qty && r.qty[rn] !== undefined && r.qty[rn] !== null) ? r.qty[rn] : null;
+                            cells += `<td class="n">${v === null ? '-' : Number(v).toLocaleString('id-ID')}</td>`;
+                        });
+                        tr.innerHTML = cells;
+                        anchor.after(tr);
+                        anchor = tr;
+                    });
+
+                    const totTr = document.createElement('tr');
+                    totTr.className = 'krs-kab';
+                    totTr.dataset.parent = parentId;
+                    let totCells = `<td class="wilayah" colspan="2">JUMLAH TOTAL</td>`;
+                    pkbCols.forEach(rn => {
+                        let s = 0;
+                        (json.rows || []).forEach(r => { const v = (r.qty && r.qty[rn]); if (v !== null && v !== undefined) s += v; });
+                        totCells += `<td class="n">${s.toLocaleString('id-ID')}</td>`;
+                    });
+                    totTr.innerHTML = totCells;
+                    anchor.after(totTr);
+                } catch (e) {
+                    loadTr.remove();
+                    const errTr = document.createElement('tr');
+                    errTr.className = 'krs-loading';
+                    errTr.dataset.parent = parentId;
+                    errTr.innerHTML = `<td class="wilayah" colspan="4">Gagal memuat data desa.</td>`;
+                    parentRow.after(errTr);
+                    this.classList.remove('open');
+                    this.textContent = '▶';
+                }
+            });
+        });
+
         // ===== Filter bulan laporan YanKB (Tabel1/Tabel21) =====
         const yankbBulanSel = document.getElementById('yankb-bulan');
         if (yankbBulanSel) {
@@ -2412,9 +2666,9 @@ $renderYankbTable = static function (array $data): string {
             const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
             });
-            const RAMP = ['#fdeae2', '#f8c9b3', '#f2a483', '#e86f3f', '#dd4814'];
+            const RAMP = ['#e3eef9', '#c2d8ee', '#99bce0', '#4a8ac8', '#005bac'];
             const COLOR_ACTIVE = '#2d6cdf';
-            const COLOR_NODATA = '#e5e1d8';
+            const COLOR_NODATA = '#d5dfee';
 
             // Kecamatan yang difilter (slug)
             const activeKec = filterKec
@@ -2814,6 +3068,7 @@ $renderYankbTable = static function (array $data): string {
             })();
         })();
     </script>
+    <?= $this->setVar('noButton', true)->include('templates/theme_toggle') ?>
 </body>
 
 </html>

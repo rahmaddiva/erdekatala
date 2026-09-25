@@ -2,7 +2,7 @@
 
 ## Deskripsi
 
-**erdekatala** adalah aplikasi berbasis **CodeIgniter 4** yang disiapkan untuk pengembangan lokal sistem informasi pendataan statistik pada DP3AP2KB, baik dalam lingkup kabupaten Tanah Laut, Kecamatan bahkan sampai Desa, yang tujuannya untuk pendataan penduduk secara berkala pada wilayah kabupaten Tanah Laut
+**erdekatala** (Elektronik Rumah Data Kependudukan Tanah Laut) adalah sistem informasi kependudukan berbasis **CodeIgniter 4** untuk DP3AP2KB Kabupaten Tanah Laut, Kalimantan Selatan — pendataan penduduk agregat tingkat desa secara berkala, monitoring capaian pelaporan, statistik visual, dan keterbukaan data via halaman publik + Public API.
 ## Fitur Utama
 
 - Struktur proyek CodeIgniter 4 siap pakai
@@ -46,6 +46,19 @@
 ## Konfigurasi Webserver
 
 - Arahkan web server (Apache/Nginx) ke folder `public/` sebagai webroot untuk keamanan.
+
+## Informasi Project
+
+Project ini dibuat dan dikembangkan secara pribadi oleh:
+
+| | |
+|---|---|
+| Nama | **rahmaddiva** |
+| Email | mahendradiva64@gmail.com |
+| Instansi | DP3AP2KB Kabupaten Tanah Laut, Kalimantan Selatan |
+| Status | Active Development (2026) |
+
+Dokumentasi lengkap konteks project (arsitektur, skema database, routes, konvensi kode) ada di [`AGENTS.md`](AGENTS.md); kebutuhan produk ada di [`PRD.md`](PRD.md).
 
 ## Kontribusi
 

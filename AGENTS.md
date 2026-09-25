@@ -8,7 +8,7 @@ Dokumen ini menjelaskan konteks lengkap project Erdekatala untuk model AI atau a
 
 **Erdekatala** adalah sistem informasi kependudukan berbasis web untuk pemerintah daerah Kabupaten Tanah Laut, Kalimantan Selatan. Aplikasi ini digunakan untuk pencatatan, pelaporan, dan visualisasi data agregat kependudukan tingkat desa, mulai dari data jiwa, KK, pendidikan, pekerjaan, kesehatan (JKN/BPJS), hingga KB dan PUS.
 
-Nama "Erdekatala" berasal dari singkatan RT-Desa-Kecamatan-Tanah Laut-Agregat.
+Nama "Erdekatala" berasal dari singkatan Elektronik Rumah Data Kependudukan Tanah Laut.
 
 ---
 
@@ -357,7 +357,7 @@ POST /notifikasi/delete/:id         NotifikasiController::delete
 - **Password**: selalu `password_hash()` saat simpan, `password_verify()` saat cek
 - **Output HTML**: gunakan `esc()` untuk mencegah XSS
 - **AJAX response**: `$this->response->setJSON($data)`
-- **Flash message**: `->with('success', '...')` atau `->with('error', '...')`, ditampilkan via SweetAlert2 toast di `templates/main.php`
+- **Tabel Monitoring BKKBN** (landing page, `app/Views/public/landingpage.php`): standar rapat — shell `.krs-shell` + tabel `.krs-tree`; gap tab→shell 8px (`#monitoring-bkkbn .tab-pane{padding-top:.5rem}`), toolbar `.6rem/.9rem` judul `.9rem`, hint `.45rem/.9rem`; sel tabel font `.68–.72rem` padding `.25–.3rem/.3–.35rem`; tabel lebar isi penuh (`width:100%; min-width:0`), header angka `nowrap` + kolom angka `min-width:130px`; kolom wilayah kunci sticky kiri (thead `th:first-child` + tbody `td.wilayah`); scope override per-id tabel (`#krs-tree`, `#dallap-tree`, `#puskb-tree`, `.krs-yankb`) — jangan ubah `.krs-tree` umum
 
 ---
 

@@ -9,6 +9,7 @@ use App\Models\LaporanAgregatModel;
 
 class ApiController extends BaseController
 {
+    use BkkbnMirror;
     private ApiKeyModel $apiKeyModel;
     private LaporanAgregatModel $laporanModel;
     private KecamatanModel $kecamatanModel;
@@ -54,9 +55,11 @@ class ApiController extends BaseController
                 'GET /api/v1/desa'                    => 'Daftar desa (filter: ?id_kecamatan=)',
                 'GET /api/v1/laporan'                 => 'Data laporan agregat (filter: ?id_kecamatan=, ?id_desa=, ?bulan=, ?tahun=)',
                 'GET /api/v1/laporan/rekap/kecamatan' => 'Rekapitulasi per kecamatan',
-                'GET /api/v1/laporan/rekap/desa'      => 'Rekapitulasi per desa (wajib: ?id_kecamatan=)',
                 'GET /api/v1/map/kecamatan'           => 'GeoJSON FeatureCollection per kecamatan + indikator statistik gabungan (PUBLIK, tanpa API key)',
                 'GET /api/v1/map/desa'                => 'GeoJSON FeatureCollection per desa + indikator statistik gabungan (filter: ?id_kecamatan=; PUBLIK, tanpa API key)',
+                'GET /api/v1/bkkbn/krs'               => 'Cermin Monitoring KRS BKKBN: rows per kecamatan + baris kab (filter: ?tahun=; sumber: BKKBN, cache 30 menit)',
+                'GET /api/v1/bkkbn/dallap'            => 'Cermin Rekap Bangga Kencana BKKBN: matriks per kecamatan (filter: ?tahun=, ?bulan=; sumber: BKKBN, cache 30 menit)',
+                'GET /api/v1/bkkbn/yankb'             => 'Cermin YanKB BKKBN Tabel1/Tabel21: tabel terstruktur per kecamatan (wajib: ?report=; filter: ?tahun=, ?bulan=; sumber: BKKBN, cache 30 menit)',
             ],
         ]);
     }
@@ -291,5 +294,69 @@ class ApiController extends BaseController
         $defaults['total_jiwa'] = 0;
         $defaults['total_kk']   = 0;
         return array_merge($defaults, $row);
+    }
+    // GET /api/v1/bkkbn/krs?tahun= — cermin Monitoring KRS BKKBN (sumber: BKKBN, cache 30 menit)
+    public function bkkbnKrs()
+    {
+        $tahun = filter_var($this->request->getGet('tahun') ?? 2026, FILTER_VALIDATE_INT, ['options' => ['min_range' => 2000, 'max_range' => 2100]]);
+        if (!$tahun) {
+            return $this->json(['status' => 'error', 'message' => 'Parameter tahun harus berupa angka 2000-2100.'], 422);
+        }
+        $raw = $this->fetchMonitoringKrs($tahun, null);
+        return $this->json([
+            'status'     => 'ok',
+            'sumber'     => 'BKKBN (SIGA gateway), cache 30 menit — bukan data Erdekatala',
+            'tahun'      => $tahun,
+            'updated_at' => $raw['updated_at'],
+            'error'      => $raw['error'],
+            'data'       => $raw['rows'],
+        ]);
+    }
+
+    // GET /api/v1/bkkbn/dallap?tahun=&bulan= — cermin Rekap Bangga Kencana BKKBN (sumber: BKKBN, cache 30 menit)
+    public function bkkbnDallap()
+    {
+        $tahun = filter_var($this->request->getGet('tahun') ?? 2026, FILTER_VALIDATE_INT, ['options' => ['min_range' => 2000, 'max_range' => 2100]]);
+        $bulan = filter_var($this->request->getGet('bulan') ?? 8, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 12]]);
+        if (!$tahun || !$bulan) {
+            return $this->json(['status' => 'error', 'message' => 'Parameter tahun (2000-2100) dan bulan (1-12) harus valid.'], 422);
+        }
+        $m = $this->fetchDallapMatrix($tahun, $bulan);
+        return $this->json([
+            'status'     => 'ok',
+            'sumber'     => 'BKKBN (SIGA gateway), cache 30 menit — bukan data Erdekatala',
+            'tahun'      => $tahun,
+            'bulan'      => $bulan,
+            'updated_at' => $m['updated_at'],
+            'error'      => $m['error'],
+            'defs'       => $m['defs'],
+            'data'       => $m['rows'],
+        ]);
+    }
+
+    // GET /api/v1/bkkbn/yankb?report=&tahun=&bulan= — cermin YanKB BKKBN (sumber: BKKBN, cache 30 menit)
+    public function bkkbnYankb()
+    {
+        $report = strtoupper(trim((string) ($this->request->getGet('report') ?? '')));
+        if (!in_array($report, ['TABEL1', 'TABEL21'], true)) {
+            return $this->json(['status' => 'error', 'message' => 'Parameter report wajib: Tabel1 atau Tabel21.'], 422);
+        }
+        $reportName = $report === 'TABEL1' ? 'Tabel1' : 'Tabel21';
+        $tahun = filter_var($this->request->getGet('tahun') ?? 2026, FILTER_VALIDATE_INT, ['options' => ['min_range' => 2000, 'max_range' => 2100]]);
+        $bulan = filter_var($this->request->getGet('bulan') ?? 8, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 12]]);
+        if (!$tahun || !$bulan) {
+            return $this->json(['status' => 'error', 'message' => 'Parameter tahun (2000-2100) dan bulan (1-12) harus valid.'], 422);
+        }
+        $r = $this->fetchYankbReport($reportName, $tahun, $bulan);
+        return $this->json([
+            'status'     => 'ok',
+            'sumber'     => 'BKKBN (SIGA gateway), cache 30 menit — bukan data Erdekatala',
+            'report'     => $reportName,
+            'tahun'      => $tahun,
+            'bulan'      => $bulan,
+            'updated_at' => $r['updated_at'],
+            'error'      => $r['error'],
+            'data'       => $this->parseYankbHtml($r['html'] ?? ''),
+        ]);
     }
 }

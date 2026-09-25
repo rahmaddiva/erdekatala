@@ -101,6 +101,9 @@ $routes->group('api', function ($routes) {
         $routes->get('laporan', 'ApiController::laporan');
         $routes->get('laporan/rekap/kecamatan', 'ApiController::rekapKecamatan');
         $routes->get('laporan/rekap/desa', 'ApiController::rekapDesa');
+        $routes->get('bkkbn/krs', 'ApiController::bkkbnKrs');
+        $routes->get('bkkbn/dallap', 'ApiController::bkkbnDallap');
+        $routes->get('bkkbn/yankb', 'ApiController::bkkbnYankb');
     });
 
     // Endpoint peta (publik tanpa key) — sengaja DI LUAR grup apikeyauth

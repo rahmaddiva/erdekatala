@@ -73,7 +73,7 @@ $slugify = function($name) {
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            border: 2px solid rgba(221, 72, 20, 0.6);
+            border: 2px solid rgba(0, 91, 172, 0.6);
             pointer-events: none;
             z-index: 9999;
             top: 0;
@@ -84,15 +84,16 @@ $slugify = function($name) {
     </style>
     <style>
         :root {
-            --primary:   #dd4814;
-            --primary-d: #b0380f;
-            --ink:       #0f1923;
-            --ink-soft:  #1e2d3a;
+            --primary:   #005bac;
+            --primary-d: #004a8c;
+            --primary-l: #8ec7f0;
+            --ink:       #0a2a4a;
+            --ink-soft:  #1e3a5c;
             --paper:     #ffffff;
-            --paper-2:   #f7f5f1;
-            --paper-3:   #efece6;
+            --paper-2:   #eef3f8;
+            --paper-3:   #e2eaf2;
             --muted:     #6b7280;
-            --border:    #e5e1d8;
+            --border:    #d5dfee;
             --accent-l:  #2d6cdf;
             --accent-p:  #d6336c;
             --good:      #2f9e44;
@@ -135,7 +136,7 @@ $slugify = function($name) {
             background: var(--primary); color: #fff;
             border-radius: 8px; display: grid; place-items: center;
             font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.05rem;
-            box-shadow: 0 2px 8px rgba(221,72,20,.35);
+            box-shadow: 0 2px 8px rgba(0,91,172,.35);
         }
         .navbar-sikada .brand small {
             display: block; font-weight: 400; font-size: 0.72rem;
@@ -153,7 +154,7 @@ $slugify = function($name) {
 
         /* ===== PAGE HEADER ===== */
         .page-hero {
-            background: linear-gradient(135deg, var(--ink) 0%, #1a2e3e 100%);
+            background: linear-gradient(135deg, var(--ink) 0%, #14467e 100%);
             color: #fff;
             padding: 3.5rem 0 3rem;
             position: relative;
@@ -163,7 +164,7 @@ $slugify = function($name) {
             content: ""; position: absolute; top: 0; right: 0;
             width: 55%; height: 100%;
             background:
-                radial-gradient(circle at 80% 20%, rgba(221,72,20,.22), transparent 55%),
+                radial-gradient(circle at 80% 20%, rgba(0,91,172,.22), transparent 55%),
                 radial-gradient(circle at 95% 75%, rgba(45,108,223,.15), transparent 50%);
             pointer-events: none;
         }
@@ -186,7 +187,7 @@ $slugify = function($name) {
             color: #fff; font-size: 2.4rem; font-weight: 700;
             margin-bottom: 0.5rem; position: relative; z-index: 1;
         }
-        .page-hero h1 em { font-style: italic; color: var(--primary); }
+        .page-hero h1 em { font-style: italic; color: var(--primary-l); }
         .page-hero .lead {
             font-size: 1.05rem; color: rgba(255,255,255,.7);
             max-width: 600px; font-weight: 300;
@@ -200,7 +201,7 @@ $slugify = function($name) {
             padding: 0.5rem 1rem; border-radius: 8px;
             font-size: 0.95rem; font-weight: 600;
             margin-top: 1rem;
-            box-shadow: 0 4px 14px rgba(221,72,20,.25);
+            box-shadow: 0 4px 14px rgba(0,91,172,.25);
             position: relative; z-index: 1;
         }
         .desa-badge a {
@@ -249,11 +250,11 @@ $slugify = function($name) {
             width: 38px; height: 38px; border-radius: 50%;
             display: grid; place-items: center; font-size: 1.15rem;
         }
-        .stat-card .icon-circle.tone-primary { background: rgba(221,72,20,.12); color: var(--primary); }
+        .stat-card .icon-circle.tone-primary { background: rgba(0,91,172,.12); color: var(--primary); }
         .stat-card .icon-circle.tone-blue    { background: rgba(45,108,223,.12); color: var(--accent-l); }
         .stat-card .icon-circle.tone-pink    { background: rgba(214,51,108,.12); color: var(--accent-p); }
         .stat-card .icon-circle.tone-green   { background: rgba(47,158,68,.12); color: var(--good); }
-        .stat-card .icon-circle.tone-orange  { background: rgba(221,72,20,.12); color: var(--primary); }
+        .stat-card .icon-circle.tone-orange  { background: rgba(0,91,172,.12); color: var(--primary); }
 
         /* ===== PROFIL KECAMATAN ===== */
         .profil-card {
@@ -275,7 +276,7 @@ $slugify = function($name) {
         .profil-field .pf-icon {
             width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
             display: grid; place-items: center; margin-top: 0.15rem;
-            background: rgba(221,72,20,.1); color: var(--primary);
+            background: rgba(0,91,172,.1); color: var(--primary);
         }
         .profil-field .pf-label {
             font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
@@ -307,7 +308,7 @@ $slugify = function($name) {
         .info-strip .info-icon {
             width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
             display: grid; place-items: center; font-size: 1.3rem;
-            background: rgba(255,255,255,.1); color: var(--primary);
+            background: rgba(255,255,255,.1); color: var(--primary-l);
         }
         .info-strip h4 { color: #fff; margin: 0 0 0.2rem; font-size: 1.05rem; }
         .info-strip p { margin: 0; color: rgba(255,255,255,.7); font-size: 0.9rem; }
@@ -403,7 +404,7 @@ $slugify = function($name) {
             padding: 0.6rem 1rem;
         }
         table.dataTable tbody tr:hover td {
-            background: rgba(221,72,20,.03) !important;
+            background: rgba(0,91,172,.03) !important;
         }
         .dt-num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
         .dt-total { font-weight: 700; color: var(--primary); }
@@ -437,7 +438,7 @@ $slugify = function($name) {
         }
         .desa-search-bar input:focus {
             outline: none; border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(221,72,20,.12);
+            box-shadow: 0 0 0 3px rgba(0,91,172,.12);
         }
         .table-desa { width: 100%; border-collapse: collapse; }
         .table-desa .thead-wrap { overflow-x: auto; }
@@ -484,7 +485,7 @@ $slugify = function($name) {
         }
         .kec-card.active {
             border-color: var(--primary); border-width: 2px;
-            background: rgba(221,72,20,.05); color: var(--primary);
+            background: rgba(0,91,172,.05); color: var(--primary);
         }
         .kec-card i { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--paper-3); }
         .kec-card:hover i, .kec-card.active i { color: var(--primary); }
@@ -496,7 +497,7 @@ $slugify = function($name) {
         }
         footer.sikada-footer h5 { color: #fff; font-size: 1rem; margin-bottom: 1rem; }
         footer.sikada-footer a { color: rgba(255,255,255,.65); }
-        footer.sikada-footer a:hover { color: var(--primary); }
+        footer.sikada-footer a:hover { color: var(--primary-l); }
         footer.sikada-footer .footer-bottom {
             border-top: 1px solid rgba(255,255,255,.1); padding-top: 1.25rem;
             margin-top: 2rem; font-size: 0.82rem; color: rgba(255,255,255,.45);
@@ -526,7 +527,7 @@ $slugify = function($name) {
         /* ===== PETA SEBARAN PER DESA (Leaflet) ===== */
         .map-shell {
             background: #fff;
-            border: 1px solid var(--border, #e5e1d8);
+            border: 1px solid var(--border, #d5dfee);
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 4px 16px rgba(15,25,35,.06), 0 2px 4px rgba(15,25,35,.04);
@@ -536,7 +537,7 @@ $slugify = function($name) {
             width: 100%;
             position: relative;
             z-index: 0;
-            background: #f7f5f1;
+            background: #eef3f8;
         }
         .map-indicator-bar {
             display: flex;
@@ -545,20 +546,20 @@ $slugify = function($name) {
             gap: .5rem;
             padding: .8rem 1.1rem;
             background: var(--paper, #ffffff);
-            border-bottom: 1px solid var(--border, #e5e1d8);
+            border-bottom: 1px solid var(--border, #d5dfee);
         }
         .map-indicator-bar label {
             margin: 0;
             font-size: .82rem;
             font-weight: 600;
-            color: var(--ink-soft, #1e2d3a);
+            color: var(--ink-soft, #1e3a5c);
         }
         .map-indicator-bar select {
             font-family: inherit;
             font-size: .82rem;
-            color: var(--ink, #0f1923);
-            background: var(--paper-2, #f7f5f1);
-            border: 1px solid var(--border, #e5e1d8);
+            color: var(--ink, #0a2a4a);
+            background: var(--paper-2, #eef3f8);
+            border: 1px solid var(--border, #d5dfee);
             border-radius: 8px;
             padding: .4rem 2.1rem .4rem .75rem;
             min-width: 230px;
@@ -567,7 +568,7 @@ $slugify = function($name) {
             transition: border-color .15s ease;
         }
         .map-indicator-bar select:hover,
-        .map-indicator-bar select:focus { border-color: var(--primary, #dd4814); }
+        .map-indicator-bar select:focus { border-color: var(--primary, #005bac); }
         .map-indicator-bar .lg-label-ind {
             margin-left: auto;
             font-size: .78rem;
@@ -575,7 +576,7 @@ $slugify = function($name) {
             font-style: italic;
         }
         .leaflet-container {
-            background: #f7f5f1;
+            background: #eef3f8;
             font-family: inherit;
         }
         .map-shell .map-legend {
@@ -585,9 +586,9 @@ $slugify = function($name) {
             align-items: center;
             padding: .8rem 1.1rem;
             background: #fff;
-            border-top: 1px solid #e5e1d8;
+            border-top: 1px solid #d5dfee;
             font-size: .8rem;
-            color: #1e2d3a;
+            color: #1e3a5c;
         }
         .map-shell .map-legend .swatch {
             display: inline-block;
@@ -603,34 +604,34 @@ $slugify = function($name) {
         }
         .map-shell .map-legend .lg-item b {
             font-weight: 600;
-            color: #0f1923;
+            color: #0a2a4a;
             font-variant-numeric: tabular-nums;
         }
         .map-shell .map-legend .lg-sep {
             width: 1px; height: 16px;
-            background: #e5e1d8;
+            background: #d5dfee;
         }
         .map-popup-desa { font-family: 'Poppins', sans-serif; }
         .map-popup-desa .pk-name {
-            font-weight: 700; color: #0f1923; font-size: .95rem;
+            font-weight: 700; color: #0a2a4a; font-size: .95rem;
             margin-bottom: .35rem;
         }
         .map-popup-desa .pk-row {
             display: flex; justify-content: space-between; gap: 1rem;
-            font-size: .82rem; color: #1e2d3a;
+            font-size: .82rem; color: #1e3a5c;
             padding: .12rem 0;
         }
-        .map-popup-desa .pk-row b { color: #0f1923; font-variant-numeric: tabular-nums; }
+        .map-popup-desa .pk-row b { color: #0a2a4a; font-variant-numeric: tabular-nums; }
         .map-popup-desa .pk-link {
             display: block; margin-top: .45rem;
-            font-size: .8rem; font-weight: 600; color: #dd4814;
+            font-size: .8rem; font-weight: 600; color: #005bac;
         }
-        .map-popup-desa .pk-link:hover { color: #b0380f; }
-        .leaflet-popup-content a { color: #dd4814; }
+        .map-popup-desa .pk-link:hover { color: #004a8c; }
+        .leaflet-popup-content a { color: #005bac; }
         .map-placeholder {
             height: 480px;
             display: flex; align-items: center; justify-content: center;
-            background: #f7f5f1;
+            background: #eef3f8;
             color: #6b7280;
             font-size: .95rem;
             border-radius: 12px;
@@ -649,6 +650,10 @@ $slugify = function($name) {
             </a>
             <div class="nav-right d-none d-md-flex">
                 <a href="<?= site_url('/api/docs') ?>" class="nav-link-sikada"><i class="bi bi-code-slash me-1"></i>API</a>
+                <button class="nav-theme-btn" type="button" aria-label="Ganti mode gelap/terang" title="Mode gelap/terang">
+                    <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
                 <a href="<?= site_url('/login') ?>" class="btn-login"><i class="bi bi-box-arrow-in-right me-1"></i>Masuk</a>
             </div>
             <a href="<?= site_url('/login') ?>" class="btn-login d-md-none"><i class="bi bi-box-arrow-in-right"></i></a>
@@ -839,7 +844,7 @@ $slugify = function($name) {
                 <div id="map-desa"></div>
                 <div class="map-legend" id="map-legend-desa">
                     <span class="lg-item"><span class="swatch" style="background:#2d6cdf;"></span>Desa terpilih</span>
-                    <span class="lg-item"><span class="swatch" style="background:#e5e1d8;"></span>Tidak ada data</span>
+                    <span class="lg-item"><span class="swatch" style="background:#d5dfee;"></span>Tidak ada data</span>
                     <span class="lg-sep"></span>
                     <span class="lg-item lg-ind-label"></span>
                     <span class="lg-item" id="dlg-0"><span class="swatch"></span><b></b></span>
@@ -879,7 +884,7 @@ $slugify = function($name) {
                     <div class="icon-circle tone-green"><i class="bi bi-heart-pulse-fill"></i></div>
                     <div class="label">PUS</div>
                     <div class="value"><?= number_format($pus, 0, ',', '.') ?></div>
-                    <div class="sub">Pasangan Usia Subur</div>
+                    <div class="sub">Pasangan Usia Subur · Laporan Desa</div>
                 </div>
             </div>
 
@@ -1176,19 +1181,19 @@ $slugify = function($name) {
                                 </tr>
                                 <?php endforeach; ?>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
                                     <td class="dt-sub">KB Aktif</td>
                                     <td class="dt-num"><?= $fmt($kbAktif) ?></td>
                                     <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($kbAktif / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
                                     <td class="dt-sub">Jumlah PUS</td>
                                     <td class="dt-num"><?= $fmt($pus) ?></td>
                                     <td class="dt-num dt-pct">—</td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS</td>
+                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
                                     <td class="dt-sub">Penggunaan Alat Kontrasepsi</td>
                                     <td class="dt-num"><?= $fmt($alatKontra) ?></td>
                                     <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($alatKontra / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
@@ -1272,18 +1277,29 @@ $slugify = function($name) {
     <script>
         // ponytail: window-scope so DT ready() block can call these
         const rendered = new Set();
-        let renderPiramida, renderSosio, renderKesehatan;
+        let renderGender, renderPiramida, renderSosio, renderKesehatan;
 
         document.addEventListener("DOMContentLoaded", function () {
+        // Palette konsisten — sadar dark-mode (dibaca ulang tiap render).
+        const isDarkChart = () => document.body.classList.contains('dark-mode');
+        const chartTheme = () => isDarkChart()
+            ? { ink: "#e8eef6", muted: "#8fa1b8", border: "#33475f" }
+            : { ink: "#0a2a4a", muted: "#6b7280", border: "#d5dfee" };
         const C = {
-            primary: "#dd4814", ink: "#0f1923", blue: "#2d6cdf", pink: "#d6336c",
-            green: "#2f9e44", muted: "#6b7280", paper: "#f7f5f1", border: "#e5e1d8",
-            amber: "#f59e0b"
+            primary: "#005bac",
+            get ink()    { return chartTheme().ink; },
+            blue:    "#2d6cdf",
+            pink:    "#d6336c",
+            green:   "#2f9e44",
+            amber:   "#f59e0b",
+            get muted()  { return chartTheme().muted; },
+            paper:   "#eef3f8",
+            get border() { return chartTheme().border; }
         };
-        const PALETTE7 = ["#dd4814","#2d6cdf","#2f9e44","#d6336c","#8b5cf6","#f59e0b","#0d9488"];
-        const GUIDE = { "line-color": C.border, "line-style": "dotted" };
-        const AX = { "font-color": C.ink, "font-size": 11 };
-        const TIP = { borderRadius: 4, padding: 8, "background-color": C.ink, "font-color": "#fff" };
+        const PALETTE7 = ["#005bac","#2d6cdf","#2f9e44","#d6336c","#8b5cf6","#f59e0b","#0d9488"];
+        const GUIDE = { get "line-color"() { return C.border; }, "line-style": "dotted" };
+        const AX = { get "font-color"() { return C.ink; }, "font-size": 11 };
+        const TIP = { borderRadius: 4, padding: 8, get "background-color"() { return C.ink; }, get "font-color"() { return isDarkChart() ? "#0a1730" : "#fff"; } };
 
         // Data for deferred charts — declared here so render fns can close over them
         const ageLabels    = <?= json_encode($ageLabels) ?>;
@@ -1303,6 +1319,7 @@ $slugify = function($name) {
         const dokValues    = <?= json_encode(array_map('intval', array_values($dokumen))) ?>;
 
         // ===== TAB POKOK — render immediately (active tab) =====
+        renderGender = function () {
         zingchart.render({
             id: "zc-gender",
             height: 260,
@@ -1342,6 +1359,8 @@ $slugify = function($name) {
                 ]
             }
         });
+        };
+        renderGender();
 
         // ===== LAZY RENDER FUNCTIONS =====
         renderPiramida = function () {
@@ -1571,6 +1590,17 @@ $slugify = function($name) {
                 }
             });
         }
+
+        // Render ulang chart yang tampil saat mode gelap/terang berubah (palet dibaca ulang via getter).
+        document.addEventListener('erdekatala:theme', function () {
+            var pane = document.querySelector('.tab-pane.active');
+            var key = pane ? pane.id.replace('tab-', '') : 'pokok';
+            rendered.delete('piramida'); rendered.delete('sosio'); rendered.delete('kesehatan');
+            if (key === 'piramida' && typeof renderPiramida === 'function') { renderPiramida(); rendered.add('piramida'); }
+            else if (key === 'sosio' && typeof renderSosio === 'function') { renderSosio(); rendered.add('sosio'); }
+            else if (key === 'kesehatan' && typeof renderKesehatan === 'function') { renderKesehatan(); rendered.add('kesehatan'); }
+            else if (typeof renderGender === 'function') { renderGender(); }
+        });
         });
     </script>
     <div class="cursor-follower" id="cursorFollower"></div>
@@ -1606,9 +1636,9 @@ $slugify = function($name) {
             const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
             });
-            const RAMP = ['#fdeae2', '#f8c9b3', '#f2a483', '#e86f3f', '#dd4814'];
+            const RAMP = ['#e3eef9', '#c2d8ee', '#99bce0', '#4a8ac8', '#005bac'];
             const COLOR_ACTIVE = '#2d6cdf';
-            const COLOR_NODATA = '#e5e1d8';
+            const COLOR_NODATA = '#d5dfee';
 
             const desaSlugify = name => String(name).toLowerCase().replace(/\s+/g, '-');
 
@@ -1845,7 +1875,6 @@ $slugify = function($name) {
             // Klik poligon (popup) dan hover highlight ditangani langsung
             // via bindPopup + event layer di onEachDesa.
         })();
-    </script>
     <script>
         (function() {
             var f = document.getElementById('cursorFollower');
@@ -1868,4 +1897,5 @@ $slugify = function($name) {
             })();
         })();
     </script>
+    <?= $this->setVar('noButton', true)->include('templates/theme_toggle') ?>
 </body>

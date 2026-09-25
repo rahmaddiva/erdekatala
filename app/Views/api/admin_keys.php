@@ -1,7 +1,13 @@
 <?= $this->extend('templates/main') ?>
 <?= $this->section('content') ?>
 
-<div class="content-wrapper">
+<style>
+.apikeys-bkkbn .btn-primary { background-color: #005bac; border-color: #005bac; }
+.apikeys-bkkbn .btn-primary:hover { background-color: #004a8c; border-color: #004a8c; }
+.apikeys-bkkbn .badge-primary { background-color: #005bac !important; }
+.apikeys-bkkbn .card-primary.card-outline { border-top-color: #005bac; }
+</style>
+<div class="content-wrapper apikeys-bkkbn">
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">

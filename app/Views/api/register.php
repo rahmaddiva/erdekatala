@@ -15,7 +15,7 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            border: 2px solid rgba(221, 72, 20, 0.6);
+            border: 2px solid rgba(0, 91, 172, 0.6);
             pointer-events: none;
             z-index: 9999;
             top: 0;
@@ -26,10 +26,10 @@
     </style>
     <style>
         :root{
-            --ink:#0f1923; --ink-2:#1a2733;
-            --primary:#dd4814; --primary-d:#b83a10;
-            --paper:#f7f5f1; --paper-2:#ffffff;
-            --line:#e5e1d8; --muted:#6b7280;
+            --ink:#0a2a4a; --ink-2:#103a5c;
+            --primary:#005bac; --primary-d:#004a8c;
+            --paper:#eef3f8; --paper-2:#ffffff;
+            --line:#d5dfee; --muted:#6b7280;
         }
         *{box-sizing:border-box;}
         body{background:var(--paper);font-family:"Source Sans 3",sans-serif;color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
@@ -47,16 +47,16 @@
         .register-card h2{color:var(--ink);font-size:1.5rem;margin:0;}
         .register-card p.sub{color:var(--muted);font-size:0.9rem;margin:4px 0 28px;font-weight:300;}
         .form-control{background:var(--paper);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:10px 14px;}
-        .form-control:focus{background:#fff;border-color:var(--primary);color:var(--ink);box-shadow:0 0 0 3px rgba(221,72,20,0.12);}
-        .form-control::placeholder{color:#a8a39b;}
+        .form-control:focus{background:#fff;border-color:var(--primary);color:var(--ink);box-shadow:0 0 0 3px rgba(0,91,172,0.12);}
+        .form-control::placeholder{color:#93a5b8;}
         label{color:var(--ink);font-size:0.88rem;font-weight:600;margin-bottom:4px;}
         .btn-register{background:var(--primary);border:none;color:#fff;font-weight:600;padding:12px 28px;border-radius:6px;width:100%;font-size:1rem;transition:background .15s;}
         .btn-register:hover{background:var(--primary-d);color:#fff;}
         .text-danger{font-size:0.8rem;}
         .back-link{color:var(--muted);font-size:0.85rem;display:block;text-align:center;margin-top:18px;text-decoration:none;}
         .back-link:hover{color:var(--primary);}
-        .info-box{background:rgba(221,72,20,0.06);border:1px solid rgba(221,72,20,0.25);border-radius:6px;padding:12px 16px;margin-bottom:24px;color:var(--ink);font-size:0.85rem;}
-        .alert-danger{background:rgba(221,72,20,0.08);border:1px solid rgba(221,72,20,0.25);color:var(--ink);}
+        .info-box{background:rgba(0,91,172,0.06);border:1px solid rgba(0,91,172,0.25);border-radius:6px;padding:12px 16px;margin-bottom:24px;color:var(--ink);font-size:0.85rem;}
+        .alert-danger{background:rgba(0,91,172,0.08);border:1px solid rgba(0,91,172,0.25);color:var(--ink);}
     </style>
 </head>
 <body>
@@ -138,5 +138,6 @@
         })();
     })();
 </script>
+    <?= $this->setVar('variant', 'bg')->include('templates/theme_toggle') ?>
 </body>
 </html>

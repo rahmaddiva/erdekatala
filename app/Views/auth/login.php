@@ -22,14 +22,14 @@
            Brand tokens selaras dengan landing page publik.
            ============================================================ */
         :root {
-            --ink:        #0f1923;
-            --ink-2:      #1a2744;
-            --primary:    #dd4814;
-            --primary-d:  #b0380f;
-            --primary-dd: #96300c;
+            --ink:        #0a2a4a;
+            --ink-2:      #103a5c;
+            --primary:    #005bac;
+            --primary-d:  #004a8c;
+            --primary-dd: #003a66;
             --paper:      #ffffff;
-            --paper-2:    #f7f5f1;
-            --line:       #e5e1d8;
+            --paper-2:    #eef3f8;
+            --line:       #d5dfee;
             --muted:      #6b7280;
             --danger-bg:   #fdf0eb;
             --danger-line: #f2c4b0;
@@ -61,7 +61,7 @@
             display: none;
             position: relative;
             overflow: hidden;
-            background: linear-gradient(160deg, #0f1923 0%, #14212e 55%, #1a2744 100%);
+            background: linear-gradient(160deg, #002f52 0%, #00447f 55%, #005bac 100%);
             color: #fff;
         }
 
@@ -83,7 +83,7 @@
             height: 460px;
             left: -140px;
             bottom: -160px;
-            background: radial-gradient(closest-side, rgba(221, 72, 20, 0.28), transparent 72%);
+            background: radial-gradient(closest-side, rgba(0, 91, 172, 0.28), transparent 72%);
             pointer-events: none;
         }
 
@@ -147,7 +147,7 @@
 
         .brand-title em {
             font-style: normal;
-            color: #f0824f;
+            color: #8ec7f0;
         }
 
         .brand-desc {
@@ -181,9 +181,9 @@
             display: grid;
             place-items: center;
             border-radius: 9px;
-            background: rgba(221, 72, 20, 0.18);
-            border: 1px solid rgba(221, 72, 20, 0.35);
-            color: #f0824f;
+            background: rgba(0, 91, 172, 0.18);
+            border: 1px solid rgba(0, 91, 172, 0.35);
+            color: #8ec7f0;
             font-size: 0.8rem;
         }
 
@@ -331,12 +331,12 @@
         }
 
         .control input::placeholder { color: #a8afb9; font-weight: 300; }
-        .control input:hover { border-color: #d3ccc0; }
+        .control input:hover { border-color: #bccfe2; }
 
         .control input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3.5px rgba(221, 72, 20, 0.16);
+            box-shadow: 0 0 0 3.5px rgba(0, 91, 172, 0.16);
         }
 
         .control input:focus ~ .lead-icon,
@@ -411,13 +411,13 @@
             font-size: 0.96rem;
             letter-spacing: 0.02em;
             cursor: pointer;
-            box-shadow: 0 10px 22px -8px rgba(176, 56, 15, 0.5);
+            box-shadow: 0 10px 22px -8px rgba(0, 74, 140, 0.5);
             transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
         }
 
         .btn-submit:hover {
-            background: #c2410f;
-            box-shadow: 0 14px 26px -8px rgba(176, 56, 15, 0.55);
+            background: #003a66;
+            box-shadow: 0 14px 26px -8px rgba(0, 74, 140, 0.55);
         }
 
         .btn-submit:active { background: var(--primary-dd); transform: translateY(1px); }
@@ -650,6 +650,7 @@
             }
         })();
     </script>
+    <?= $this->include('templates/theme_toggle') ?>
 </body>
 
 </html>

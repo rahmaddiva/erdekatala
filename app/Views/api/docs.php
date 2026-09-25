@@ -14,7 +14,7 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            border: 2px solid rgba(221, 72, 20, 0.6);
+            border: 2px solid rgba(0, 91, 172, 0.6);
             pointer-events: none;
             z-index: 9999;
             top: 0;
@@ -25,10 +25,10 @@
     </style>
     <style>
         :root{
-            --ink:#0f1923; --ink-2:#1a2733;
-            --primary:#dd4814; --primary-d:#b83a10;
-            --paper:#f7f5f1; --paper-2:#ffffff;
-            --line:#e5e1d8; --muted:#6b7280;
+            --ink:#0a2a4a; --ink-2:#103a5c;
+            --primary:#005bac; --primary-d:#004a8c;
+            --paper:#eef3f8; --paper-2:#ffffff;
+            --line:#d5dfee; --muted:#6b7280;
         }
         *{box-sizing:border-box;}
         body{margin:0;background:var(--paper);font-family:"Poppins",sans-serif;color:var(--ink);}
@@ -80,7 +80,7 @@
             font-family:"Libre Baskerville",serif;
         }
         .swagger-ui .opblock.opblock-get .opblock-summary-method{background:var(--primary);}
-        .swagger-ui .opblock.opblock-get{border-color:var(--primary);background:rgba(221,72,20,0.04);}
+        .swagger-ui .opblock.opblock-get{border-color:var(--primary);background:rgba(0,91,172,0.04);}
         .swagger-ui .opblock.opblock-get .opblock-summary{border-color:var(--line);}
         .swagger-ui .btn.authorize{border-color:var(--primary);color:var(--primary);}
         .swagger-ui .btn.authorize svg{fill:var(--primary);}
@@ -412,6 +412,59 @@
                         "500": { description: "File peta tidak dapat dibaca", content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } } }
                     }
                 }
+            },
+            "/api/v1/bkkbn/krs": {
+                get: {
+                    tags: ["Cermin BKKBN"],
+                    summary: "Monitoring KRS BKKBN",
+                    description: "Cermin live Monitoring KRS dari SIGA gateway BKKBN (cache 30 menit). **Bukan data Erdekatala** — selalu tampilkan label sumber ke konsumen. Mengembalikan `rows` per kecamatan + baris kabupaten.",
+                    security: [{ BearerAuth: [] }],
+                    parameters: [{
+                        name: "tahun", in: "query", required: false,
+                        description: "Tahun (default 2026)",
+                        schema: { type: "integer", default: 2026 }
+                    }],
+                    responses: {
+                        "200": { description: "OK" },
+                        "401": { description: "Unauthorized" },
+                        "422": { description: "Parameter tahun tidak valid" }
+                    }
+                }
+            },
+            "/api/v1/bkkbn/dallap": {
+                get: {
+                    tags: ["Cermin BKKBN"],
+                    summary: "Rekap Bangga Kencana BKKBN",
+                    description: "Cermin live matriks Rekap Program Bangga Kencana (8 laporan Dallap: PKB, UPPKA, BKB, BKL, BKR, PIK Remaja, PUS, KB Aktif) per kecamatan dari SIGA gateway BKKBN (cache 30 menit). **Bukan data Erdekatala**.",
+                    security: [{ BearerAuth: [] }],
+                    parameters: [
+                        { name: "tahun", in: "query", schema: { type: "integer", default: 2026 }, description: "Tahun" },
+                        { name: "bulan", in: "query", schema: { type: "integer", minimum: 1, maximum: 12, default: 8 }, description: "Bulan (1-12)" }
+                    ],
+                    responses: {
+                        "200": { description: "OK" },
+                        "401": { description: "Unauthorized" },
+                        "422": { description: "Parameter tidak valid" }
+                    }
+                }
+            },
+            "/api/v1/bkkbn/yankb": {
+                get: {
+                    tags: ["Cermin BKKBN"],
+                    summary: "YanKB BKKBN Tabel1/Tabel21",
+                    description: "Cermin live laporan YanKB (Tabel1 = Cakupan Laporan Tempat Pelayanan KB, Tabel21 = Pelayanan Peserta KB Baru per Metode Kontrasepsi) per kecamatan dari SIGA gateway BKKBN (cache 30 menit). **Bukan data Erdekatala**.",
+                    security: [{ BearerAuth: [] }],
+                    parameters: [
+                        { name: "report", in: "query", required: true, schema: { type: "string", enum: ["Tabel1", "Tabel21"] }, description: "Nama laporan (wajib)" },
+                        { name: "tahun", in: "query", schema: { type: "integer", default: 2026 }, description: "Tahun" },
+                        { name: "bulan", in: "query", schema: { type: "integer", minimum: 1, maximum: 12, default: 8 }, description: "Bulan (1-12)" }
+                    ],
+                    responses: {
+                        "200": { description: "OK" },
+                        "401": { description: "Unauthorized" },
+                        "422": { description: "Parameter tidak valid" }
+                    }
+                }
             }
         }
     };
@@ -456,5 +509,6 @@
         })();
     })();
 </script>
+    <?= $this->setVar('variant', 'bg')->include('templates/theme_toggle') ?>
 </body>
 </html>
