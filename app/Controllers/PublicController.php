@@ -78,12 +78,12 @@ class PublicController extends BaseController
         if ($yankbBulan < 1 || $yankbBulan > 12) {
             $yankbBulan = 8;
         }
-        $yankb   = $this->fetchYankbReport('Tabel1', 2026, $yankbBulan);
-        $yankb21 = $this->fetchYankbReport('Tabel21', 2026, $yankbBulan);
+        $yankb   = $this->fetchYankbReportInternal('Tabel1', 2026, $yankbBulan);
+        $yankb21 = $this->fetchYankbReportInternal('Tabel21', 2026, $yankbBulan);
 
         // Dallap: rekap program Bangga Kencana per kecamatan (matriks ringkas).
         // 5 laporan tahunan + BKB bulanan (mengikuti filter ?bulan=).
-        $dallap = $this->fetchDallapMatrix(2026, $yankbBulan);
+        $dallap = $this->fetchDallapMatrixInternal(2026, $yankbBulan);
 
         // Cakupan pelaporan + periode terbaru (kartu status di landing page)
         $coverage     = $this->laporanModel->getCoverage($id_kecamatan_filter, $id_desa_filter);
@@ -153,7 +153,7 @@ class PublicController extends BaseController
         if ($bulan < 1 || $bulan > 12) {
             $bulan = 8;
         }
-        $m = $this->fetchDallapMatrix(2026, $bulan, $bkkbnId, $namaKec['nama_kecamatan']);
+        $m = $this->fetchDallapMatrixInternal(2026, $bulan, $bkkbnId, $namaKec['nama_kecamatan']);
         return $this->response->setJSON([
             'nama_kecamatan' => $namaKec['nama_kecamatan'],
             'defs'           => $m['defs'],
@@ -172,7 +172,7 @@ class PublicController extends BaseController
         if ($id <= 0 || !in_array($id, array_values($this->bkkbnKecamatanMap()), true)) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'idKecamatan tidak valid', 'rows' => []]);
         }
-        $krs = $this->fetchMonitoringKrs(2026, $id);
+        $krs = $this->fetchMonitoringKrsInternal(2026, $id);
         return $this->response->setJSON([
             'rows'       => $krs['rows'],
             'updated_at' => $krs['updated_at'],
@@ -186,7 +186,7 @@ class PublicController extends BaseController
      */
     private function buildKrsTree(int $tahun, ?int $idKecamatanLokal = null): array
     {
-        $raw = $this->fetchMonitoringKrs($tahun, null);
+        $raw = $this->fetchMonitoringKrsInternal($tahun, null);
         $rows = $raw['rows'] ?? [];
         $filterName = null;
 

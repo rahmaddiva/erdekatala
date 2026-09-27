@@ -302,7 +302,7 @@ class ApiController extends BaseController
         if (!$tahun) {
             return $this->json(['status' => 'error', 'message' => 'Parameter tahun harus berupa angka 2000-2100.'], 422);
         }
-        $raw = $this->fetchMonitoringKrs($tahun, null);
+        $raw = $this->fetchMonitoringKrsInternal($tahun, null);
         return $this->json([
             'status'     => 'ok',
             'sumber'     => 'BKKBN (SIGA gateway), cache 30 menit — bukan data Erdekatala',
@@ -321,7 +321,7 @@ class ApiController extends BaseController
         if (!$tahun || !$bulan) {
             return $this->json(['status' => 'error', 'message' => 'Parameter tahun (2000-2100) dan bulan (1-12) harus valid.'], 422);
         }
-        $m = $this->fetchDallapMatrix($tahun, $bulan);
+        $m = $this->fetchDallapMatrixInternal($tahun, $bulan);
         return $this->json([
             'status'     => 'ok',
             'sumber'     => 'BKKBN (SIGA gateway), cache 30 menit — bukan data Erdekatala',
@@ -347,7 +347,7 @@ class ApiController extends BaseController
         if (!$tahun || !$bulan) {
             return $this->json(['status' => 'error', 'message' => 'Parameter tahun (2000-2100) dan bulan (1-12) harus valid.'], 422);
         }
-        $r = $this->fetchYankbReport($reportName, $tahun, $bulan);
+        $r = $this->fetchYankbReportInternal($reportName, $tahun, $bulan);
         return $this->json([
             'status'     => 'ok',
             'sumber'     => 'BKKBN (SIGA gateway), cache 30 menit — bukan data Erdekatala',

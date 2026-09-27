@@ -6,6 +6,13 @@ namespace App\Controllers;
  * Cermin live API BKKBN (SIGA gateway) + cache file 30 menit.
  * Dipakai PublicController (halaman publik) dan ApiController (endpoint /api/v1/bkkbn/*).
  * Data BUKAN milik Erdekatala — selalu labeli sumber di konsumen.
+ *
+ * Method di trait ini sengaja `private`. Untuk memakainya dari luar
+ * controller (mis. spark command), bungkus lewat App\Libraries\BkkbnMirrorService —
+ * jangan ubah visibility di sini agar API-nya tidak melebar.
+ *
+ * Catatan penamaan: tiga method fetch*Internal dipakai sebagai implementasi
+ * oleh BkkbnMirrorService (yang mengekspos nama publik tanpa suffix).
  */
 trait BkkbnMirror
 {
@@ -41,7 +48,7 @@ trait BkkbnMirror
      * Mirror live Monitoring KRS dari API BKKBN (Tanah Laut).
      * Cache file 30 menit. idKecamatan BKKBN opsional → drill-down desa.
      */
-    private function fetchMonitoringKrs(int $tahun = 2026, ?int $idKecamatanBkkbn = null): array
+    private function fetchMonitoringKrsInternal(int $tahun = 2026, ?int $idKecamatanBkkbn = null): array
     {
         $cacheKey  = $tahun . ($idKecamatanBkkbn ? '_kec' . $idKecamatanBkkbn : '_kab');
         $cacheFile = WRITEPATH . 'cache/krs_monitoring_' . $cacheKey . '.json';
@@ -122,7 +129,7 @@ trait BkkbnMirror
      *              'Tabel21' = Jumlah Pelayanan Peserta KB Baru per Metode Kontrasepsi.
      * Cache file 30 menit per reportName. Bulan 1-12, tahun 4 digit.
      */
-    private function fetchYankbReport(string $reportName, int $tahun = 2026, int $bulan = 8): array
+    private function fetchYankbReportInternal(string $reportName, int $tahun = 2026, int $bulan = 8): array
     {
         $cacheKey  = $reportName . '_' . $tahun . '_' . str_pad((string) $bulan, 2, '0', STR_PAD_LEFT);
         $cacheFile = WRITEPATH . 'cache/yankb_' . $cacheKey . '.html';
@@ -189,7 +196,7 @@ trait BkkbnMirror
      * (report, level, bulan). Return ['defs','rows','updated_at','error'];
      * rows = [['nama'=>..., 'kode'=>..., 'qty'=>[reportName=>int|null]]].
      */
-    private function fetchDallapMatrix(int $tahun = 2026, int $bulan = 8, ?int $idKecamatanBkkbn = null, ?string $namaKecamatan = null): array
+    private function fetchDallapMatrixInternal(int $tahun = 2026, int $bulan = 8, ?int $idKecamatanBkkbn = null, ?string $namaKecamatan = null): array
     {
         $defs = $this->dallapReports();
         $qty = [];
