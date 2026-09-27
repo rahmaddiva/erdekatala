@@ -7,6 +7,34 @@ use CodeIgniter\Config\BaseConfig;
 class App extends BaseConfig
 {
     /**
+     * baseURL otomatis mengikuti host request (localhost <-> produksi) tanpa
+     * mengubah .env. Dilewati bila app.baseURL diset eksplisit di .env.
+     * Skema: X-Forwarded-Proto (proxy/Cloudflare) -> HTTPS -> REQUEST_SCHEME.
+     * Sub-folder didukung lewat direktori SCRIPT_NAME (mis. /erdekatala/).
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        if (env('app.baseURL') || PHP_SAPI === 'cli' || empty($_SERVER['HTTP_HOST'])) {
+            return;
+        }
+
+        $scheme = $_SERVER['HTTP_X_FORWARDED_PROTO']
+            ?? ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                ? 'https'
+                : ($_SERVER['REQUEST_SCHEME'] ?? 'http'));
+
+        // Direktori tempat index.php berada ('' untuk root docroot)
+        $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+        if ($dir === '.' || $dir === '/') {
+            $dir = '';
+        }
+
+        $this->baseURL = $scheme . '://' . $_SERVER['HTTP_HOST'] . $dir . '/';
+    }
+
+    /**
      * --------------------------------------------------------------------------
      * Base Site URL
      * --------------------------------------------------------------------------
@@ -132,8 +160,14 @@ class App extends BaseConfig
      *
      * @see https://www.php.net/manual/en/timezones.php for list of timezones
      *      supported by PHP.
+     *
+     * WITA (UTC+8) — Kabupaten Tanah Laut, Kalimantan Selatan.
+     * Nilai ini di-hardcode dengan sengaja: CI4 memanggil
+     * date_default_timezone_set($appTimezone) saat boot, sehingga seluruh
+     * date()/time() di aplikasi konsisten WITA dan tidak bergantung pada
+     * date.timezone di php.ini mesin server.
      */
-    public string $appTimezone = 'UTC';
+    public string $appTimezone = 'Asia/Makassar';
 
     /**
      * --------------------------------------------------------------------------
