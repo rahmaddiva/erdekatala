@@ -108,21 +108,6 @@ $renderYankbTable = static function (array $data): string {
     <link rel="stylesheet" href="<?= base_url('leaflet/leaflet.css') ?>">
 
     <style>
-        .cursor-follower {
-            position: fixed;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2px solid rgba(0, 91, 172, 0.6);
-            pointer-events: none;
-            z-index: 9999;
-            top: 0;
-            left: 0;
-            opacity: 0;
-        }
-        .cursor-follower.active { opacity: 1; }
-    </style>
-    <style>
         :root {
             --primary:   #005bac;
             --primary-d: #004a8c;
@@ -132,7 +117,7 @@ $renderYankbTable = static function (array $data): string {
             --paper:     #ffffff;
             --paper-2:   #eef3f8;
             --paper-3:   #e2eaf2;
-            --muted:     #6b7280;
+            --muted:     #5f6b7a;
             --border:    #d5dfee;
             --accent-l:  #2d6cdf;
             --accent-p:  #d6336c;
@@ -143,6 +128,19 @@ $renderYankbTable = static function (array $data): string {
         }
 
         * { box-sizing: border-box; }
+
+        /* Fokus keyboard: cincin 3px agar selalu terlihat (a11y: 2-4px).
+           Tidak menimpa kontrol yang sudah punya gaya fokus sendiri
+           (mis. .filter-bar select memakai box-shadow). */
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible,
+        summary:focus-visible,
+        [tabindex]:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+        }
 
         body {
             font-family: 'Poppins', sans-serif;
@@ -203,15 +201,21 @@ $renderYankbTable = static function (array $data): string {
             align-items: center;
             gap: 1.5rem;
         }
-        .navbar-sikada .nav-link-sikada {
+                .navbar-sikada .nav-link-sikada {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
             font-weight: 600;
             color: var(--ink-soft);
             font-size: 0.95rem;
         }
         .navbar-sikada .nav-link-sikada:hover { color: var(--primary); }
-        .btn-login {
+                .btn-login {
             background: var(--ink);
             color: #fff;
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
             padding: 0.55rem 1.25rem;
             border-radius: 6px;
             font-weight: 600;
@@ -223,92 +227,81 @@ $renderYankbTable = static function (array $data): string {
 
         /* ===== HERO ===== */
         .hero {
-            background: var(--ink);
-            color: #fff;
-            padding: 4.5rem 0 3rem;
-            position: relative;
-            overflow: hidden;
+            background: var(--paper);
+            border-bottom: 1px solid var(--border);
+            padding: 3rem 0 2rem;
         }
-        .hero::before {
-            content: "";
-            position: absolute;
-            top: 0; right: 0;
-            width: 55%;
-            height: 100%;
-            background:
-                radial-gradient(circle at 80% 20%, rgba(0,91,172,.22), transparent 55%),
-                radial-gradient(circle at 95% 75%, rgba(45,108,223,.15), transparent 50%);
-            pointer-events: none;
+        /* Hormati preferensi pengguna: matikan transisi/animasi dekoratif. */
+        @media (prefers-reduced-motion: reduce) {
+            .stat-card, .stat-card:hover { transition: none; transform: none; }
+            .stat-card .meter > span { transition: none; }
+            .summary-chev { transition: none; }
+            .group-summary { transition: none; }
+            .btn-login:hover, .filter-bar .btn-filter:hover { transform: none; }
         }
-        .hero::after {
-            content: "";
-            position: absolute;
-            bottom: -1px; left: 0;
-            width: 100%;
-            height: 64px;
-            background: var(--paper-2);
-            clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);
+
+        .hero-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 2rem;
+            flex-wrap: wrap;
         }
+        .hero-copy { max-width: 680px; }
         .hero .eyebrow {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 600;
             letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: var(--primary-l);
-            margin-bottom: 1rem;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
         }
         .hero .eyebrow::before {
             content: "";
             width: 28px;
             height: 2px;
-            background: var(--primary-l);
+            background: var(--primary);
         }
         .hero h1 {
-            font-size: clamp(2rem, 4.2vw, 3.1rem);
-            line-height: 1.1;
-            color: #fff;
-            margin-bottom: 1rem;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(1.9rem, 3.4vw, 2.5rem);
+            line-height: 1.15;
+            color: var(--ink);
+            margin-bottom: 0.6rem;
             font-weight: 700;
-        }
-        .hero h1 em {
-            font-style: italic;
-            color: var(--primary-l);
+            letter-spacing: -0.01em;
         }
         .hero p.lead {
-            font-size: 1.12rem;
-            color: rgba(255,255,255,.78);
-            max-width: 640px;
-            font-weight: 300;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--muted);
+            max-width: 60ch;
+            margin: 0;
         }
-        .hero-meta {
+        .hero-status {
             display: flex;
             flex-wrap: wrap;
-            gap: 1.75rem;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,.12);
+            gap: 0.5rem;
+            padding-top: 0.4rem;
         }
-        .hero-meta .item {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: var(--paper-2);
+            color: var(--ink-soft);
+            border: 1px solid var(--border);
+            white-space: nowrap;
         }
-        .hero-meta .item .v {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #fff;
-            line-height: 1;
-        }
-        .hero-meta .item .l {
-            font-size: 0.76rem;
-            color: rgba(255,255,255,.6);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
+        .status-pill i { color: var(--primary); font-size: 0.9rem; }
+        .status-pill.muted i { color: var(--muted); }
 
         /* ===== FILTER BAR ===== */
         .filter-bar {
@@ -316,10 +309,7 @@ $renderYankbTable = static function (array $data): string {
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 1.25rem 1.5rem;
-            margin-top: -2rem;
-            position: relative;
-            z-index: 5;
-            box-shadow: var(--shadow-lg);
+            margin-top: 1.75rem;
             display: flex;
             flex-wrap: wrap;
             align-items: flex-end;
@@ -351,13 +341,16 @@ $renderYankbTable = static function (array $data): string {
         .filter-bar input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(0,91,172,.12);
+            box-shadow: 0 0 0 3px rgba(0,91,172,.35);
             background: var(--paper);
         }
-        .filter-bar .btn-filter {
+                .filter-bar .btn-filter {
             background: var(--primary);
             color: #fff;
             border: none;
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
             padding: 0.6rem 1.5rem;
             border-radius: 6px;
             font-weight: 600;
@@ -380,20 +373,124 @@ $renderYankbTable = static function (array $data): string {
 
         /* ===== SECTION SHELL ===== */
         section.block { padding: 3rem 0; }
+
+        /* ===== GRUP COLLAPSE (bagian 3: data pihak ketiga) ===== */
+        .group-collapse { display: block; }
+        /* summary dipakai sebagai section-head: buang marker bawaan browser */
+        .group-summary {
+            list-style: none;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 0;
+            transition: color .15s ease;
+        }
+        .group-summary::-webkit-details-marker { display: none; }
+        .group-summary::marker { content: ""; }
+        .group-summary:hover h2 { color: var(--primary); }
+        .group-summary:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 4px;
+            border-radius: 4px;
+        }
+        .summary-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-left: 0.75rem;
+            padding: 0.45rem 0.85rem;
+            min-height: 34px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--paper);
+            color: var(--primary);
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .summary-chev { transition: transform .2s ease; font-size: 0.85rem; }
+        .cta-close { display: none; }
+        .group-collapse[open] .cta-open { display: none; }
+        .group-collapse[open] .cta-close { display: inline; }
+        .group-collapse[open] .summary-chev { transform: rotate(180deg); }
+        /* jarak ke konten saat terbuka (section-head margin direset di atas) */
+        .group-collapse[open] .group-body { margin-top: 1.5rem; }
+        .group-filter {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        .group-filter label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin: 0;
+        }
         .section-head {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            margin-bottom: 1.75rem;
-            padding-bottom: 0.85rem;
-            border-bottom: 2px solid var(--ink);
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
         }
         .section-head h2 {
-            font-size: 1.6rem;
+            font-size: 1.35rem;
             margin: 0;
             font-weight: 700;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
         }
+        /* nomor urut grup bagian (1/2/3) */
+        .section-head .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        /* penanda sumber data pihak ketiga */
+        .section-head .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.22rem 0.55rem;
+            border-radius: 4px;
+            background: var(--paper-3);
+            color: var(--ink-soft);
+        }
+        /* badge sumber: Dukcapil = data resmi instansi, warna tegas */
+        .section-head .tag.src-dukcapil {
+            background: #e7f0fb;
+            color: #0b4a8f;
+            border: 1px solid #bcd6f2;
+        }
+        .section-head .tag.src-dukcapil i { color: #0b4a8f; }
+        /* badge sumber: laporan desa = data input internal */
+        .section-head .tag.src-desa {
+            background: var(--paper-3);
+            color: var(--ink-soft);
+            border: 1px solid var(--border);
+        }
+        .section-head .tag + strong { margin-left: 0.5rem; }
         .section-head .crumb {
             font-size: 0.82rem;
             color: var(--muted);
@@ -449,6 +546,30 @@ $renderYankbTable = static function (array $data): string {
             font-size: 0.82rem;
             color: var(--muted);
         }
+        /* satuan kecil yang mengikuti angka utama (mis. "/ 135 desa", "%") */
+        .stat-card .value .unit {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-left: 0.3rem;
+            letter-spacing: 0;
+        }
+        /* bar progres tipis untuk kartu berbasis persentase */
+        .stat-card .meter {
+            height: 4px;
+            border-radius: 999px;
+            background: var(--paper-3);
+            overflow: hidden;
+            margin: 0 0 0.5rem;
+        }
+        .stat-card .meter > span {
+            display: block;
+            height: 100%;
+            border-radius: 999px;
+            background: var(--good);
+            transition: width .4s ease;
+        }
+        .stat-card .meter.pink > span { background: var(--accent-p); }
         .stat-card .sub b { color: var(--accent-l); }
         .stat-card .sub i { color: var(--accent-p); font-style: normal; }
         .stat-card.alt-blue { border-left-color: var(--accent-l); }
@@ -518,24 +639,31 @@ $renderYankbTable = static function (array $data): string {
             vertical-align: middle;
         }
 
-        /* ===== INFO STRIP ===== */
-        .info-strip {
-            background: var(--ink);
-            color: #fff;
-            border-radius: 10px;
-            padding: 1.5rem 1.75rem;
+        /* ===== NOTE STRIP (catatan konteks data) ===== */
+        .note-strip {
             display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            margin: 2rem 0;
+            align-items: flex-start;
+            gap: 0.75rem;
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--primary);
+            border-radius: 8px;
+            padding: 0.9rem 1.1rem;
+            margin-top: 1.5rem;
         }
-        .info-strip .info-icon {
-            font-size: 1.8rem;
-            color: var(--primary-l);
+        .note-strip > i {
+            color: var(--primary);
+            font-size: 1.05rem;
             flex-shrink: 0;
+            line-height: 1.5;
         }
-        .info-strip h4 { color: #fff; margin: 0 0 0.2rem; font-size: 1.05rem; }
-        .info-strip p { margin: 0; color: rgba(255,255,255,.7); font-size: 0.9rem; }
+        .note-strip p {
+            margin: 0;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+        .note-strip strong { color: var(--ink-soft); font-weight: 600; }
 
         /* ===== FOOTER ===== */
         footer.sikada-footer {
@@ -664,6 +792,10 @@ $renderYankbTable = static function (array $data): string {
         }
 
         /* ===== JELAJAHI KECAMATAN ===== */
+        /* Bagian navigasi (bukan grup data): tanpa border bawah, bobot lebih ringan
+           agar tidak terbaca sebagai "grup nomor 4". */
+        .nav-block .section-head { border-bottom: none; padding-bottom: 0; }
+        .nav-block .section-head h2 { font-size: 1.15rem; }
         .kec-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 0.85rem; margin-top: 1.5rem;
@@ -927,6 +1059,7 @@ $renderYankbTable = static function (array $data): string {
         }
         .map-indicator-bar select:hover,
         .map-indicator-bar select:focus { border-color: var(--primary); }
+        .map-indicator-bar select:focus { box-shadow: 0 0 0 3px rgba(0,91,172,.35); }
         .map-indicator-bar .lg-label-ind {
             margin-left: auto;
             font-size: .78rem;
@@ -1028,66 +1161,65 @@ $renderYankbTable = static function (array $data): string {
         </div>
     </nav>
 
-    <!-- ===== HERO ===== -->
+    <!-- ===== HERO / HEADER DATA ===== -->
     <header class="hero">
-        <div class="container position-relative">
-            <span class="eyebrow">Portal Data Kependudukan</span>
-            <h1>Erdekatala<br><em>Elektronik Rumah Data Kependudukan Tanah Laut</em></h1>
-            <p class="lead">Singkatan dari <em>Elektronik Rumah Data Kependudukan Tanah Laut</em> — pemantauan terpadu data jiwa, kartu keluarga, pendidikan, pekerjaan, piramida penduduk, serta cakupan JKN/BPJS dan KB-PUS dari hulu ke hilir, langsung dari lapangan.</p>
-            <div class="hero-meta">
-                <div class="item">
-                    <span class="v">11</span>
-                    <span class="l">Kecamatan</span>
+        <div class="container">
+            <div class="hero-top">
+                <div class="hero-copy">
+                    <span class="eyebrow">Portal Data Kependudukan</span>
+                    <h1>Rumah Data Kependudukan Tanah Laut</h1>
+                    <p class="lead">Erdekatala (<em>Elektronik Rumah Data Kependudukan Tanah Laut</em>) — data agregat jiwa, kartu keluarga, pendidikan, pekerjaan, piramida penduduk, serta cakupan JKN/BPJS dan KB-PUS tingkat desa.</p>
                 </div>
-                <div class="item">
-                    <span class="v">Desa</span>
-                    <span class="l">Unit Terkecil</span>
-                </div>
-                <div class="item">
-                    <span class="v"><?= number_format($jiwaTotal, 0, ',', '.') ?></span>
-                    <span class="l">Total Jiwa tercatat</span>
-                </div>
-                <div class="item">
-                    <span class="v"><?= number_format($kkTotal, 0, ',', '.') ?></span>
-                    <span class="l">Kartu Keluarga</span>
+                <div class="hero-status">
+                    <span class="status-pill">
+                        <i class="bi bi-database-check"></i>
+                        <?php if ($latestPeriod): ?>
+                            Data terbaru <?= esc($bulanNama[$latestPeriod['bulan']] ?? '-') ?> <?= (int) $latestPeriod['tahun'] ?>
+                        <?php else: ?>
+                            Belum ada data
+                        <?php endif; ?>
+                    </span>
+                    <span class="status-pill muted">
+                        <i class="bi bi-clock-history"></i>Sumber: laporan desa
+                    </span>
                 </div>
             </div>
+
+            <!-- Filter wilayah -->
+            <form method="GET" action="<?= site_url('/') ?>" class="filter-bar">
+                <div class="field">
+                    <label for="sel-kecamatan">Kecamatan</label>
+                    <select name="kecamatan" id="sel-kecamatan" onchange="loadDesaBySlug(this.value); document.getElementById('sel-desa').value=''; this.form.submit()">
+                        <option value="">— Semua Kecamatan —</option>
+                        <?php foreach ($list_kecamatan as $k):
+                            $slug_k = strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
+                        ?>
+                            <option value="<?= esc($slug_k) ?>" <?= $filter_kec_slug === $slug_k ? 'selected' : '' ?>>
+                                <?= esc($k['nama_kecamatan']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="sel-desa">Desa</label>
+                    <select name="desa" id="sel-desa" onchange="this.form.submit()" <?= empty($filter_kec_slug) ? 'disabled' : '' ?>>
+                        <option value="">— Semua Desa —</option>
+                        <?php foreach ($list_desa as $d):
+                            $slug_d = strtolower(str_replace(' ', '-', $d['nama_desa']));
+                        ?>
+                            <option value="<?= esc($slug_d) ?>" <?= $filter_desa_slug === $slug_d ? 'selected' : '' ?>>
+                                <?= esc($d['nama_desa']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit" class="btn-filter"><i class="bi bi-funnel me-1"></i>Terapkan</button>
+                <a href="<?= site_url('/') ?>" class="btn-reset"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+            </form>
         </div>
     </header>
 
     <main class="container">
-
-        <!-- ===== FILTER BAR ===== -->
-        <form method="GET" action="<?= site_url('/') ?>" class="filter-bar">
-            <div class="field">
-                <label for="sel-kecamatan">Kecamatan</label>
-                <select name="kecamatan" id="sel-kecamatan" onchange="loadDesaBySlug(this.value); document.getElementById('sel-desa').value=''; this.form.submit()">
-                    <option value="">— Semua Kecamatan —</option>
-                    <?php foreach ($list_kecamatan as $k):
-                        $slug_k = strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
-                    ?>
-                        <option value="<?= esc($slug_k) ?>" <?= $filter_kec_slug === $slug_k ? 'selected' : '' ?>>
-                            <?= esc($k['nama_kecamatan']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="field">
-                <label for="sel-desa">Desa</label>
-                <select name="desa" id="sel-desa" onchange="this.form.submit()" <?= empty($filter_kec_slug) ? 'disabled' : '' ?>>
-                    <option value="">— Semua Desa —</option>
-                    <?php foreach ($list_desa as $d):
-                        $slug_d = strtolower(str_replace(' ', '-', $d['nama_desa']));
-                    ?>
-                        <option value="<?= esc($slug_d) ?>" <?= $filter_desa_slug === $slug_d ? 'selected' : '' ?>>
-                            <?= esc($d['nama_desa']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <button type="submit" class="btn-filter"><i class="bi bi-funnel me-1"></i>Terapkan</button>
-            <a href="<?= site_url('/') ?>" class="btn-reset"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
-        </form>
 
         <?php if ($jiwaTotal === 0 && $kkTotal === 0): ?>
             <div class="empty-state">
@@ -1097,47 +1229,85 @@ $renderYankbTable = static function (array $data): string {
             </div>
         <?php else: ?>
 
-        <!-- ===== STAT CARDS ===== -->
+        <!-- ===== RINGKASAN CAKUPAN ===== -->
         <section class="block" style="padding-top: 2rem;">
+            <div class="section-head">
+                <h2>Ringkasan Data</h2>
+                <span class="crumb">Skop: <strong><?= esc($pendudukKey) ?></strong><?= !empty($filter_kec_slug) ? ' - ' . esc($filter_desa_slug ? 'desa terpilih' : 'kecamatan terpilih') : ' (seluruh kabupaten)' ?></span>
+            </div>
             <div class="stat-grid">
+                <?php
+                    $cov          = $coverage ?? ['total_kecamatan'=>0,'total_desa'=>0,'kecamatan_lapor'=>0,'desa_lapor'=>0];
+                    $desaTotal    = (int) $cov['total_desa'];
+                    $desaLapor    = (int) $cov['desa_lapor'];
+                    $kecTotal     = (int) $cov['total_kecamatan'];
+                    $kecLapor     = (int) $cov['kecamatan_lapor'];
+                    $desaPct      = $desaTotal > 0 ? round($desaLapor / $desaTotal * 100) : 0;
+                    $pendudukLbl  = $pendudukKey === 'Desa' ? 'Desa ini' : 'Wilayah ini';
+                    $jknPunya     = (int)($jkn_bpjs['PBI'] ?? 0) + (int)($jkn_bpjs['Non PBI'] ?? 0);
+                    $jknPct       = $jiwaTotal > 0 ? round($jknPunya / $jiwaTotal * 100) : 0;
+                ?>
+                <div class="stat-card">
+                    <i class="bi bi-check2-circle icon"></i>
+                    <div class="label">Cakupan Laporan</div>
+                    <div class="value"><?= $desaLapor ?><span class="unit">/ <?= $desaTotal ?> desa</span></div>
+                    <div class="meter" role="progressbar" aria-valuenow="<?= $desaPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Cakupan laporan desa"><span style="width: <?= $desaPct ?>%"></span></div>
+                    <div class="sub"><?= $kecLapor ?> dari <?= $kecTotal ?> kecamatan melaporkan</div>
+                </div>
                 <div class="stat-card">
                     <i class="bi bi-people-fill icon"></i>
                     <div class="label">Total Jiwa</div>
                     <div class="value"><?= number_format($jiwaTotal, 0, ',', '.') ?></div>
                     <div class="sub"><b><?= number_format($jiwaL, 0, ',', '.') ?> L</b> · <i><?= number_format($jiwaP, 0, ',', '.') ?> P</i></div>
                 </div>
-                <div class="stat-card alt-blue">
+                <div class="stat-card">
                     <i class="bi bi-house-heart-fill icon"></i>
                     <div class="label">Kartu Keluarga</div>
                     <div class="value"><?= number_format($kkTotal, 0, ',', '.') ?></div>
-                    <div class="sub"><b><?= number_format($kkL, 0, ',', '.') ?> L</b> · <i><?= number_format($kkP, 0, ',', '.') ?> P</i></div>
+                    <div class="sub">Rata-rata <b><?= $kkTotal > 0 ? round($jiwaTotal / $kkTotal, 1) : 0 ?></b> jiwa/KK</div>
                 </div>
-                <div class="stat-card alt-pink">
-                    <i class="bi bi-baby icon"></i>
-                    <div class="label">Balita</div>
-                    <div class="value"><?= number_format($balita, 0, ',', '.') ?></div>
-                    <div class="sub">Usia 0–5 tahun</div>
-                </div>
-                <div class="stat-card alt-green">
-                    <i class="bi bi-heart-pulse-fill icon"></i>
-                    <div class="label">PUS</div>
-                    <div class="value"><?= number_format($pus, 0, ',', '.') ?></div>
-                    <div class="sub">Pasangan Usia Subur · Laporan Desa</div>
+                <div class="stat-card">
+                    <i class="bi bi-shield-check icon"></i>
+                    <div class="label">Cakupan JKN/BPJS</div>
+                    <div class="value"><?= $jknPct ?><span class="unit">%</span></div>
+                    <div class="meter pink" role="progressbar" aria-valuenow="<?= $jknPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Cakupan JKN BPJS"><span style="width: <?= $jknPct ?>%"></span></div>
+                    <div class="sub"><?= number_format($jknPunya, 0, ',', '.') ?> dari <?= number_format($jiwaTotal, 0, ',', '.') ?> jiwa</div>
                 </div>
             </div>
 
-            <!-- Info strip -->
-            <div class="info-strip">
-                <i class="bi bi-info-circle-fill info-icon"></i>
-                <div>
-                    <h4>Skop data saat ini: <?= esc($pendudukKey) ?><?= !empty($filter_kec_slug) ? ' - ' . esc($filter_desa_slug ? 'Desa terpilih' : 'Kecamatan terpilih') : ' (seluruh Kabupaten)' ?></h4>
-                    <p>Data diturunkan dari laporan desa yang telah diinput oleh admin desa. Filter menyesuaikan tampilan seluruh chart di bawah.</p>
-                </div>
+            <!-- Catatan konteks data -->
+            <div class="note-strip">
+                <i class="bi bi-info-circle-fill"></i>
+                <p>
+                    Data <?= esc($pendudukLbl) ?> diturunkan dari laporan desa yang sudah diinput admin desa.
+                    Filter wilayah di atas menyesuaikan seluruh grafik dan tabel di bawah.
+                    <?php if (!empty($latestPeriod)): ?>
+                        Periode laporan terbaru: <strong><?= esc($bulanNama[$latestPeriod['bulan']] ?? '-') ?> <?= (int) $latestPeriod['tahun'] ?></strong>.
+                    <?php endif; ?>
+                </p>
             </div>
         </section>
 
-        <!-- ===== TABS: CHART + DATATABLE ===== -->
+        <!-- ===== BAGIAN 1: PROFIL KEPENDUDUKAN ===== -->
         <section class="block" style="padding-top: 0;">
+            <div class="section-head">
+                <h2><span class="num">1</span>Profil Kependudukan</h2>
+                <span class="crumb">
+                    <?php
+                    // Sumber data Bagian 1. Ganti $sumberProfil ke 'dukcapil' SETELAH data profil
+                    // benar-benar ditarik dari Dukcapil Kab. Tanah Laut — badge ikut berubah otomatis.
+                    $sumberProfil = 'desa';
+                    $sumberBadge  = [
+                        'desa'     => ['label' => 'Laporan Desa',             'icon' => 'bi-clipboard-check'],
+                        'dukcapil' => ['label' => 'Dukcapil Kab. Tanah Laut', 'icon' => 'bi-building-check'],
+                    ][$sumberProfil];
+                    ?>
+                    <span class="tag src-<?= esc($sumberProfil) ?>">
+                        <i class="bi <?= esc($sumberBadge['icon']) ?>"></i><?= esc($sumberBadge['label']) ?>
+                    </span>
+                    <strong><?= esc($pendudukKey) ?></strong>
+                </span>
+            </div>
             <ul class="nav nav-tabs sikada-tabs" id="dataTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pokok" type="button" role="tab" aria-selected="true">
@@ -1445,11 +1615,14 @@ $renderYankbTable = static function (array $data): string {
 
         <?php $mapIndicatorGroups = include APPPATH . 'Views/public/partials/map_indicators.php'; ?>
 
-        <!-- ===== PETA SEBARAN KEPENDUDUKAN (Leaflet) ===== -->
+        <!-- ===== BAGIAN 2: SEBARAN SPASIAL (Leaflet) ===== -->
         <section class="block" style="padding-top: 0;" id="peta-sebaran">
             <div class="section-head">
-                <h2>Peta Sebaran Kependudukan</h2>
-                <span class="crumb">11 kecamatan · Indikator per kecamatan</span>
+                <h2><span class="num">2</span>Sebaran Spasial</h2>
+                <span class="crumb">
+                    <span class="tag src-desa"><i class="bi bi-clipboard-check"></i>Laporan Desa</span>
+                    <strong><?= count($map_kecamatan) ?></strong> kecamatan · Indikator per kecamatan
+                </span>
             </div>
             <div class="map-shell">
                 <div class="map-indicator-bar">
@@ -1481,19 +1654,30 @@ $renderYankbTable = static function (array $data): string {
             </div>
         </section>
 
-        <!-- ===== MONITORING BKKBN (tabs: VERVAL KRS + Cakupan Pelayanan KB) ===== -->
-        <section class="block" style="padding-top: 0;" id="monitoring-bkkbn">
-            <div class="section-head">
-                <h2>Monitoring BKKBN</h2>
+        <!-- ===== BAGIAN 3: MONITORING BKKBN (mirror SIGA) ===== -->
+        <details class="block group-collapse" style="padding-top: 0;" id="monitoring-bkkbn">
+            <summary class="section-head group-summary">
+                <h2>
+                    <span class="num">3</span>Monitoring BKKBN
+                    <span class="tag"><i class="bi bi-box-arrow-up-right"></i>Data pihak ketiga</span>
+                </h2>
                 <span class="crumb">
                     SIGA BKKBN · Tahun <?= $yankbTahun ?> · Tanah Laut
-                    <select id="yankb-bulan" class="form-select form-select-sm d-inline-block" style="width:auto; padding:.15rem .6rem; font-size:.78rem; margin-left:.5rem;" aria-label="Filter bulan laporan YanKB">
-                        <?php foreach ($bulanNama as $b => $nama): ?>
-                        <option value="<?= $b ?>" <?= $b === $yankbBulan ? 'selected' : '' ?>><?= $nama ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <span class="summary-cta">
+                        <span class="cta-open">Tampilkan data</span>
+                        <span class="cta-close">Sembunyikan data</span>
+                        <i class="bi bi-chevron-down summary-chev" aria-hidden="true"></i>
+                    </span>
                 </span>
-
+            </summary>
+            <div class="group-body">
+            <div class="group-filter">
+                <label for="yankb-bulan">Bulan laporan</label>
+                <select id="yankb-bulan" class="form-select form-select-sm" style="width:auto;" aria-label="Filter bulan laporan YanKB">
+                    <?php foreach ($bulanNama as $b => $nama): ?>
+                    <option value="<?= $b ?>" <?= $b === $yankbBulan ? 'selected' : '' ?>><?= $nama ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <ul class="nav nav-tabs sikada-tabs" id="sigaTabs" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -1874,13 +2058,14 @@ $renderYankbTable = static function (array $data): string {
 			    <?php endif; ?>
 			</div><!-- /tab-puskb -->
             </div><!-- /tab-content -->
-        </section>
+            </div><!-- /group-body -->
+        </details>
 
-        <!-- ===== JELAJAHI KECAMATAN ===== -->
-        <section class="block" style="padding-top: 1.5rem;">
+        <!-- ===== JELAJAHI KECAMATAN (navigasi, bukan grup data) ===== -->
+        <section class="block nav-block" style="padding-top: 1.5rem;">
             <div class="section-head">
                 <h2>Jelajahi Kecamatan</h2>
-                <span class="crumb">11 kecamatan di Kabupaten Tanah Laut</span>
+                <span class="crumb"><strong><?= count($list_kecamatan) ?></strong> kecamatan di Kabupaten Tanah Laut</span>
             </div>
             <div class="kec-grid">
                 <?php foreach ($list_kecamatan as $k): 
@@ -3044,29 +3229,6 @@ $renderYankbTable = static function (array $data): string {
                 })
                 .catch(err => console.error('Error loading desa:', err));
         }
-    </script>
-    <div class="cursor-follower" id="cursorFollower"></div>
-    <script>
-        (function() {
-            var f = document.getElementById('cursorFollower');
-            var mx = 0, my = 0, fx = 0, fy = 0;
-            var speed = 0.08;
-            document.addEventListener('mousemove', function(e) {
-                mx = e.clientX;
-                my = e.clientY;
-                if (!f.classList.contains('active')) f.classList.add('active');
-            });
-            document.addEventListener('mouseleave', function() {
-                f.classList.remove('active');
-            });
-            (function loop() {
-                fx += (mx - fx) * speed;
-                fy += (my - fy) * speed;
-                f.style.left = (fx - 10) + 'px';
-                f.style.top = (fy - 10) + 'px';
-                requestAnimationFrame(loop);
-            })();
-        })();
     </script>
     <?= $this->setVar('noButton', true)->include('templates/theme_toggle') ?>
 </body>

@@ -38,6 +38,20 @@
         background: #0a1730 !important;
     }
     body.dark-mode .btn-login { background: #3a96dd !important; }
+    /* Bagian baru landing: hero terang, pill status, strip catatan, kartu angka. */
+    body.dark-mode .status-pill { background: #0b1526 !important; border-color: #26364f !important; color: #c6d3e6 !important; }
+    body.dark-mode .status-pill i { color: #6db4e8 !important; }
+    body.dark-mode .note-strip { background: #0b1526 !important; border-color: #26364f !important; border-left-color: #3a96dd !important; }
+    body.dark-mode .note-strip p { color: #c6d3e6 !important; }
+    body.dark-mode .note-strip strong { color: #e8eef6 !important; }
+    body.dark-mode .summary-cta { background: #0b1526 !important; color: #6db4e8 !important; border-color: #26364f !important; }
+    body.dark-mode .section-head .tag { background: #1b2c47 !important; color: #c6d3e6 !important; border-color: #26364f !important; }
+    body.dark-mode .section-head .tag.src-dukcapil { background: #12314f !important; color: #9ec7f0 !important; border-color: #24547f !important; }
+    body.dark-mode .section-head .tag.src-dukcapil i { color: #9ec7f0 !important; }
+    body.dark-mode .stat-card .meter { background: #26364f !important; }
+    /* Ikon watermark kartu: di light mode pakai --paper-3, terlalu gelap di dark mode. */
+    body.dark-mode .stat-card .icon { color: #2b4062 !important; }
+    body.dark-mode .group-filter label { color: #8fa1b8 !important; }
     /* Sel tabel & komponen yang hardcode putih/navy di light mode. */
     body.dark-mode table.krs-tree tbody td,
     body.dark-mode table.krs-tree tr.krs-desa td,
@@ -104,8 +118,8 @@
     .nav-theme-btn {
         display: inline-grid;
         place-items: center;
-        width: 38px;
-        height: 38px;
+        width: 44px;
+        height: 44px;
         border-radius: 8px;
         border: 1px solid var(--border);
         background: transparent;
