@@ -85,11 +85,17 @@ class PublicController extends BaseController
         // 5 laporan tahunan + BKB bulanan (mengikuti filter ?bulan=).
         $dallap = $this->fetchDallapMatrix(2026, $yankbBulan);
 
+        // Cakupan pelaporan + periode terbaru (kartu status di landing page)
+        $coverage     = $this->laporanModel->getCoverage($id_kecamatan_filter, $id_desa_filter);
+        $latestPeriod = $this->laporanModel->getLatestPeriod();
+
         $data = [
             'list_kecamatan'  => $list_kecamatan,
             'list_desa'       => $list_desa,
             'filter_kec_slug' => $slug_kecamatan,
             'filter_desa_slug'=> $slug_desa,
+            'coverage'        => $coverage,
+            'latestPeriod'    => $latestPeriod,
             'map_kecamatan'   => $this->buildMapKecamatan(),
             'desa_stats'      => $id_kecamatan_filter ? $this->getDesaStats($id_kecamatan_filter) : [],
             'totals'          => $chart['totals'],

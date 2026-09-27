@@ -177,6 +177,73 @@ class LaporanAgregatModel extends Model
     }
 
     /**
+     * Cakupan pelaporan: berapa kecamatan/desa yang sudah punya laporan vs total wilayah publik.
+     * Dipakai kartu "cakupan" di landing page — satu query, LEFT JOIN + COUNT(DISTINCT CASE).
+     * Filter opsional: kalau diisi, cakupan dibatasi ke wilayah itu (kecamatan/desa terpilih).
+     */
+    public function getCoverage(?int $id_kecamatan = null, ?int $id_desa = null): array
+    {
+        $params = [];
+        $scope  = 'k.is_public = 1';
+        if ($id_kecamatan) {
+            $scope .= ' AND d.id_kecamatan = ?';
+            $params[] = $id_kecamatan;
+        }
+        if ($id_desa) {
+            $scope .= ' AND d.id_desa = ?';
+            $params[] = $id_desa;
+        }
+
+        $row = $this->db->query(
+            "SELECT
+                COUNT(DISTINCT d.id_kecamatan) AS total_kecamatan,
+                COUNT(DISTINCT d.id_desa)      AS total_desa,
+                COUNT(DISTINCT CASE WHEN la.id_laporan IS NOT NULL THEN d.id_kecamatan END) AS kecamatan_lapor,
+                COUNT(DISTINCT CASE WHEN la.id_laporan IS NOT NULL THEN d.id_desa END)      AS desa_lapor
+             FROM m_desa d
+             JOIN kecamatan k ON k.id_kecamatan = d.id_kecamatan
+             LEFT JOIN laporan_agregat la ON la.id_desa = d.id_desa
+             WHERE {$scope}",
+            $params
+        )->getRowArray();
+
+        return [
+            'total_kecamatan' => (int) ($row['total_kecamatan'] ?? 0),
+            'total_desa'      => (int) ($row['total_desa'] ?? 0),
+            'kecamatan_lapor' => (int) ($row['kecamatan_lapor'] ?? 0),
+            'desa_lapor'      => (int) ($row['desa_lapor'] ?? 0),
+        ];
+    }
+
+    /**
+     * Periode laporan terbaru (tahun+bulan) beserta jumlah desa yang sudah masuk di periode itu.
+     * Dipakai sebagai penanda "data per <bulan tahun>" di landing page.
+     */
+    public function getLatestPeriod(): ?array
+    {
+        $row = $this->db->query(
+            "SELECT la.tahun, la.bulan, COUNT(DISTINCT la.id_desa) AS desa_lapor
+             FROM laporan_agregat la
+             JOIN m_desa d  ON d.id_desa = la.id_desa
+             JOIN kecamatan k ON k.id_kecamatan = d.id_kecamatan
+             WHERE k.is_public = 1
+             GROUP BY la.tahun, la.bulan
+             ORDER BY la.tahun DESC, la.bulan DESC
+             LIMIT 1"
+        )->getRowArray();
+
+        if (empty($row)) {
+            return null;
+        }
+
+        return [
+            'tahun'      => (int) $row['tahun'],
+            'bulan'      => (int) $row['bulan'],
+            'desa_lapor' => (int) $row['desa_lapor'],
+        ];
+    }
+
+    /**
      * Aggregasi semua statistik langsung di SQL (menggantikan findAll + PHP loop).
      * Filter opsional: id_kecamatan, id_desa.
      * Return: single row associative array dengan semua SUM.
