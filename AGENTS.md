@@ -345,6 +345,28 @@ POST /notifikasi/delete/:id         NotifikasiController::delete
 - `/:segment` (mis. `/kurau`): halaman profil + statistik per kecamatan, filter `?desa=slug`, tabel statistik per desa
 - **KRS BKKBN**: data diambil live dari API `siga-api-gateway.bkkbn.go.id` (idProvinsi=22, idKabupaten=322, tahun di-hardcode), cache file 30 menit di `writable/cache/`, map id BKKBN per kecamatan di-hardcode di `PublicController::bkkbnKecamatanMap()`. Drill-down desa via `/public/krs-desa/:id`.
 
+#### Struktur landing page (`app/Views/public/landingpage.php`)
+
+Halaman disusun jadi **3 grup bernomor** + 1 bagian navigasi. Nomor urut (`.section-head .num`) menandai grup data; bagian navigasi sengaja tanpa nomor dan berbobot lebih ringan (`.nav-block`).
+
+| Urutan | Grup | Isi | Sumber data |
+|---|---|---|---|
+| — | Ringkasan Data | 4 kartu cakupan (desa lapor, jiwa, KK, JKN/BPJS) + `.note-strip` | `laporan_agregat` |
+| 1 | Profil Kependudukan | tab: Data Pokok · Sosio Ekonomi · Piramida · Kesehatan & Dokumen | `laporan_agregat` (badge `.tag.src-desa`) |
+| 2 | Sebaran Spasial | peta Leaflet tematik multi-indikator | `laporan_agregat` + `public/geojson/*` |
+| 3 | Monitoring BKKBN | tab: VERVAL KRS · Cakupan YanKB · KB Baru · Dallap · PUS & KB | API SIGA BKKBN (badge `.tag` "Data pihak ketiga") |
+| — | Jelajahi Kecamatan | grid kartu link ke `/{slug}` | `kecamatan` |
+
+Catatan penting saat mengubah halaman ini:
+
+1. **Bagian 3 pakai `<details class="group-collapse">`** — tertutup secara default agar tabel lebar BKKBN (24 kolom, `rowspan`/`colspan`) tidak membebani tampilan awal. Ringkasan memakai `.group-summary` sebagai `section-head`; kontennya di dalam `.group-body`.
+2. **Badge sumber data Bagian 1** dikendalikan satu variabel `$sumberProfil` di dalam view (`'desa'` | `'dukcapil'`). Setelah data profil benar-benar diambil dari **Dukcapil Kab. Tanah Laut**, ganti nilainya ke `'dukcapil'` — label, ikon, dan warna badge (`.tag.src-dukcapil`) ikut berubah. **Jangan** set `'dukcapil'` selama data masih berasal dari laporan desa (klaim provenance yang salah).
+3. **ID tab tidak boleh berubah** — JS ZingChart/DataTables mengaitkan lewat `data-bs-target="#tab-*"` dan `shown.bs.tab` pada `#dataTabs`/`#sigaTabs`. Semua `data-bs-target` harus punya pasangan `id` dan sebaliknya.
+4. **Token `--muted` (`#5f6b7a`)** dipilih agar lolos WCAG AA (≥4.5:1) di atas `--paper` **dan** `--paper-2`. Mencerahkannya akan menggagalkan kontras pada `.section-head .crumb`, `.group-filter label`, dan `.krs-hint`.
+5. **Gaya komponen baru untuk dark mode** ditambahkan di `app/Views/templates/theme_toggle.php` (`.status-pill`, `.note-strip`, `.summary-cta`, `.tag`, `.stat-card .icon`). Menambah komponen baru di landing page berarti menambah aturan `body.dark-mode` di sana juga.
+6. **Target sentuh minimum 44px** untuk semua kontrol (`.nav-link-sikada`, `.btn-login`, `.nav-theme-btn`, `.btn-filter`). `:focus-visible` global 3px ada di blok dasar CSS landing page.
+7. **`baseURL` auto-detect** diimplementasikan di `Config\App::__construct()` (lihat catatan #13). Sebelum ini `$baseURL` masih hardcode `http://localhost:8080/` sehingga seluruh `base_url()`/`site_url()` cross-origin — termasuk fetch peta & API yang diblokir browser.
+
 ---
 
 ## Konvensi Kode
@@ -418,7 +440,8 @@ Akun default setelah seeding:
 10. **Notifikasi pengingat dibuat saat login**, bukan cron — jangan cari scheduler
 11. **Monitoring KRS BKKBN** bergantung pada API eksternal: id provinsi/kabupaten & tahun di-hardcode, map id BKKBN per kecamatan di-hardcode, cache 30 menit. Jika API mati, fallback ke cache lama dengan flag error
 12. **Filter `loggedin`** mengecualikan slug kecamatan secara eksplisit (`takisung*`, `pelaihari*`, dst) — jika menambah kecamatan, tambahkan juga prefix-nya di `Filters.php`
-13. **baseURL otomatis dideteksi** dari host request di `Config\App::__construct()` — mendukung localhost ↔ produksi tanpa mengubah `.env`/`App::$baseURL`. Jangan hardcode domain di view; selalu pakai `site_url()`/`base_url()`. Skema HTTPS diambil dari `X-Forwarded-Proto` (proxy/Cloudflare) → `HTTPS` → `REQUEST_SCHEME`
+13. **baseURL otomatis dideteksi** dari host request di `Config\App::__construct()` — mendukung localhost ↔ produksi tanpa mengubah `.env`/`App::$baseURL`. Jangan hardcode domain di view; selalu pakai `site_url()`/`base_url()`. Skema HTTPS diambil dari `X-Forwarded-Proto` (proxy/Cloudflare) → `HTTPS` → `REQUEST_SCHEME`. Sub-folder didukung dari direktori `SCRIPT_NAME`. Deteksi dilewati (pakai nilai config) bila `app.baseURL` diset eksplisit di `.env` atau saat dijalankan dari CLI (`php spark`)
+14. **Timezone aplikasi = `Asia/Makassar` (WITA)** di `App::$appTimezone`, di-hardcode (bukan lewat `.env`). CI4 memanggil `date_default_timezone_set($appTimezone)` saat boot, jadi seluruh `date()`/`time()`/`strtotime()` di 78 titik pemakaian konsisten WITA dan tidak bergantung `date.timezone` di php.ini server. Sebelumnya `UTC` — pesan "data tersimpan per …" di landing page jadi 8 jam lebih awal dari kenyataan.
 
 ---
 
