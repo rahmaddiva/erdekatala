@@ -6,7 +6,7 @@ use CodeIgniter\Database\Seeder;
 
 class LaporanAgregatSeeder extends Seeder
 {
-    private function getKecamatanData(): array
+    public function getKecamatanData(): array
     {
         return [
         'Takisung' => [
@@ -111,7 +111,7 @@ class LaporanAgregatSeeder extends Seeder
         ];
     }
 
-    private function distribute(int $total, int $numParts): array
+    public function distribute(int $total, int $numParts): array
     {
         if ($numParts <= 0) return [];
         if ($total <= 0) return array_fill(0, $numParts, 0);
@@ -130,7 +130,7 @@ class LaporanAgregatSeeder extends Seeder
         return $values;
     }
 
-    private function mapKecamatanData(array $kd): array
+    public function mapKecamatanData(array $kd): array
     {
         $u75_79_l = (int)round($kd['age_l'][15] * 0.5);
         $u80_84_l = (int)round($kd['age_l'][15] * 0.3);
@@ -192,6 +192,27 @@ class LaporanAgregatSeeder extends Seeder
         ];
     }
 
+    /**
+     * Seed laporan desa (`laporan_agregat`) BERSUMBER dari snapshot Dukcapil.
+     *
+     * Tujuan: laporan desa yang di-seed harus MIRROR per-desa dari
+     * `profil_dukcapil` — data Dukcapil dipakai sebagai data AWAL bagi operator
+     * desa untuk membandingkan data riil desa vs Dukcapil, lalu operator
+     * menambah data yang kurang lewat form laporan.
+     *
+     * Aturan:
+     *  - 1 baris laporan per desa = 1 baris snapshot Dukcapil TERBARU desa itu
+     *    (urut `tahun DESC, semester DESC, id_profil DESC`).
+     *  - Semua kolom statistik bersama disalin APA ADANYA (tanpa hitung ulang
+     *    turunan) dan tanpa `dok_kia`/`dok_akta_cerai` (kolom khusus Dukcapil).
+     *  - Periode: semester 1 → `bulan=6`, semester 2 → `bulan=12` (ASUMSI —
+     *    lihat laporan `docs/superpowers/specs/2026-10-10-seeder-laporan-dari-dukcapil.md`).
+     *  - Desa tanpa snapshot Dukcapil tidak di-seed (bukan ditebak).
+     *
+     * Bila `profil_dukcapil` KOSONG → JATUH ke perilaku LAMA (distribusi
+     * sintetis angka kecamatan SM2/2025) supaya `php spark db:seed DatabaseSeeder`
+     * pada DB yang benar-benar kosong tetap berjalan.
+     */
     public function run()
     {
         $db = \Config\Database::connect();
@@ -213,6 +234,141 @@ class LaporanAgregatSeeder extends Seeder
             return;
         }
 
+        // Cache user admin_desa per desa (+ fallback user pertama)
+        $userCache = [];
+        foreach ($adminDesa as $u) {
+            if ($u['id_desa']) $userCache[$u['id_desa']] = $u['id_user'];
+        }
+        $fallbackUser = $adminDesa[0]['id_user'];
+
+        // --- Sumber data: snapshot Dukcapil (1 baris terbaru per desa) --------
+        $dukcapil = $this->getLatestDukcapilPerDesa($db);
+
+        if ($dukcapil === []) {
+            echo "Peringatan: tabel profil_dukcapil KOSONG — laporan desa di-seed dari\n";
+            echo "  DISTRIBUSI SINTETIS LAMA (angka kecamatan SM2/2025), BUKAN data Dukcapil.\n";
+            echo "  Untuk data resmi jalankan: php spark dukcapil:import --commit\n";
+            echo "  lalu: php spark db:seed LaporanAgregatSeeder\n";
+            $this->runLegacyDistribusi($db, $allDesa, $userCache, $fallbackUser);
+            return;
+        }
+
+        // Kolom statistik bersama (irisan skema kedua tabel) — dihitung DINAMIS
+        // dari skema supaya tidak "drift" bila ada migration menambah kolom.
+        $statsCols = $this->sharedStatisticColumns($db);
+
+        $data     = [];
+        $periode  = [];
+        $tanpaSnap = 0;
+
+        foreach ($allDesa as $desa) {
+            $idDesa = (int) $desa['id_desa'];
+            $snap   = $dukcapil[$idDesa] ?? null;
+
+            // Desa tanpa snapshot Dukcapil → dilewati (bukan ditebak).
+            if ($snap === null) {
+                $tanpaSnap++;
+                continue;
+            }
+
+            // ASUMSI periode: semester 1 → Juni (6), semester 2 → Desember (12).
+            $bulan = ((int) $snap['semester'] === 2) ? 12 : 6;
+            $tahun = (int) $snap['tahun'];
+
+            $row = [
+                'id_desa' => $idDesa,
+                'id_user' => $userCache[$idDesa] ?? $fallbackUser,
+                'bulan'   => $bulan,
+                'tahun'   => $tahun,
+            ];
+
+            // Salin apa adanya — TANPA hitung ulang turunan, TANPA dok_kia/dok_akta_cerai.
+            foreach ($statsCols as $col) {
+                $row[$col] = (int) ($snap[$col] ?? 0);
+            }
+
+            $data[] = $row;
+
+            $key = $tahun . '-' . str_pad((string) $bulan, 2, '0', STR_PAD_LEFT);
+            $periode[$key] = ($periode[$key] ?? 0) + 1;
+        }
+
+        $db->table('laporan_agregat')->truncate();
+        if ($data !== []) {
+            $db->table('laporan_agregat')->insertBatch($data);
+        }
+
+        $periodeTxt = [];
+        foreach ($periode as $k => $n) {
+            $periodeTxt[] = "{$k} ({$n} desa)";
+        }
+
+        echo "LaporanAgregatSeeder: " . count($data) . " baris disisipkan — MIRROR snapshot Dukcapil.\n";
+        echo "  Sumber  : profil_dukcapil (1 baris terbaru per desa: tahun DESC, semester DESC, id_profil DESC)\n";
+        echo "  Periode : " . (empty($periodeTxt) ? '-' : implode(', ', $periodeTxt)) . "\n";
+        echo "  Asumsi  : semester 1 -> bulan=6 (Juni), semester 2 -> bulan=12 (Desember)\n";
+        echo "  Kolom   : " . count($statsCols) . " kolom statistik bersama disalin apa adanya (tanpa turunan)\n";
+        if ($tanpaSnap > 0) {
+            echo "  Catatan : {$tanpaSnap} desa tanpa snapshot Dukcapil -> dilewati (tidak di-seed)\n";
+        }
+    }
+
+    /**
+     * Ambil SATU baris snapshot Dukcapil terbaru per desa.
+     * Urutan: `tahun DESC, semester DESC, id_profil DESC` (deterministik).
+     *
+     * @return array<int,array<string,mixed>> id_desa => baris snapshot
+     */
+    public function getLatestDukcapilPerDesa($db): array
+    {
+        // Prefix-safe (test SQLite memakai prefix `db_`).
+        $table = $db->protectIdentifiers($db->prefixTable('profil_dukcapil'));
+        $rows  = $db->query("SELECT * FROM {$table} ORDER BY tahun DESC, semester DESC, id_profil DESC")
+            ->getResultArray();
+
+        $out = [];
+        foreach ($rows as $r) {
+            $id = (int) $r['id_desa'];
+            if (!isset($out[$id])) {
+                $out[$id] = $r; // sudah terurut desc → ambil pertama per desa
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Kolom statistik bersama = irisan kolom `laporan_agregat` ∩ `profil_dukcapil`
+     * dikurangi kolom meta/identitas. Dihitung DINAMIS dari skema (bukan daftar
+     * hardcode) agar tidak "drift" saat ada migration menambah kolom.
+     *
+     * Kolom `dok_kia`/`dok_akta_cerai` otomatis TIDAK ikut karena tidak ada di
+     * `laporan_agregat` (irisan), jadi laporan tetap bebas kolom khusus Dukcapil.
+     *
+     * @return list<string>
+     */
+    public function sharedStatisticColumns($db): array
+    {
+        // Prefix-safe: getFieldNames menerima nama tabel ber-prefix (MySQL) dan
+        // nama tabel TANPA prefix (SQLite3) — lihat BaseConnection::getFieldNames().
+        $lap  = $db->getFieldNames($db->prefixTable('laporan_agregat'));
+        $prof = $db->getFieldNames($db->prefixTable('profil_dukcapil'));
+
+        $meta = [
+            'id_laporan', 'id_profil', 'id_desa', 'id_user',
+            'semester', 'tahun', 'imported_at', 'imported_by', 'bulan',
+        ];
+
+        return array_values(array_diff(array_intersect($lap, $prof), $meta));
+    }
+
+    /**
+     * Perilaku LAMA (fallback bila `profil_dukcapil` kosong): distribusi
+     * sintetis angka kecamatan SM2/2025 per desa memakai `mt_rand`.
+     * Dipertahankan utuh agar seed pada DB kosong tetap menghasilkan laporan.
+     */
+    private function runLegacyDistribusi($db, array $allDesa, array $userCache, int $fallbackUser)
+    {
         $kecData = $this->getKecamatanData();
         $bulan   = 12;  // Semester II = Desember
         $tahun   = 2025;
@@ -222,13 +378,6 @@ class LaporanAgregatSeeder extends Seeder
         foreach ($allDesa as $desa) {
             $desaByKec[$desa['nama_kecamatan']][] = $desa;
         }
-
-        // Cache user per desa
-        $userCache = [];
-        foreach ($adminDesa as $u) {
-            if ($u['id_desa']) $userCache[$u['id_desa']] = $u['id_user'];
-        }
-        $fallbackUser = $adminDesa[0]['id_user'];
 
         $data = [];
 

@@ -150,6 +150,7 @@ Setiap record mewakili laporan satu desa untuk satu periode bulan/tahun. Kolom s
 - JKN/BPJS: PBI, non-PBI, non-JKN
 - KB & PUS
 
+Setiap record mewakili laporan satu desa untuk satu periode bulan/tahun — satu desa boleh punya banyak periode (riwayat). **Agregasi hanya memakai 1 baris terbaru per desa**; lihat butir #20 di "Hal Penting".
 Catatan: kolom FK unit lapor adalah `id_desa` (bukan `id_rt` — sudah dimigrasi). Ada index `(tahun, bulan)` untuk filter DataTables & export.
 
 ### Tabel `notifikasi`
@@ -181,6 +182,26 @@ Audit log perubahan laporan.
 |aksi|ENUM: create, update, delete|
 |perubahan|TEXT nullable — detail field yang berubah (untuk update)|
 |created_at|DATETIME|
+
+### Tabel `profil_dukcapil`
+
+Snapshot profil kependudukan resmi Dukcapil per desa (semester/tahun). Baseline "data pasti & valid" untuk landing page — laporan desa tetap di `laporan_agregat` dan menimpa baseline per desa (Desain B: desa yang sudah lapor → angka laporan; belum lapor → fallback snapshot Dukcapil). Angka sumber: data Dukcapil semester 2/2025 yang sama dengan `LaporanAgregatSeeder` (method `getKecamatanData()`/`mapKecamatanData()`/`distribute()` kini `public` dan direuse `ProfilDukcapilSeeder`).
+
+|Kolom|Keterangan|
+|---|---|
+|id_profil|PK|
+|id_desa|FK → `m_desa.id_desa` (ON DELETE CASCADE)|
+|semester|1 \| 2|
+|tahun|YEAR|
+|imported_at|DATETIME nullable|
+|imported_by|FK nullable → `users.id_user` (ON DELETE SET NULL)|
+|...stats|~82 kolom statistik, identik `laporan_agregat` **plus** 2 kolom khusus Dukcapil|
+|dok_kia|KARTU IDENTITAS ANAK (0-16 th), basis PENDUDUK. Migration `2026-10-09-000001`|
+|dok_akta_cerai|AKTA PERCERAIAN, basis PENDUDUK. Migration `2026-10-09-000001`|
+
+Unique key `(id_desa, tahun, semester)`. Landing page memakai `ProfilDukcapilModel::getLatestPerDesa()` + `getAggregatedStats($ids)`; filter sumber via `?sumber=desa|dukcapil` di `/` (default: campuran otomatis — laporan desa menimpa Dukcapil per desa, tanpa double-count).
+
+**Atribusi sumber data RESMI** untuk tabel ini (baku, jangan ubah ejaannya — termasuk tanda bintang di depan): `* Sumber data adalah Data Konsolidasi Bersih (DKB) Semester I Tahun 2026`. Dihasilkan oleh `DukcapilImport::labelSumber($semester, $tahun)` (semester Romawi, tahun mengikuti periode impor) — pakai helper itu, bukan teks hardcode baru. Di workbook sumber, label ini ada di 7 sheet; sheet `KEPEMILIKAN DOK` terlabel "DKB pertanggal 30092026". Lihat butir #17.
 
 ---
 
@@ -360,10 +381,10 @@ Halaman disusun jadi **3 grup bernomor** + 1 bagian navigasi. Nomor urut (`.sect
 Catatan penting saat mengubah halaman ini:
 
 1. **Bagian 3 pakai `<details class="group-collapse">`** — tertutup secara default agar tabel lebar BKKBN (24 kolom, `rowspan`/`colspan`) tidak membebani tampilan awal. Ringkasan memakai `.group-summary` sebagai `section-head`; kontennya di dalam `.group-body`.
-2. **Badge sumber data Bagian 1** dikendalikan satu variabel `$sumberProfil` di dalam view (`'desa'` | `'dukcapil'`). Setelah data profil benar-benar diambil dari **Dukcapil Kab. Tanah Laut**, ganti nilainya ke `'dukcapil'` — label, ikon, dan warna badge (`.tag.src-dukcapil`) ikut berubah. **Jangan** set `'dukcapil'` selama data masih berasal dari laporan desa (klaim provenance yang salah).
+2. **Badge & label sumber data Bagian 1** kini **dinamis** dari `$profilMeta` (dikirim `PublicController::landingpage()`). `$profilMode` dihitung sekali di atas view dan dipakai hero, note-strip, dan badge: `'laporan'` (semua desa lapor) \| `'dukcapil'` (tidak ada yang lapor) \| `'campuran'` (gabungan per desa). Filter manual via `?sumber=desa|dukcapil` — dropdown "Sumber data" di Bagian 1 mengubah param ini. `ProfilDukcapilSeeder` mengisi snapshot Dukcapil semester 2/2025 (reuse angka `LaporanAgregatSeeder`, method-nya kini `public`).
 3. **ID tab tidak boleh berubah** — JS ZingChart/DataTables mengaitkan lewat `data-bs-target="#tab-*"` dan `shown.bs.tab` pada `#dataTabs`/`#sigaTabs`. Semua `data-bs-target` harus punya pasangan `id` dan sebaliknya.
 4. **Token `--muted` (`#5f6b7a`)** dipilih agar lolos WCAG AA (≥4.5:1) di atas `--paper` **dan** `--paper-2`. Mencerahkannya akan menggagalkan kontras pada `.section-head .crumb`, `.group-filter label`, dan `.krs-hint`.
-5. **Gaya komponen baru untuk dark mode** ditambahkan di `app/Views/templates/theme_toggle.php` (`.status-pill`, `.note-strip`, `.summary-cta`, `.tag`, `.stat-card .icon`). Menambah komponen baru di landing page berarti menambah aturan `body.dark-mode` di sana juga.
+5. **Gaya komponen baru untuk dark mode** ditambahkan di `app/Views/templates/theme_toggle.php` (`.status-pill`, `.note-strip`, `.zero-report-badge`, `.summary-cta`, `.tag`, `.stat-card .icon`). Menambah komponen baru di landing page berarti menambah aturan `body.dark-mode` di sana juga.
 6. **Target sentuh minimum 44px** untuk semua kontrol (`.nav-link-sikada`, `.btn-login`, `.nav-theme-btn`, `.btn-filter`). `:focus-visible` global 3px ada di blok dasar CSS landing page.
 7. **`baseURL` auto-detect** diimplementasikan di `Config\App::__construct()` (lihat catatan #13). Sebelum ini `$baseURL` masih hardcode `http://localhost:8080/` sehingga seluruh `base_url()`/`site_url()` cross-origin — termasuk fetch peta & API yang diblokir browser.
 
@@ -402,6 +423,8 @@ Catatan penting saat mengubah halaman ini:
 2026-07-19-000001_CreateLaporanLog
 2026-07-19-000002_AddPerubahanToLaporanLog
 2026-08-02-000001_CreateNotifikasi
+2026-10-01-000001_CreateProfilDukcapil
+2026-10-09-000001_AddDokumenToProfilDukcapil
 ```
 
 ---
@@ -414,7 +437,14 @@ Jalankan ulang semua data dummy:
 php spark db:seed DatabaseSeeder
 ```
 
-Urutan seeder: `WilayahSeeder` → `DusunSeeder` → `RtSeeder` → `UserSeeder` → `LaporanAgregatSeeder`
+Urutan seeder: `WilayahSeeder` → `DesaKoordinatSeeder` → `DusunSeeder` → `RtSeeder` → `UserSeeder` → `ProfilDukcapilSeeder` → `LaporanAgregatSeeder`
+
+**Laporan desa bersumber dari Dukcapil (2026-10-10).** `LaporanAgregatSeeder` kini **MIRROR per-desa** dari snapshot `profil_dukcapil` (1 baris terbaru per desa: urut `tahun DESC, semester DESC, id_profil DESC`) — bukan lagi distribusi sintetis angka kecamatan. Semua kolom statistik bersama disalin **apa adanya** (tanpa hitung ulang turunan) dan **tanpa** `dok_kia`/`dok_akta_cerai` (kolom khusus Dukcapil). Daftar kolom bersama dihitung **dinamis** dari irisan skema kedua tabel. Karena itu `ProfilDukcapilSeeder` **dipindah ke SEBELUM** `LaporanAgregatSeeder`: pada seed fresh, snapshot sudah terisi saat laporan di-seed.
+
+- **Periode laporan = MIRROR snapshot** (asumsi): semester 1 → `bulan=6` (Juni), semester 2 → `bulan=12` (Desember), `tahun` mengikuti. Lihat `docs/superpowers/specs/2026-10-10-seeder-laporan-dari-dukcapil.md`.
+- Desa tanpa snapshot Dukcapil **dilewati** (tidak ditebak).
+- Bila `profil_dukcapil` **KOSONG**, seeder **jatuh ke perilaku LAMA** (distribusi sintetis SM2/2025) dan mencetak peringatan — supaya `php spark db:seed DatabaseSeeder` pada DB kosong tetap jalan. Method `getKecamatanData()`/`mapKecamatanData()`/`distribute()` tetap `public` (dipakai `ProfilDukcapilSeeder`).
+- **Interaksi yang harus jujur diketahui:** `ProfilDukcapilSeeder` menghasilkan data **SINTETIS** (snapshot semester 2/2025, diturunkan dari `LaporanAgregatSeeder::getKecamatanData()` lalu didistribusikan proporsional per desa) — bukan data Dukcapil resmi, dan ia melakukan `truncate()` pada `profil_dukcapil`. Jadi seed penuh (`php spark db:seed DatabaseSeeder`) menghasilkan laporan **berbasis Dukcapil SINTETIS** (periode 12/2025). Untuk data **resmi**, jalankan `php spark dukcapil:import --commit` (lihat catatan #17 & #18) **lalu** `php spark db:seed LaporanAgregatSeeder` (periode 6/2026).
 
 Akun default setelah seeding:
 
@@ -444,7 +474,18 @@ Akun default setelah seeding:
 14. **Timezone aplikasi = `Asia/Makassar` (WITA)** di `App::$appTimezone`, di-hardcode (bukan lewat `.env`). CI4 memanggil `date_default_timezone_set($appTimezone)` saat boot, jadi seluruh `date()`/`time()`/`strtotime()` di 78 titik pemakaian konsisten WITA dan tidak bergantung `date.timezone` di php.ini server. Sebelumnya `UTC` — pesan "data tersimpan per …" di landing page jadi 8 jam lebih awal dari kenyataan.
 15. **Cache BKKBN disegarkan dengan `php spark bkkbn:warmup`** — bukan cron, jalankan manual atau jadwalkan sendiri. Cache KRS diambil on-demand saat pengguna klik ▶, jadi kecamatan yang jarang dibuka bisa menyimpan cache berbulan-bulan dan memunculkan banner "data tersimpan per …". Opsi: `--only krs|yankb|dallap|all`, `--bulan 1..12`, `--tahun YYYY`. Exit code non-zero bila ada yang gagal.
 16. **Parser opsi CLI CodeIgniter hanya mendukung `--nama nilai` (spasi)**; bentuk `--nama=nilai` ditelan diam-diam. Command `bkkbn:warmup` menangani keduanya lewat helper `opsi()`, tapi command baru sebaiknya ikut menangani ini atau pakai sintaks spasi di dokumentasinya.
-17. **Method `BkkbnMirror` sengaja `private`** (bukan `protected`/`public`). Untuk memakainya di luar controller, bungkus lewat `App\Libraries\BkkbnMirrorService` yang mengekspos API publik sempit — jangan ubah visibility di trait. Tiga method fetch di trait bernama `fetch*Internal` karena nama publiknya dipakai wrapper service.
+17. **`php spark dukcapil:import`** — impor snapshot Dukcapil dari workbook Excel ke `profil_dukcapil`. **Default = DRY-RUN**: tanpa `--commit` tidak ada baris yang ditulis, hanya laporan rencana (periode lama yang akan dihapus + 135 baris periode target yang akan disisipkan). Opsi: `--file <path>` (default `ROOTPATH . 'DATA KEPENDUDUKAN KAB TALA SM I 2026.xlsx'`), `--tahun <YYYY>` (default 2026), `--semester <1|2>` (default 1), `--commit`. Sintaks resminya **spasi** (`--tahun 2026`) mengikuti batasan parser opsi CI4 di butir #16, meski helper `opsi()` di command juga menerima `--nama=nilai`. Bersifat **REPLACE**, bukan append: saat `--commit`, periode lama dihapus dulu dengan `DELETE FROM` (bukan `TRUNCATE` — di MySQL itu DDL ber-implicit commit, tidak bisa di-rollback) lalu disisipkan 135 baris periode target, semuanya dalam satu transaksi; keadaan akhir = hanya ada satu periode. Command menjalankan hard-assert V1–V7 (total jiwa 378.190, KK 132.030, join 135/135 desa) dan **membatalkan tanpa menulis** bila ada yang gagal, lalu verifikasi pasca-commit (COUNT=135, hanya periode target). Rencana & asumsi A1–A8: `docs/superpowers/plans/2026-10-09-import-dukcapil-sm1-2026.md`. **Atribusi sumber data RESMI** yang dipakai aplikasi (baku — jangan ubah ejaannya, termasuk tanda bintang di depan): `* Sumber data adalah Data Konsolidasi Bersih (DKB) Semester I Tahun 2026`. Sumber kebenarannya SATU helper: `DukcapilImport::labelSumber(int $semester, int $tahun)` (`public static`) — dipakai command pada ringkasan dry-run **dan** ringkasan pasca-commit (blok `SUMBER DATA RESMI`); semester ditulis **angka Romawi** dan tahun mengikuti opsi `--semester`/`--tahun`, sedangkan kata-katanya tetap persis. Pakai helper ini, bukan teks hardcode baru, di mana pun label perlu ditampilkan. Catatan workbook: label di atas ada di **7 sheet**; sheet `KEPEMILIKAN DOK` terlabel **"DKB pertanggal 30092026"** (beda potongan — dasar asumsi A5).
+18. **`profil_dukcapil` praktis snapshot SATU periode** — sejak 2026-10-09 `ProfilDukcapilModel::getAggregatedStats()` menjumlahkan **1 baris terbaru per desa** (bukan semua baris), jadi periode ganda tidak lagi double-count. Meski begitu tetap **jangan menambah periode baru tanpa menghapus yang lama** (label semester/tahun di note-strip masih diambil dari `orderBy('tahun DESC, semester DESC')->first()`), dan **jangan re-seed di lingkungan produksi**: `php spark db:seed DatabaseSeeder` memanggil `ProfilDukcapilSeeder` yang melakukan `truncate()` pada `profil_dukcapil` → MENGHAPUS data resm…
+19. **Method `BkkbnMirror` sengaja `private`** (bukan `protected`/`public`). Untuk memakainya di luar controller, bungkus lewat `App\Libraries\BkkbnMirrorService` yang mengekspos API publik sempit — jangan ubah visibility di trait. Tiga method fetch di trait bernama `fetch*Internal` karena nama publiknya dipakai wrapper service.
+20. **Agregasi laporan memakai "1 baris terbaru per desa", BUKAN "1 periode terbaru global"** (diperbaiki 2026-10-09; lihat `docs/superpowers/specs/2026-10-09-fix-double-count-periode.md`). `laporan_agregat` bisa berisi banyak periode sekaligus, dan `SUM` tanpa filter periode membuat desa ber-periode ganda terhitung dua kali — **dulu** (data sintetis SM2/2025) Total Jiwa 380.525, nilai benar 375.583 (selisih +4.942 dari Ranggang & Batu Ampar). **Sejak 2026-10-10** `LaporanAgregatSeeder` MIRROR snapshot Dukcapil (lihat "Seeder & Data Dummy"), jadi data di DB dev kini **135 baris @ 6/2026** dengan Total Jiwa **378.190** — angka 375.583 di bawah adalah keadaan **historis** (sebelum seeder diubah). Aturan yang berlaku sekarang:
+    - **Satu sumber kebenaran**: `LaporanAgregatModel::latestPerDesaSubquery()` memilih 1 baris per desa — urutan `(tahun*100 + bulan) DESC`, tie-break `MAX(id_laporan)` di dalam periode terpilih (deterministik; tidak bergantung urutan insert/fisik/mesin DB). `ProfilDukcapilModel` punya padanannya (`tahun*10 + semester`, tie-break `MAX(id_profil)`).
+    - `getAggregatedStats()`, `getCoverage()`, `getLatestPeriod()`, `getMapKecamatan()`, `getMapDesa()`, `getSummaryPerKecamatan()`, dan `getSummaryPerDesa()` **semuanya turunan subquery itu** — jangan menulis `SUM(...)`/`COUNT(...)` atas `laporan_agregat` langsung, dan jangan menduplikasi logika periode: pakai subquery/method yang sudah ada supaya angka kartu, peta, API, dan label tidak pernah saling bertentangan. Kalau menambah agregasi baru, ikutkan subquery ini.
+    - Kenapa bukan "1 periode terbaru global" (`MAX(tahun*100+bulan)`): terukur di DB ini hanya **2.060** karena periode terbaru (8/2026) cuma berisi 1 desa → 133 desa hilang dari total kabupaten. Opsi per-desa terpilih justru memberi 375.583 tanpa desa yang hilang, dan otomatis sama dengan opsi global saat semua desa sudah lapor di periode terbaru.
+    - **Label periode = periode UTAMA** (desa terbanyak), bukan periode kalender terbaru: `getLatestPeriod()` mengembalikan `desa_lapor` (desa pada periode itu) **dan** `desa_total` (desa lintas periode). Sejak 2026-10-10 (MIRROR Dukcapil) data dev = **6/2026, desa_lapor=135, desa_total=135** (satu periode, tidak ada desa hilang). Jangan mengklaim label itu sebagai "satu bulan" bila `desa_total > desa_lapor`.
+    - **Peta & API ikut tunduk pada aturan ini** (diperbaiki menyusul temuan "peta 380.525 vs kartu 375.583"): `getMapKecamatan()`/`getMapDesa()` dipakai `PublicController::buildMapKecamatan()` dan endpoint publik `/api/v1/map/kecamatan` & `/api/v1/map/desa`; `getSummaryPerKecamatan()`/`getSummaryPerDesa()` dipakai dashboard & `ApiController`. Semuanya kini memakai subquery yang sama.
+    - **Cara verifikasi cepat**: kesetaraan total `total_jiwa` antara GeoJSON peta dan kartu "Total Jiwa" di landing page **hanya berlaku bila sumbernya sama** — bandingkan `?sumber=desa` dengan `?sumber=desa`, atau `?sumber=dukcapil` dengan `?sumber=dukcapil`. **Sejak 2026-10-10** laporan desa MIRROR Dukcapil, jadi `?sumber=desa` ↔ **378.190** **sama dengan** `?sumber=dukcapil` (default) ↔ **378.190** (DKB Dukcapil SM I/2026) — kesetaraan lintas sumber ini sekarang WAJAR. Selisih terhadap angka dari sumber lain (mis. angka historis 375.583) adalah tanda data sudah berbeda, BUKAN tanda agregasi salah; yang berarti bug adalah selisih ≠ 0 **di dalam sumber yang sama** (mis. `/api/v1/map/kecamatan?sumber=dukcapil` vs kartu landing page default, atau `/api/v1/map/kecamatan` vs `/api/v1/map/desa` dengan `?sumber=` yang sama).
+    - **Sumber data bersifat eksplisit (2026-10-09)**: **default sumber data aplikasi kini Dukcapil** (snapshot `profil_dukcapil`, DKB Semester I 2026 → Total Jiwa 378.190); laporan desa (`laporan_agregat`) dipakai bila `?sumber=desa` dipilih. Parameter `?sumber=desa|dukcapil|campuran` (default `dukcapil`) berlaku di landing page `/`, halaman per-kecamatan `/{slug}`, **dan endpoint peta `/api/v1/map/kecamatan` & `/api/v1/map/desa`**. **Sejak 2026-10-10** `laporan_agregat` MIRROR snapshot Dukcapil, jadi `?sumber=desa` dan `?sumber=dukcapil` kini memberi Total Jiwa yang **sama** (378.190) — bukan lagi 375.583 vs 378.190. Angka 375.583 adalah keadaan historis (data laporan sintetis SM2/2025) sebelum seeder diubah; 380.525 yang lama tetap salah (double-count periode).
+21. **`vendor/bin/phpunit` RUSAK di Laragon ini** — jalankan `php vendor/phpunit/phpunit/phpunit tests/unit`. Grup DB test = `tests` (SQLite `:memory:`, prefix `db_`), jadi SQL mentah di model/perintah WAJIB memakai prefix tabel (`$this->db->prefixTable()` / `protectIdentifiers`), bukan nama tabel hardcode.
 
 ---
 
