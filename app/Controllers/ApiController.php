@@ -6,21 +6,24 @@ use App\Models\ApiKeyModel;
 use App\Models\KecamatanModel;
 use App\Models\DesaModel;
 use App\Models\LaporanAgregatModel;
+use App\Models\ProfilDukcapilModel;
 
 class ApiController extends BaseController
 {
     use BkkbnMirror;
     private ApiKeyModel $apiKeyModel;
     private LaporanAgregatModel $laporanModel;
+    private ProfilDukcapilModel $profilDukcapilModel;
     private KecamatanModel $kecamatanModel;
     private DesaModel $desaModel;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
-        $this->apiKeyModel    = new ApiKeyModel();
-        $this->laporanModel   = new LaporanAgregatModel();
-        $this->kecamatanModel = new KecamatanModel();
+        $this->apiKeyModel         = new ApiKeyModel();
+        $this->laporanModel        = new LaporanAgregatModel();
+        $this->profilDukcapilModel = new ProfilDukcapilModel();
+        $this->kecamatanModel      = new KecamatanModel();
         $this->desaModel      = new DesaModel();
     }
 
@@ -55,8 +58,8 @@ class ApiController extends BaseController
                 'GET /api/v1/desa'                    => 'Daftar desa (filter: ?id_kecamatan=)',
                 'GET /api/v1/laporan'                 => 'Data laporan agregat (filter: ?id_kecamatan=, ?id_desa=, ?bulan=, ?tahun=)',
                 'GET /api/v1/laporan/rekap/kecamatan' => 'Rekapitulasi per kecamatan',
-                'GET /api/v1/map/kecamatan'           => 'GeoJSON FeatureCollection per kecamatan + indikator statistik gabungan (PUBLIK, tanpa API key)',
-                'GET /api/v1/map/desa'                => 'GeoJSON FeatureCollection per desa + indikator statistik gabungan (filter: ?id_kecamatan=; PUBLIK, tanpa API key)',
+                'GET /api/v1/map/kecamatan'           => 'GeoJSON FeatureCollection per kecamatan + indikator statistik gabungan (filter: ?sumber=desa|dukcapil|campuran, default dukcapil; PUBLIK, tanpa API key)',
+                'GET /api/v1/map/desa'                => 'GeoJSON FeatureCollection per desa + indikator statistik gabungan (filter: ?id_kecamatan=, ?sumber=desa|dukcapil|campuran, default dukcapil; PUBLIK, tanpa API key)',
                 'GET /api/v1/bkkbn/krs'               => 'Cermin Monitoring KRS BKKBN: rows per kecamatan + baris kab (filter: ?tahun=; sumber: BKKBN, cache 30 menit)',
                 'GET /api/v1/bkkbn/dallap'            => 'Cermin Rekap Bangga Kencana BKKBN: matriks per kecamatan (filter: ?tahun=, ?bulan=; sumber: BKKBN, cache 30 menit)',
                 'GET /api/v1/bkkbn/yankb'             => 'Cermin YanKB BKKBN Tabel1/Tabel21: tabel terstruktur per kecamatan (wajib: ?report=; filter: ?tahun=, ?bulan=; sumber: BKKBN, cache 30 menit)',
@@ -165,18 +168,23 @@ class ApiController extends BaseController
         ]);
     }
 
-    // GET /api/v1/map/kecamatan — FeatureCollection GeoJSON + statistik (publik tanpa key)
+    // GET /api/v1/map/kecamatan?sumber= — FeatureCollection GeoJSON + statistik (publik tanpa key)
     public function mapKecamatan()
     {
+        $sumber = $this->resolveSumber();
+
         $geojson = $this->readGeojson(FCPATH . 'geojson/kecamatan.geojson');
         if ($geojson === null) {
             return $this->json(['status' => 'error', 'message' => 'File peta kecamatan tidak dapat dibaca.'], 500);
         }
 
-        $aggr = [];
-        foreach ($this->laporanModel->getMapKecamatan() as $row) {
-            $aggr[$row['kd_kecamatan']] = $row;
-        }
+        // Baris per-desa sesuai sumber aktif, lalu agregasikan ke kecamatan.
+        // Untuk 'desa' & 'dukcapil' ini setara dengan getMapKecamatan() model
+        // masing-masing; untuk 'campuran' penggabungan per-desa WAJIB agar
+        // semantik "laporan menimpa Dukcapil" tetap benar tanpa double-count.
+        $aggr = $this->aggregateMapToKecamatan(
+            $this->mapRowsPerDesa(null, $sumber)
+        );
 
         foreach ($geojson['features'] as &$feature) {
             $kd = (string) ($feature['properties']['kd_kecamatan'] ?? '');
@@ -187,12 +195,18 @@ class ApiController extends BaseController
         }
         unset($feature);
 
+        // Foreign member di level FeatureCollection: konsumen tahu asal angka.
+        $geojson['sumber']       = $sumber;
+        $geojson['sumber_label'] = $this->sumberLabel($sumber);
+
         return $this->geojson($geojson);
     }
 
-    // GET /api/v1/map/desa?id_kecamatan= — FeatureCollection GeoJSON + statistik (publik tanpa key)
+    // GET /api/v1/map/desa?id_kecamatan=&sumber= — FeatureCollection GeoJSON + statistik (publik tanpa key)
     public function mapDesa()
     {
+        $sumber = $this->resolveSumber();
+
         $id_kecamatan = null;
         $rawId = $this->request->getGet('id_kecamatan');
         if ($rawId !== null) {
@@ -207,10 +221,8 @@ class ApiController extends BaseController
             return $this->json(['status' => 'error', 'message' => 'File peta desa tidak dapat dibaca.'], 500);
         }
 
-        $aggr = [];
-        foreach ($this->laporanModel->getMapDesa($id_kecamatan) as $row) {
-            $aggr[$row['kd_kecamatan'] . '.' . $row['kd_kelurahan']] = $row;
-        }
+        // Baris per-desa sesuai sumber aktif (kunci "kec.desa").
+        $aggr = $this->mapRowsPerDesa($id_kecamatan, $sumber);
 
         foreach ($features as &$feature) {
             $kdKec = (string) ($feature['properties']['kd_kecamatan'] ?? '');
@@ -223,8 +235,122 @@ class ApiController extends BaseController
         }
         unset($feature);
 
-        $payload = ['type' => 'FeatureCollection', 'features' => $features];
+        $payload = [
+            'type'         => 'FeatureCollection',
+            'features'     => $features,
+            'sumber'       => $sumber,
+            'sumber_label' => $this->sumberLabel($sumber),
+        ];
         return $this->geojson($payload);
+    }
+
+    /**
+     * Resolusi parameter ?sumber= untuk endpoint peta publik.
+     *
+     * Nilai dikenal: 'desa' | 'dukcapil' | 'campuran'. Tanpa param ATAU nilai
+     * tak dikenal → 'dukcapil' (DEFAULT). Ini SENGAJA menyamai perilaku landing
+     * page (PublicController): nilai tak dikenal diperlakukan sebagai default
+     * Dukcapil, bukan 422 — supaya API publik dan halaman publik konsisten dan
+     * tidak ada klien lama yang tiba-tiba gagal hanya karena typo query param.
+     */
+    private function resolveSumber(): string
+    {
+        $raw = strtolower(trim((string) ($this->request->getGet('sumber') ?? '')));
+        return in_array($raw, ['desa', 'dukcapil', 'campuran'], true) ? $raw : 'dukcapil';
+    }
+
+    /**
+     * Label sumber untuk foreign member `sumber_label` di payload GeoJSON.
+     * Untuk dukcapil memakai satu sumber kebenaran ProfilDukcapilModel::sumberLabelDkb().
+     * Untuk desa/campuran memakai label yang sesuai (sejajar landing page).
+     */
+    private function sumberLabel(string $sumber): string
+    {
+        switch ($sumber) {
+            case 'desa':
+                return 'Laporan desa (laporan_agregat, 1 baris terbaru per desa)';
+            case 'campuran':
+                return 'Gabungan: laporan desa bila ada, Dukcapil bila desa belum lapor';
+            case 'dukcapil':
+            default:
+                return ProfilDukcapilModel::sumberLabelDkb();
+        }
+    }
+
+    /**
+     * Baris indikator peta per DESA sesuai SUMBER aktif (kunci "kec.desa").
+     * Duplikasi kecil yang DISENGAJA dari PublicController::mapRowsPerDesa()
+     * (tidak refactor lintas controller — lihat catatan tugas) agar semantik
+     * sumber identik dengan landing page:
+     *  - desa     : laporan desa (LaporanAgregatModel::getMapDesa)
+     *  - dukcapil : snapshot Dukcapil (ProfilDukcapilModel::getMapDesa)
+     *  - campuran : Dukcapil sebagai baseline, ditimpa laporan desa per desa
+     *
+     * @return array<string,array<string,int|string>> kunci "kec.desa" => row
+     */
+    private function mapRowsPerDesa(?int $idKecamatan, string $sumber): array
+    {
+        $key = static fn(array $r): string => $r['kd_kecamatan'] . '.' . $r['kd_kelurahan'];
+
+        if ($sumber === 'desa') {
+            $out = [];
+            foreach ($this->laporanModel->getMapDesa($idKecamatan) as $r) {
+                $out[$key($r)] = $r;
+            }
+            return $out;
+        }
+
+        // dukcapil (default) & campuran sama-sama mulai dari snapshot Dukcapil.
+        $out = [];
+        foreach ($this->profilDukcapilModel->getMapDesa($idKecamatan) as $r) {
+            $out[$key($r)] = $r;
+        }
+
+        if ($sumber === 'campuran') {
+            foreach ($this->laporanModel->getMapDesa($idKecamatan) as $r) {
+                $out[$key($r)] = $r; // laporan desa menimpa Dukcapil per desa
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Jumlahkan baris indikator per-desa menjadi baris per-kecamatan (kunci
+     * kd_kecamatan 3 digit), lalu tambah turunan total_jiwa/total_kk.
+     * Duplikasi kecil yang DISENGAJA dari PublicController::aggregateMapToKecamatan().
+     *
+     * @param array<string,array<string,int|string>> $desaRows
+     * @return array<string,array<string,int|string>> kd_kecamatan => row
+     */
+    private function aggregateMapToKecamatan(array $desaRows): array
+    {
+        $fields = LaporanAgregatModel::mapIndicatorFields();
+        $out    = [];
+
+        foreach ($desaRows as $r) {
+            $kode = (string) ($r['kd_kecamatan'] ?? '');
+            if ($kode === '') {
+                continue;
+            }
+            if (!isset($out[$kode])) {
+                $out[$kode] = ['kd_kecamatan' => $kode];
+                foreach ($fields as $f) {
+                    $out[$kode][$f] = 0;
+                }
+            }
+            foreach ($fields as $f) {
+                $out[$kode][$f] += (int) ($r[$f] ?? 0);
+            }
+        }
+
+        foreach ($out as &$row) {
+            $row['total_jiwa'] = (int) $row['jiwa_l'] + (int) $row['jiwa_p'];
+            $row['total_kk']   = (int) $row['kk_l'] + (int) $row['kk_p'];
+        }
+        unset($row);
+
+        return $out;
     }
 
     /**

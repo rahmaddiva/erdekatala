@@ -12,7 +12,62 @@ $lansia      = (int)($totals['lansia'] ?? 0);
 $pus         = (int)($totals['pus'] ?? 0);
 $kbAktif     = (int)($totals['kb_aktif'] ?? 0);
 $alatKontra  = (int)($totals['alat_kontrasepsi'] ?? 0);
-$pendudukKey = !empty($filter_kec_slug) ? (esc($filter_desa_slug ? 'Desa' : 'Kecamatan')) : 'Kabupaten';
+// ===== Label SKOP dari HASIL RESOLUSI filter wilayah =====
+// Sebelumnya dipakai string mentah ?kecamatan= / ?desa= sehingga slug yang
+// tidak bisa di-resolve tetap menulis skop "Desa" padahal angkanya level
+// kecamatan. Sekarang: $id_desa_filter / $id_kec_filter (hasil lookup DB).
+$idKecFilter    = $id_kec_filter ?? null;
+$idDesaFilter   = $id_desa_filter ?? null;
+$filterKecNama  = $filter_kec_nama ?? null;
+$filterDesaNama = $filter_desa_nama ?? null;
+$kecUnresolved  = !empty($kec_unresolved);
+$desaUnresolved = !empty($desa_unresolved);
+// Slug URL (case-insensitive) untuk mencocokkan nilai <option selected>.
+$filterKecSlugLower  = $filter_kec_slug !== null ? strtolower((string) $filter_kec_slug) : null;
+$filterDesaSlugLower = $filter_desa_slug !== null ? strtolower((string) $filter_desa_slug) : null;
+// Slug efektif kecamatan terpilih: dari kecamatan hasil RESOLUSI (bila ada),
+// kalau tidak dari ?kecamatan= mentah. Dipakai peta supaya highlight poligon
+// konsisten dengan scope data (mis. ?desa= tanpa ?kecamatan=, atau ?kecamatan=
+// yang gagal di-resolve tapi desa-nya ketemu).
+$effectiveKecSlug = $filterKecNama
+    ? strtolower(str_replace(' ', '-', $filterKecNama))
+    : ($filterKecSlugLower ?: null);
+
+if ($idDesaFilter) {
+    $pendudukKey = 'Desa';
+    $scopeDetail = ($filterDesaNama ? 'Desa ' . $filterDesaNama : 'desa terpilih')
+        . ($filterKecNama ? ', Kec. ' . $filterKecNama : '');
+} elseif ($idKecFilter) {
+    $pendudukKey = 'Kecamatan';
+    $scopeDetail = $filterKecNama ? 'Kec. ' . $filterKecNama : 'kecamatan terpilih';
+} else {
+    $pendudukKey = 'Kabupaten';
+    $scopeDetail = 'seluruh kabupaten';
+}
+
+// Mode sumber data profil (dihitung sekali di atas — dipakai hero, note-strip,
+// dan badge Bagian 1): 'laporan' | 'dukcapil' | 'campuran'
+$profilMode = $profilMeta['mode'] ?? 'dukcapil';
+$profilSumberFilter = $profilMeta['sumber_filter'] ?? 'dukcapil';
+
+// ===== Provenance Kelompok A (KIA & Akta Cerai) =====
+// Dua indikator ini SELALU dari snapshot Dukcapil (PublicController baris
+// ~185-221); laporan desa tidak punya kolomnya. Karena itu mereka tidak boleh
+// berdiri di bawah badge "Laporan Desa" tanpa penanda sendiri.
+$dokumenSumber   = $profilMeta['dokumen_sumber'] ?? [];
+$kelompokAAktif  = !empty($profilMeta['kelompok_a_aktif']) && isset($dokumen['KIA'], $dokumen['Akta Cerai']);
+$kelompokALabels = ['KIA', 'Akta Cerai'];
+// "Campuran internal" = chart dokumen tidak seragam sumbernya, sehingga butuh
+// catatan: mode utama laporan/desa tapi KIA & Akta Cerai tetap Dukcapil.
+$dokumenCampuran = $kelompokAAktif && $profilMode !== 'dukcapil';
+
+// Label sumber RESMI Dukcapil (DKB) — dari controller (ProfilDukcapilModel::
+// SUMBER_LABEL_DKB). Fallback literal menjaga view tetap benar bila meta kosong.
+$dkbLabel = $profilMeta['sumber_label_dkb']
+    ?? \App\Models\ProfilDukcapilModel::SUMBER_LABEL_DKB;
+
+// Semester Romawi (1→I, 2→II) untuk pill periode saat mode Dukcapil.
+$romawiSemester = static fn(int $s): string => [1 => 'I', 2 => 'II'][$s] ?? (string) $s;
 
 // Helper untuk format angka
 $fmt = function($n) { return number_format((int)$n, 0, ',', '.'); };
@@ -21,6 +76,27 @@ $pekTotal  = array_sum($pekerjaan);
 $kawinTotal = array_sum($status_kawin);
 $jknTotal   = array_sum($jkn_bpjs);
 $dokTotal   = array_sum($dokumen);
+
+/* ===== Indikator turunan (dihitung dari piramida usia & KK) =====
+ * Rumus rasio ketergantungan mengikuti BPS: (0–14 + 65+) / 15–64 × 100.
+ * Catatan: $piramidaL/$piramidaP adalah 18 kelompok umur 5-tahunan —
+ * indeks 0..2 = 0–14 th, 3..12 = 15–64 th, 13..17 = 65+ th. */
+$produktif = $usia014 = $usia65 = null;
+if (isset($piramidaL, $piramidaP) && count($piramidaL) >= 18 && count($piramidaP) >= 18) {
+    $produktif = $usia014 = $usia65 = 0;
+    foreach ($piramidaL as $i => $v) {
+        $n = (int) $v + (int) ($piramidaP[$i] ?? 0);
+        if ($i <= 2)      { $usia014  += $n; }   // 0-4, 5-9, 10-14
+        elseif ($i <= 12) { $produktif += $n; }   // 15-19 … 60-64
+        else              { $usia65   += $n; }   // 65-69 … 85+
+    }
+}
+$sexRatio      = $jiwaP > 0 ? $jiwaL / $jiwaP * 100 : null;
+$depRatio      = ($produktif !== null && $produktif > 0) ? ($usia014 + $usia65) / $produktif * 100 : null;
+$produktifPct  = ($produktif !== null && $jiwaTotal > 0) ? $produktif / $jiwaTotal * 100 : null;
+$jiwaPerKk     = $kkTotal > 0 ? $jiwaTotal / $kkTotal : null;
+$kkFisikVal    = (int) ($dokumen['KK Fisik'] ?? 0);
+$kkFisikPct    = $kkTotal > 0 ? $kkFisikVal / $kkTotal * 100 : null;
 $krsKab        = $krsKab ?? null;
 $krsKecamatan  = $krsKecamatan ?? [];
 $krsUpdatedAt  = $krsUpdatedAt ?? null;
@@ -42,6 +118,55 @@ $bulanNama = [
     9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
 ];
 $yankbBulanNama = $bulanNama[$yankbBulan] ?? 'Agustus';
+
+// ===== Cakupan tab BKKBN (YanKB & Dallap) — mengikuti filter kecamatan =====
+// Saat ?kecamatan= aktif, baris YanKB/Dallap sudah disaring ke 1 kecamatan di
+// controller; label/crumb di sini harus menyebut cakupan itu (bukan "seluruh
+// kabupaten"). $bkkbnMeta dikirim controller.
+$bkkbnMeta     = $bkkbnMeta ?? [];
+$bkkbnIsKec    = !empty($bkkbnMeta['is_kecamatan']);
+$bkkbnKecNama  = $bkkbnMeta['kec_nama'] ?? $filterKecNama;
+$bkkbnScope    = $bkkbnMeta['kec_label'] ?? ($bkkbnIsKec ? 'Kecamatan ' . $bkkbnKecNama : 'Kabupaten Tanah Laut');
+
+/* ===== Deteksi "bulan belum ada pelaporan" (opsional UX) =====
+ * BKKBN tetap mengembalikan laporan berstruktur penuh untuk bulan depan,
+ * hanya saja semua nilainya 0 (kecamatan belum lapor). Tandai supaya user
+ * tidak mengira datanya rusak/kosong. */
+$dallapMonthlyCols = ['Tabel3A', 'Tabel10', 'Tabel11']; // kolom Dallap yang mengikuti filter bulan
+$dallapAllZero = static function (array $rows, array $cols) use ($dallapMonthlyCols): bool {
+    $cols = $cols ?: $dallapMonthlyCols;
+    $hasAny = false;
+    foreach ($rows as $row) {
+        foreach ($cols as $rn) {
+            $v = $row['qty'][$rn] ?? null;
+            if ($v !== null && (int) $v !== 0) { $hasAny = true; break 2; }
+        }
+    }
+    return !$hasAny;
+};
+$dallapZeroBadge = static function (bool $allZero, int $bulan, string $label = 'Dallap BKKBN') use ($bulanNama): string {
+    return $allZero
+        ? '<div class="zero-report-badge"><i class="bi bi-hourglass-split me-1"></i>'
+          . 'Belum ada pelaporan ' . esc($label) . ' untuk bulan '
+          . htmlspecialchars($bulanNama[$bulan] ?? (string) $bulan) . ' — tabel menampilkan angka 0 dari sumber SIGA, bukan data hilang.'
+          . '</div>'
+        : '';
+};
+// CSS badge — tampil saat laporan bulan depan masih kosong
+?>
+<style>
+.zero-report-badge {
+    display: flex; align-items: flex-start; gap: .5rem;
+    margin: 0 0 .75rem; padding: .55rem .9rem;
+    font-size: .82rem; line-height: 1.5;
+    background: rgba(0, 91, 172, 0.06);
+    border: 1px solid rgba(0, 91, 172, 0.25);
+    border-left: 3px solid var(--primary);
+    border-radius: 6px; color: var(--ink-soft, #103a5c);
+}
+.zero-report-badge i { flex-shrink: 0; margin-top: .1rem; color: var(--primary); }
+</style>
+<?php
 // Render tabel YanKB gaya krs-tree dari data terstruktur (fallback iframe jika parse gagal)
 $renderYankbTable = static function (array $data): string {
     if (empty($data['headers']) || empty($data['rows'])) {
@@ -430,6 +555,39 @@ $renderYankbTable = static function (array $data): string {
             color: var(--muted);
             margin: 0;
         }
+        /* Select dalam group-filter (Sumber data, Bulan BKKBN) — konsisten
+           dengan tema: permukaan kartu, border halus, aksen primary saat fokus. */
+        .group-filter select.form-select {
+            width: auto;
+            min-width: 15rem;
+            padding: 0.55rem 2.4rem 0.55rem 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--paper-2);
+            color: var(--ink);
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 500;
+            line-height: 1.4;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.8rem center;
+            transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+        }
+        .group-filter select.form-select:hover {
+            border-color: var(--primary);
+        }
+        .group-filter select.form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 91, 172, 0.18);
+        }
+        .group-filter select.form-select:focus-visible {
+            outline: none;
+        }
         .section-head {
             display: flex;
             align-items: center;
@@ -506,8 +664,11 @@ $renderYankbTable = static function (array $data): string {
             gap: 1rem;
             margin-bottom: 2.5rem;
         }
+        .stat-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
         @media (max-width: 992px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 576px) { .stat-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 992px) { .stat-grid.cols-5 { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 576px) { .stat-grid.cols-5 { grid-template-columns: 1fr; } }
 
         .stat-card {
             background: var(--paper);
@@ -664,6 +825,78 @@ $renderYankbTable = static function (array $data): string {
             color: var(--muted);
         }
         .note-strip strong { color: var(--ink-soft); font-weight: 600; }
+
+        /* ===== FILTER WARN (slug wilayah tidak bisa di-resolve) ===== */
+        .filter-warn {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            background: #fff7e6;
+            border: 1px solid #f2d69a;
+            border-left: 3px solid #d99a1a;
+            border-radius: 8px;
+            padding: 0.8rem 1.1rem;
+            margin-top: 1.75rem;
+        }
+        .filter-warn > i { color: #d99a1a; font-size: 1.05rem; flex-shrink: 0; line-height: 1.5; }
+        .filter-warn p { margin: 0; font-size: 0.86rem; line-height: 1.6; color: #6b4c10; }
+        .filter-warn strong { color: #4a330a; font-weight: 700; }
+
+        /* ===== PENANDA SUMBER PER-INDIKATOR (chart Dokumen Kependudukan) ===== */
+        .src-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin: 0.5rem 0 0;
+            padding: 0.5rem 0.7rem;
+            background: var(--paper-3);
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+            font-size: 0.76rem;
+            line-height: 1.55;
+            color: var(--muted);
+        }
+        .src-note > i { color: var(--primary); font-size: 0.9rem; flex-shrink: 0; line-height: 1.5; }
+        .src-note p { margin: 0; }
+        .src-note strong { color: var(--ink-soft); font-weight: 600; }
+        /* label sumber RESMI (DKB) — teks persis dari ProfilDukcapilModel::SUMBER_LABEL_DKB */
+        .src-official {
+            display: inline-block;
+            margin-top: 0.35rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            line-height: 1.5;
+            color: #0b4a8f;
+        }
+        /* chip sumber mini: dipakai di tabel & legenda chart */
+        .src-chip {
+            display: inline-block;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            margin-left: 0.35rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .src-chip.dukcapil { background: #e7f0fb; color: #0b4a8f; border: 1px solid #bcd6f2; }
+        .src-chip.desa     { background: var(--paper-3); color: var(--ink-soft); border: 1px solid var(--border); }
+
+        /* ===== HINT di sebelah dropdown "Sumber data" ===== */
+        .group-filter .sumber-hint {
+            display: inline-flex;
+            align-items: flex-start;
+            gap: 0.35rem;
+            margin-left: 0.6rem;
+            font-size: 0.76rem;
+            line-height: 1.5;
+            color: var(--muted);
+            max-width: 46rem;
+        }
+        .group-filter .sumber-hint > i { color: var(--primary); line-height: 1.5; }
+        .group-filter .sumber-hint strong { color: var(--ink-soft); font-weight: 600; }
 
         /* ===== FOOTER ===== */
         footer.sikada-footer {
@@ -1173,14 +1406,20 @@ $renderYankbTable = static function (array $data): string {
                 <div class="hero-status">
                     <span class="status-pill">
                         <i class="bi bi-database-check"></i>
-                        <?php if ($latestPeriod): ?>
+                        <?php if ($profilMode === 'dukcapil'): ?>
+                            Dukcapil · DKB Semester <?= esc($romawiSemester((int) ($profilMeta['semester'] ?? 1))) ?> <?= (int) ($profilMeta['tahun'] ?? 2026) ?>
+                        <?php elseif ($latestPeriod): ?>
                             Data terbaru <?= esc($bulanNama[$latestPeriod['bulan']] ?? '-') ?> <?= (int) $latestPeriod['tahun'] ?>
                         <?php else: ?>
                             Belum ada data
                         <?php endif; ?>
                     </span>
-                    <span class="status-pill muted">
-                        <i class="bi bi-clock-history"></i>Sumber: laporan desa
+                    <span class="status-pill muted"<?= in_array($profilMode, ['dukcapil', 'campuran'], true) ? ' title="' . esc($dkbLabel) . '"' : '' ?>>
+                        <i class="bi bi-clock-history"></i>Sumber: <?= esc($profilMode === 'dukcapil'
+                            ? 'Dukcapil'
+                            : ($profilMode === 'campuran'
+                                ? 'Dukcapil + laporan desa'
+                                : 'laporan desa')) ?>
                     </span>
                 </div>
             </div>
@@ -1193,8 +1432,12 @@ $renderYankbTable = static function (array $data): string {
                         <option value="">— Semua Kecamatan —</option>
                         <?php foreach ($list_kecamatan as $k):
                             $slug_k = strtolower(str_replace(' ', '-', $k['nama_kecamatan']));
+                            // Terpilih bila slug cocok, ATAU bila ?desa= di-resolve global
+                            // (kecamatan di-derive dari desa) sehingga $filter_kec_slug kosong.
+                            $kecSelected = ($filterKecSlugLower === $slug_k)
+                                || ($idKecFilter && $filterKecNama && $filterKecNama === $k['nama_kecamatan']);
                         ?>
-                            <option value="<?= esc($slug_k) ?>" <?= $filter_kec_slug === $slug_k ? 'selected' : '' ?>>
+                            <option value="<?= esc($slug_k) ?>" <?= $kecSelected ? 'selected' : '' ?>>
                                 <?= esc($k['nama_kecamatan']) ?>
                             </option>
                         <?php endforeach; ?>
@@ -1202,12 +1445,12 @@ $renderYankbTable = static function (array $data): string {
                 </div>
                 <div class="field">
                     <label for="sel-desa">Desa</label>
-                    <select name="desa" id="sel-desa" onchange="this.form.submit()" <?= empty($filter_kec_slug) ? 'disabled' : '' ?>>
+                    <select name="desa" id="sel-desa" onchange="this.form.submit()" <?= empty($idKecFilter) ? 'disabled' : '' ?>>
                         <option value="">— Semua Desa —</option>
                         <?php foreach ($list_desa as $d):
                             $slug_d = strtolower(str_replace(' ', '-', $d['nama_desa']));
                         ?>
-                            <option value="<?= esc($slug_d) ?>" <?= $filter_desa_slug === $slug_d ? 'selected' : '' ?>>
+                            <option value="<?= esc($slug_d) ?>" <?= $filterDesaSlugLower === $slug_d ? 'selected' : '' ?>>
                                 <?= esc($d['nama_desa']) ?>
                             </option>
                         <?php endforeach; ?>
@@ -1215,11 +1458,45 @@ $renderYankbTable = static function (array $data): string {
                 </div>
                 <button type="submit" class="btn-filter"><i class="bi bi-funnel me-1"></i>Terapkan</button>
                 <a href="<?= site_url('/') ?>" class="btn-reset"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+                <?php // Pertahankan filter non-wilayah saat wilayah diganti (kalau tidak,
+                      // memilih kecamatan akan menghapus ?sumber= & ?bulan= diam-diam).
+                      // Default (dukcapil) ≡ tanpa ?sumber= → URL tetap bersih; hanya
+                      // pilihan eksplisit desa/campuran yang dipertahankan. ?>
+                <?php if (in_array($profilSumberFilter, ['desa', 'campuran'], true)): ?>
+                    <input type="hidden" name="sumber" value="<?= esc($profilSumberFilter) ?>">
+                <?php endif; ?>
+                <?php if (!empty($yankbBulan)): ?>
+                    <input type="hidden" name="bulan" value="<?= (int) $yankbBulan ?>">
+                <?php endif; ?>
             </form>
         </div>
     </header>
 
     <main class="container">
+        <?php if ($kecUnresolved || $desaUnresolved): ?>
+            <!-- Filter wilayah tidak bisa di-resolve → beri umpan balik + skop yang sebenarnya -->
+            <div class="filter-warn">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <p>
+                    <?php if ($kecUnresolved): ?>
+                        Kecamatan &ldquo;<?= esc((string) $filter_kec_slug) ?>&rdquo; tidak dikenali atau tidak dipublikasikan.
+                        <?php if ($idDesaFilter): ?>
+                            Menampilkan data <strong>Desa <?= esc((string) $filterDesaNama) ?></strong> (filter desa tetap diterapkan, kecamatan diabaikan).
+                        <?php else: ?>
+                            Menampilkan data <strong>seluruh kabupaten</strong>.
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <?php if ($idKecFilter): ?>
+                            Desa &ldquo;<?= esc((string) $filter_desa_slug) ?>&rdquo; tidak ditemukan<?= $filterKecNama ? ' di Kecamatan ' . esc($filterKecNama) : '' ?>.
+                            Menampilkan data <strong>tingkat kecamatan</strong> (seluruh desa di kecamatan ini).
+                        <?php else: ?>
+                            Desa &ldquo;<?= esc((string) $filter_desa_slug) ?>&rdquo; tidak ditemukan.
+                            Menampilkan data <strong>seluruh kabupaten</strong>.
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </p>
+            </div>
+        <?php endif; ?>
 
         <?php if ($jiwaTotal === 0 && $kkTotal === 0): ?>
             <div class="empty-state">
@@ -1233,7 +1510,7 @@ $renderYankbTable = static function (array $data): string {
         <section class="block" style="padding-top: 2rem;">
             <div class="section-head">
                 <h2>Ringkasan Data</h2>
-                <span class="crumb">Skop: <strong><?= esc($pendudukKey) ?></strong><?= !empty($filter_kec_slug) ? ' - ' . esc($filter_desa_slug ? 'desa terpilih' : 'kecamatan terpilih') : ' (seluruh kabupaten)' ?></span>
+                <span class="crumb">Skop: <strong><?= esc($pendudukKey) ?></strong> - <?= esc($scopeDetail) ?></span>
             </div>
             <div class="stat-grid">
                 <?php
@@ -1279,13 +1556,78 @@ $renderYankbTable = static function (array $data): string {
             <div class="note-strip">
                 <i class="bi bi-info-circle-fill"></i>
                 <p>
-                    Data <?= esc($pendudukLbl) ?> diturunkan dari laporan desa yang sudah diinput admin desa.
-                    Filter wilayah di atas menyesuaikan seluruh grafik dan tabel di bawah.
-                    <?php if (!empty($latestPeriod)): ?>
-                        Periode laporan terbaru: <strong><?= esc($bulanNama[$latestPeriod['bulan']] ?? '-') ?> <?= (int) $latestPeriod['tahun'] ?></strong>.
+                    <?php if ($profilMode === 'dukcapil'): ?>
+                        Data <?= esc($pendudukLbl) ?> bersumber dari snapshot Dukcapil Kab. Tanah Laut.
+                        <span class="src-official"><?= esc($dkbLabel) ?></span>
+                    <?php elseif ($profilMode === 'campuran'): ?>
+                        Data <?= esc($pendudukLbl) ?> gabungan: laporan desa + snapshot Dukcapil untuk desa yang belum lapor.
+                        <span class="src-official"><?= esc($dkbLabel) ?></span>
+                    <?php else: ?>
+                        Data <?= esc($pendudukLbl) ?> diturunkan dari laporan desa yang sudah diinput admin desa.
+                    <?php endif; ?>
+                    <?php if ($dokumenCampuran): ?>
+                        <strong>KIA</strong> &amp; <strong>Akta Cerai</strong> dikecualikan: keduanya bersumber dari snapshot
+                        Dukcapil Kab. Tanah Laut, karena laporan desa tidak memuatnya.
+                        <span class="src-official"><?= esc($dkbLabel) ?></span>
+                    <?php endif; ?>
+                    Filter wilayah di atas menyesuaikan <strong>Ringkasan Data, Indikator Turunan, Profil Kependudukan, dan Peta Sebaran Spasial</strong>.
+                    Peta memakai sumber angka yang sama dengan kartu profil (<?= esc($map_meta['sumber_label'] ?? 'snapshot Dukcapil') ?>).
+                    Tabel Monitoring BKKBN (KRS/YanKB/Dallap) berasal dari sumber pihak ketiga (SIGA) dan mengikuti filter kecamatan, dengan cakupan tersendiri — lihat keterangan di bagian itu.
+                    <?php if (!empty($latestPeriod) && $profilMode !== 'dukcapil'): ?>
+                        <?php
+                            $lpDesa   = (int) ($latestPeriod['desa_lapor'] ?? 0);
+                            $lpTotal  = (int) ($latestPeriod['desa_total'] ?? 0);
+                            $lpCampur = $lpTotal > $lpDesa;
+                        ?>
+                        Periode laporan terbaru: <strong><?= esc($bulanNama[$latestPeriod['bulan']] ?? '-') ?> <?= (int) $latestPeriod['tahun'] ?></strong><?php if ($lpCampur): ?> (<?= $lpDesa ?> dari <?= $lpTotal ?> desa; sisanya memakai laporan terakhirnya)<?php endif; ?>.
                     <?php endif; ?>
                 </p>
             </div>
+        </section>
+
+        <!-- ===== INDIKATOR TURUNAN ===== -->
+        <section class="block" style="padding-top: 0;">
+            <div class="section-head">
+                <h2>Indikator Turunan</h2>
+                <span class="crumb">Dihitung dari piramida usia &amp; jumlah KK · <strong><?= esc($pendudukKey) ?></strong></span>
+            </div>
+            <div class="stat-grid cols-5">
+                <div class="stat-card alt-blue">
+                    <i class="bi bi-gender-ambiguous icon"></i>
+                    <div class="label">Rasio Jenis Kelamin</div>
+                    <div class="value"><?= $sexRatio !== null ? number_format($sexRatio, 1, ',', '.') : '—' ?></div>
+                    <div class="sub">laki-laki per 100 perempuan</div>
+                </div>
+                <div class="stat-card alt-pink">
+                    <i class="bi bi-diagram-3 icon"></i>
+                    <div class="label">Rasio Ketergantungan</div>
+                    <div class="value"><?= $depRatio !== null ? number_format($depRatio, 1, ',', '.') : '—' ?><span class="unit">%</span></div>
+                    <div class="sub">usia non-produktif per 100 usia produktif</div>
+                </div>
+                <div class="stat-card alt-green">
+                    <i class="bi bi-briefcase icon"></i>
+                    <div class="label">Usia Produktif</div>
+                    <div class="value"><?= $produktifPct !== null ? number_format($produktifPct, 1, ',', '.') : '—' ?><span class="unit">%</span></div>
+                    <div class="sub"><?= $produktif !== null ? $fmt($produktif) . ' jiwa (15–64 th)' : 'data usia belum tersedia' ?></div>
+                </div>
+                <div class="stat-card">
+                    <i class="bi bi-people icon"></i>
+                    <div class="label">Rata-rata Jiwa / KK</div>
+                    <div class="value"><?= $jiwaPerKk !== null ? number_format($jiwaPerKk, 2, ',', '.') : '—' ?></div>
+                    <div class="sub"><?= $fmt($jiwaTotal) ?> jiwa / <?= $fmt($kkTotal) ?> KK</div>
+                </div>
+                <div class="stat-card alt-blue">
+                    <i class="bi bi-house-check icon"></i>
+                    <div class="label">Cakupan KK Fisik</div>
+                    <div class="value"><?= $kkFisikPct !== null ? number_format($kkFisikPct, 1, ',', '.') : '—' ?><span class="unit">%</span></div>
+                    <div class="meter" role="progressbar" aria-valuenow="<?= $kkFisikPct !== null ? (int) round($kkFisikPct) : 0 ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Cakupan kepemilikan kartu keluarga"><span style="width: <?= $kkFisikPct !== null ? min(100, max(0, $kkFisikPct)) : 0 ?>%"></span></div>
+                    <div class="sub"><?= $fmt($kkFisikVal) ?> dari <?= $fmt($kkTotal) ?> KK</div>
+                </div>
+            </div>
+            <p style="font-size:.78rem;color:var(--muted);margin:-1.5rem 0 0;">
+                Rasio ketergantungan = (usia 0–14 + 65 tahun ke atas) ÷ usia 15–64 × 100.
+                Usia produktif = penduduk 15–64 tahun. Angka dihitung dari piramida umur dan jumlah KK pada wilayah yang dipilih.
+            </p>
         </section>
 
         <!-- ===== BAGIAN 1: PROFIL KEPENDUDUKAN ===== -->
@@ -1294,19 +1636,55 @@ $renderYankbTable = static function (array $data): string {
                 <h2><span class="num">1</span>Profil Kependudukan</h2>
                 <span class="crumb">
                     <?php
-                    // Sumber data Bagian 1. Ganti $sumberProfil ke 'dukcapil' SETELAH data profil
-                    // benar-benar ditarik dari Dukcapil Kab. Tanah Laut — badge ikut berubah otomatis.
-                    $sumberProfil = 'desa';
+                    // Sumber data Bagian 1 — dinamis dari profilMeta (Desain B).
+                    // $profilMode sudah dihitung di atas file (dipakai juga hero & note-strip).
+                    $sumberProfil = $profilMode;
                     $sumberBadge  = [
                         'desa'     => ['label' => 'Laporan Desa',             'icon' => 'bi-clipboard-check'],
+                        'laporan'  => ['label' => 'Laporan Desa',             'icon' => 'bi-clipboard-check'],
                         'dukcapil' => ['label' => 'Dukcapil Kab. Tanah Laut', 'icon' => 'bi-building-check'],
-                    ][$sumberProfil];
+                        'campuran' => ['label' => 'Dukcapil + Laporan Desa',  'icon' => 'bi-layers-half'],
+                    ][$sumberProfil] ?? ['label' => 'Laporan Desa', 'icon' => 'bi-clipboard-check'];
                     ?>
-                    <span class="tag src-<?= esc($sumberProfil) ?>">
+                    <span class="tag src-<?= $sumberProfil === 'dukcapil' ? 'dukcapil' : ($sumberProfil === 'campuran' ? 'dukcapil' : 'desa') ?>">
                         <i class="bi <?= esc($sumberBadge['icon']) ?>"></i><?= esc($sumberBadge['label']) ?>
                     </span>
+                    <?php if ($sumberProfil === 'campuran'): ?>
+                        <span class="tag src-desa" style="margin-left:.35rem;">
+                            <i class="bi bi-info-circle"></i><?= (int) ($profilMeta['laporan_count'] ?? 0) ?> desa lapor · <?= (int) ($profilMeta['dukcapil_count'] ?? 0) ?> Dukcapil
+                        </span>
+                    <?php endif; ?>
                     <strong><?= esc($pendudukKey) ?></strong>
                 </span>
+            </div>
+            <div class="group-filter" style="margin-top:.5rem;">
+                <label for="sumber-data">Sumber data</label>
+                <select id="sumber-data" class="form-select" style="width:auto;" aria-label="Filter sumber data profil kependudukan">
+                    <?php
+                    $sumberNow = $profilSumberFilter; // 'dukcapil' (default) | 'desa' | 'campuran'
+                    // Berapa desa di scope yang punya laporan desa vs hanya Dukcapil —
+                    // untuk keterangan opsi "Campuran".
+                    $scopeLaporan  = (int) ($profilMeta['laporan_count_scope'] ?? 0);
+                    $scopeDukcapil = (int) ($profilMeta['dukcapil_count_scope'] ?? 0);
+                    $scopeTotal    = (int) ($profilMeta['total_scope'] ?? 0);
+                    ?>
+                    <option value="dukcapil" <?= $sumberNow === 'dukcapil' ? 'selected' : '' ?>>Hanya Dukcapil (default)</option>
+                    <option value="desa"     <?= $sumberNow === 'desa'     ? 'selected' : '' ?>>Hanya Laporan Desa</option>
+                    <option value="campuran" <?= $sumberNow === 'campuran' ? 'selected' : '' ?>>Campuran — Laporan Desa + Dukcapil<?= $scopeTotal ? ' (' . $scopeLaporan . ' desa lapor · ' . $scopeDukcapil . ' Dukcapil)' : '' ?></option>
+                </select>
+                <?php if ($sumberNow === 'dukcapil'): ?>
+                    <span class="sumber-hint">
+                        <i class="bi bi-info-circle"></i>
+                        Data profil memakai <strong>snapshot resmi Dukcapil</strong> (<?= esc($dkbLabel) ?>).
+                        <?php if ($kelompokAAktif): ?>KIA &amp; Akta Cerai memang selalu dari Dukcapil.<?php endif; ?>
+                    </span>
+                <?php elseif ($sumberNow === 'campuran'): ?>
+                    <span class="sumber-hint">
+                        <i class="bi bi-info-circle"></i>
+                        Mode campuran memakai laporan desa untuk desa yang sudah lapor
+                        (<?= $scopeLaporan ?> desa) dan snapshot Dukcapil untuk sisanya (<?= $scopeDukcapil ?> desa).
+                    </span>
+                <?php endif; ?>
             </div>
             <ul class="nav nav-tabs sikada-tabs" id="dataTabs" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -1546,11 +1924,29 @@ $renderYankbTable = static function (array $data): string {
                                 <div class="chart-head">
                                     <div>
                                         <h3>Dokumen Kependudukan</h3>
-                                        <p>Kepemilikan KTP-el, akta lahir, akta nikah, KK fisik</p>
+                                        <p>Kepemilikan KTP-el, akta lahir, akta nikah, KK fisik, KIA &amp; akta cerai</p>
                                     </div>
-                                    <span class="badge-nde">4 jenis</span>
+                                    <span class="badge-nde"><?= count($dokumen) ?> jenis</span>
                                 </div>
                                 <div class="chart-wrap"><div id="zc-dokumen" class="zc zc-tall"></div></div>
+                                <?php if ($kelompokAAktif): ?>
+                                    <!-- Penanda provenance: KIA & Akta Cerai bukan dari sumber mode utama -->
+                                    <div class="src-note">
+                                        <i class="bi bi-tags-fill"></i>
+                                        <p>
+                                            <?php if ($profilMode === 'dukcapil'): ?>
+                                                <strong>Semua <?= count($dokumen) ?> indikator</strong> bersumber dari snapshot
+                                                <strong>Dukcapil Kab. Tanah Laut</strong>.
+                                            <?php else: ?>
+                                                <strong>KIA</strong> &amp; <strong>Akta Cerai</strong> bersumber dari snapshot
+                                                <strong>Dukcapil Kab. Tanah Laut</strong>,
+                                                bukan dari <?= $profilMode === 'campuran' ? 'gabungan' : 'laporan desa' ?> seperti
+                                                KTP-el, Akta Lahir, Akta Nikah &amp; KK Fisik. Laporan desa tidak memuat kedua indikator ini.
+                                            <?php endif; ?>
+                                            <span class="src-official"><?= esc($dkbLabel) ?></span>
+                                        </p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -1577,10 +1973,19 @@ $renderYankbTable = static function (array $data): string {
                                     <td class="dt-num dt-pct"><?= $jknTotal > 0 ? number_format($val / $jknTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
                                 <?php endforeach; ?>
-                                <?php foreach ($dokumen as $label => $val): ?>
+                                <?php foreach ($dokumen as $label => $val):
+                                    $dokSrc = $dokumenSumber[$label] ?? 'utama';
+                                    $dokSrcIsDukcapil = $dokSrc === 'dukcapil';
+                                    $dokSrcLabel = $dokSrcIsDukcapil
+                                        ? 'Dukcapil'
+                                        : ($profilMode === 'dukcapil' ? 'Dukcapil' : ($profilMode === 'campuran' ? 'laporan/Dukcapil' : 'laporan desa'));
+                                    // Untuk indikator bersumber Dukcapil, tooltip chip memuat
+                                    // label sumber RESMI (DKB) — teks panjang tidak muat di chip.
+                                    $dokSrcTitle = $dokSrcIsDukcapil ? $dkbLabel : 'Sumber data indikator ini';
+                                ?>
                                 <tr>
                                     <td class="dt-cat">Dokumen</td>
-                                    <td class="dt-sub"><?= esc($label) ?></td>
+                                    <td class="dt-sub"><?= esc($label) ?><span class="src-chip <?= $dokSrcIsDukcapil ? 'dukcapil' : 'desa' ?>" title="<?= esc($dokSrcTitle) ?>"><?= esc($dokSrcLabel) ?></span></td>
                                     <td class="dt-num"><?= $fmt($val) ?></td>
                                     <td class="dt-num dt-pct"><?= $jiwaTotal > 0 ? number_format($val / $jiwaTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
@@ -1620,9 +2025,34 @@ $renderYankbTable = static function (array $data): string {
             <div class="section-head">
                 <h2><span class="num">2</span>Sebaran Spasial</h2>
                 <span class="crumb">
-                    <span class="tag src-desa"><i class="bi bi-clipboard-check"></i>Laporan Desa</span>
+                    <?php
+                        $mapSumberTag = [
+                            'desa'     => ['cls' => 'src-desa',     'icon' => 'bi-clipboard-check', 'label' => 'Laporan Desa'],
+                            'dukcapil' => ['cls' => 'src-dukcapil', 'icon' => 'bi-building-check',  'label' => 'Dukcapil Kab. Tanah Laut'],
+                            'campuran' => ['cls' => 'src-dukcapil', 'icon' => 'bi-layers-half',     'label' => 'Dukcapil + Laporan Desa'],
+                        ][$map_meta['sumber'] ?? 'dukcapil'] ?? ['cls' => 'src-dukcapil', 'icon' => 'bi-building-check', 'label' => 'Dukcapil Kab. Tanah Laut'];
+                    ?>
+                    <span class="tag <?= esc($mapSumberTag['cls']) ?>"><i class="bi <?= esc($mapSumberTag['icon']) ?>"></i><?= esc($mapSumberTag['label']) ?></span>
                     <strong><?= count($map_kecamatan) ?></strong> kecamatan · Indikator per kecamatan
                 </span>
+            </div>
+            <div class="note-strip" style="margin-top:.75rem;">
+                <i class="bi bi-map-fill"></i>
+                <p>
+                    <?php if (($map_meta['sumber'] ?? 'dukcapil') === 'desa'): ?>
+                        Peta menampilkan <strong><?= count($map_kecamatan) ?> kecamatan</strong> dengan angka dari
+                        <strong>laporan desa</strong> (mengikuti filter <em>Sumber data</em>).
+                    <?php elseif (($map_meta['sumber'] ?? 'dukcapil') === 'campuran'): ?>
+                        Peta menampilkan <strong><?= count($map_kecamatan) ?> kecamatan</strong> dengan angka <strong>gabungan</strong>
+                        laporan desa + snapshot Dukcapil (mengikuti filter <em>Sumber data</em>).
+                    <?php else: ?>
+                        Peta menampilkan <strong><?= count($map_kecamatan) ?> kecamatan</strong> dengan angka dari
+                        <strong>snapshot Dukcapil</strong> (sumber yang sama dengan kartu profil).
+                    <?php endif; ?>
+                    <?php if ($idKecFilter): ?>
+                        Peta dibatasi pada <strong>Kecamatan <?= esc((string) $filterKecNama) ?></strong><?= $idDesaFilter ? ' — desa ' . esc((string) $filterDesaNama) . ' disorot' : '' ?>, mengikuti filter wilayah.
+                    <?php endif; ?>
+                </p>
             </div>
             <div class="map-shell">
                 <div class="map-indicator-bar">
@@ -1662,7 +2092,7 @@ $renderYankbTable = static function (array $data): string {
                     <span class="tag"><i class="bi bi-box-arrow-up-right"></i>Data pihak ketiga</span>
                 </h2>
                 <span class="crumb">
-                    SIGA BKKBN · Tahun <?= $yankbTahun ?> · Tanah Laut
+                    SIGA BKKBN · Tahun <?= $yankbTahun ?> · <?= esc($bkkbnScope) ?>
                     <span class="summary-cta">
                         <span class="cta-open">Tampilkan data</span>
                         <span class="cta-close">Sembunyikan data</span>
@@ -1671,9 +2101,20 @@ $renderYankbTable = static function (array $data): string {
                 </span>
             </summary>
             <div class="group-body">
+            <?php if ($idKecFilter): ?>
+            <div class="note-strip" style="margin:0 0 .75rem;">
+                <i class="bi bi-info-circle-fill"></i>
+                <p>
+                    Data BKKBN bersumber dari SIGA (pihak ketiga). Tab <strong>KRS</strong>, <strong>Cakupan YanKB</strong>,
+                    <strong>Pelayanan KB Baru</strong>, dan <strong>Dallap/PUS &amp; KB Aktif</strong> kini
+                    <strong>mengikuti filter kecamatan</strong> — menampilkan <strong>Kecamatan <?= esc((string) $filterKecNama) ?></strong> saja.
+                    Tab YanKB &amp; Dallap tetap <strong>tidak difilter per desa</strong> (cakupan per kecamatan).
+                </p>
+            </div>
+            <?php endif; ?>
             <div class="group-filter">
                 <label for="yankb-bulan">Bulan laporan</label>
-                <select id="yankb-bulan" class="form-select form-select-sm" style="width:auto;" aria-label="Filter bulan laporan YanKB">
+                <select id="yankb-bulan" class="form-select" style="width:auto;" aria-label="Filter bulan laporan YanKB">
                     <?php foreach ($bulanNama as $b => $nama): ?>
                     <option value="<?= $b ?>" <?= $b === $yankbBulan ? 'selected' : '' ?>><?= $nama ?></option>
                     <?php endforeach; ?>
@@ -1811,7 +2252,7 @@ $renderYankbTable = static function (array $data): string {
                             <tr class="krs-kab" data-level="kab">
                                 <td class="wilayah">
                                     <button type="button" class="krs-toggle open" data-role="kab" aria-label="Toggle kabupaten">▼</button>
-                                    TANAH LAUT
+                                    <?= esc($krsKab['namaDaerah'] ?? 'TANAH LAUT') ?>
                                 </td>
                                 <?= $renderKrsCells($krsKab) ?>
                             </tr>
@@ -1852,17 +2293,30 @@ $renderYankbTable = static function (array $data): string {
 			        </div>
 			    <?php endif; ?>
 
-			    <?php if (empty($yankbHtml) && empty($yankbData['rows'])): ?>
-			        <p class="text-muted">Data Cakupan Laporan Tempat Pelayanan KB belum tersedia.</p>
+			    <?php if (empty($yankbData['rows']) && ($bkkbnIsKec || empty($yankbHtml))): ?>
+			        <p class="text-muted">Data Cakupan Laporan Tempat Pelayanan KB<?= $bkkbnIsKec ? ' untuk ' . esc($bkkbnScope) : '' ?> belum tersedia.</p>
 			    <?php else: ?>
 			        <div class="krs-shell">
 			            <div class="krs-toolbar">
 			                <div>
-			                    <h3 style="color:#ffffff;">Cakupan Laporan Tempat Pelayanan KB — Kabupaten Tanah Laut</h3>
+			                    <h3 style="color:#ffffff;">Cakupan Laporan Tempat Pelayanan KB — <?= esc($bkkbnScope) ?></h3>
 			                    <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankbUpdatedAt)): ?> · update <?= esc($yankbUpdatedAt) ?><?php endif; ?></div>
 			                </div>
 			                <span class="badge-live">LIVE MIRROR</span>
 			            </div>
+			            <?php
+			            // YanKB Tabel1: kolom ke-3 dst = angka; baris non-total saja
+			            $yankbZero = true;
+			            foreach (($yankbData['rows'] ?? []) as $r) {
+			                if (!empty($r['total'])) continue;
+			                foreach (array_slice($r['cells'] ?? [], 2) as $c) {
+			                    if (preg_match('/^\d+([.,]\d+)?$/', trim($c['t'] ?? '')) && (float) str_replace(',', '.', str_replace('.', '', trim($c['t'] ?? '0'))) > 0) {
+			                        $yankbZero = false; break 2;
+			                    }
+			                }
+			            }
+			            ?>
+			            <?= $dallapZeroBadge($yankbZero, $yankbBulan, 'Cakupan Laporan Tempat Pelayanan KB') ?>
 			<?php if (!empty($yankbData['rows'])): ?>
 			    <?= $renderYankbTable($yankbData) ?>
 			<?php else: ?>
@@ -1885,17 +2339,30 @@ $renderYankbTable = static function (array $data): string {
 			        </div>
 			    <?php endif; ?>
 
-			    <?php if (empty($yankb21Html) && empty($yankb21Data['rows'])): ?>
-			        <p class="text-muted">Data Jumlah Pelayanan Peserta KB Baru belum tersedia.</p>
+			    <?php if (empty($yankb21Data['rows']) && ($bkkbnIsKec || empty($yankb21Html))): ?>
+			        <p class="text-muted">Data Jumlah Pelayanan Peserta KB Baru<?= $bkkbnIsKec ? ' untuk ' . esc($bkkbnScope) : '' ?> belum tersedia.</p>
 			    <?php else: ?>
 			        <div class="krs-shell">
 			            <div class="krs-toolbar">
 			                <div>
-			                    <h3 style="color:#ffffff;">Jumlah Pelayanan Peserta KB Baru — Kabupaten Tanah Laut</h3>
+			                    <h3 style="color:#ffffff;">Jumlah Pelayanan Peserta KB Baru — <?= esc($bkkbnScope) ?></h3>
 			                    <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankb21UpdatedAt)): ?> · update <?= esc($yankb21UpdatedAt) ?><?php endif; ?></div>
 			                </div>
 			                <span class="badge-live">LIVE MIRROR</span>
 			            </div>
+			            <?php
+			            // YanKB Tabel21 (kumulatif "S.D BULAN"): kolom ke-3 dst = angka
+			            $yankb21Zero = true;
+			            foreach (($yankb21Data['rows'] ?? []) as $r) {
+			                if (!empty($r['total'])) continue;
+			                foreach (array_slice($r['cells'] ?? [], 2) as $c) {
+			                    if (preg_match('/^\d+([.,]\d+)?$/', trim($c['t'] ?? '')) && (float) str_replace(',', '.', str_replace('.', '', trim($c['t'] ?? '0'))) > 0) {
+			                        $yankb21Zero = false; break 2;
+			                    }
+			                }
+			            }
+			            ?>
+			            <?= $dallapZeroBadge($yankb21Zero, $yankbBulan, 'Pelayanan Peserta KB Baru') ?>
 			<?php if (!empty($yankb21Data['rows'])): ?>
 			    <?= $renderYankbTable($yankb21Data) ?>
 			<?php else: ?>
@@ -1935,12 +2402,13 @@ $renderYankbTable = static function (array $data): string {
 			    <?php endif; ?>
 
 			    <?php if (!$dallapHasData): ?>
-			        <p class="text-muted">Data Rekap Program Bangga Kencana belum tersedia.</p>
+			        <p class="text-muted">Data Rekap Program Bangga Kencana<?= $bkkbnIsKec ? ' untuk ' . esc($bkkbnScope) : '' ?> belum tersedia.</p>
 			    <?php else: ?>
+			        <?= $dallapZeroBadge($dallapAllZero($dallapRows, []), $yankbBulan, 'Rekap Program Bangga Kencana') ?>
 			        <div class="krs-shell">
 			            <div class="krs-toolbar">
 			                <div>
-			                    <h3 style="color:#ffffff;">Rekap Program Bangga Kencana — Kabupaten Tanah Laut</h3>
+			                    <h3 style="color:#ffffff;">Rekap Program Bangga Kencana — <?= esc($bkkbnScope) ?></h3>
 			                    <div class="meta">SIGA BKKBN · Tahun <?= $dallapTahun ?? 2026 ?><?php if (!empty($dallapUpdatedAt)): ?> · update <?= esc($dallapUpdatedAt) ?><?php endif; ?> · klik ▶ untuk lihat rincian per desa</div>
 			                </div>
 			                <span class="badge-live">LIVE MIRROR</span>
@@ -2009,11 +2477,12 @@ $renderYankbTable = static function (array $data): string {
 			        <div class="krs-shell">
 			            <div class="krs-toolbar">
 			                <div>
-			                    <h3 style="color:#ffffff;">PUS &amp; KB Aktif — Kabupaten Tanah Laut</h3>
+			                    <h3 style="color:#ffffff;">PUS &amp; KB Aktif — <?= esc($bkkbnScope) ?></h3>
 			                    <div class="meta">SIGA BKKBN · Dallap Tabel10/11 · Bulan <?= $yankbBulanNama ?> <?= $dallapTahun ?? 2026 ?><?php if (!empty($dallapUpdatedAt)): ?> · update <?= esc($dallapUpdatedAt) ?><?php endif; ?> · klik ▶ untuk rincian per desa</div>
 			                </div>
 			                <span class="badge-live">LIVE MIRROR</span>
 			            </div>
+			            <?= $dallapZeroBadge($dallapAllZero($dallapRows, ['Tabel10', 'Tabel11']), $yankbBulan, 'PUS &amp; KB Aktif') ?>
 			            <div class="krs-scroll"><table class="krs-tree" id="puskb-tree">
 			                <thead>
 			                    <tr>
@@ -2142,6 +2611,8 @@ $renderYankbTable = static function (array $data): string {
         const GUIDE = { get "line-color"() { return C.border; }, "line-style": "dotted" };
         const AX = { get "font-color"() { return C.ink; }, "font-size": 11 };
         const TIP = { borderRadius: 4, padding: 8, get "background-color"() { return C.ink; }, get "font-color"() { return isDarkChart() ? "#0a1730" : "#fff"; } };
+        // Warna bar chart Dokumen: biru Dukcapil (sumber berbeda) vs primer (sumber mode utama)
+        const dokColor = (t) => t === 'C_DUKCAPIL' ? C.blue : C.primary;
 
         // Data untuk chart yang di-defer (disiapkan di sini agar tersedia saat tab dibuka)
         const ageLabels    = <?= json_encode($ageLabels) ?>;
@@ -2157,8 +2628,16 @@ $renderYankbTable = static function (array $data): string {
         const kawinLabels  = <?= json_encode(array_keys($status_kawin)) ?>;
         const kawinValues  = <?= json_encode(array_map('intval', array_values($status_kawin))) ?>;
         const kawinColors  = [C.green, C.blue, C.amber, C.primary];
-        const dokLabels    = <?= json_encode(array_keys($dokumen)) ?>;
+        const dokLabels    = <?= json_encode(array_map(
+            fn($l) => $l . (($dokumenSumber[$l] ?? 'utama') === 'dukcapil' ? ' · Dukcapil' : ''),
+            array_keys($dokumen)
+        ), JSON_UNESCAPED_UNICODE) ?>;
         const dokValues    = <?= json_encode(array_map('intval', array_values($dokumen))) ?>;
+        // Warna per-bar mengikuti sumber indikator: biru = Dukcapil, primer = sumber mode utama
+        const dokColors    = <?= json_encode(array_map(
+            fn($l) => (($dokumenSumber[$l] ?? 'utama') === 'dukcapil' ? 'C_DUKCAPIL' : 'C_UTAMA'),
+            array_keys($dokumen)
+        )) ?>;
 
         // ============ TAB POKOK — render langsung (tab aktif) ============
         renderGender = function () {
@@ -2411,7 +2890,7 @@ $renderYankbTable = static function (array $data): string {
                     series: [{
                         text: "Pemilik Dokumen",
                         values: dokValues,
-                        "background-color": C.primary
+                        styles: dokColors.map(t => ({ "background-color": dokColor(t) }))
                     }]
                 }
             });
@@ -2792,6 +3271,20 @@ $renderYankbTable = static function (array $data): string {
             });
         }
 
+        // ===== Filter sumber data profil kependudukan (Bagian 1) =====
+        const sumberSel = document.getElementById('sumber-data');
+        if (sumberSel) {
+            sumberSel.addEventListener('change', function () {
+                const url = new URL(window.location.href);
+                if (this.value === 'dukcapil') {
+                    url.searchParams.delete('sumber'); // default (Dukcapil), URL bersih
+                } else {
+                    url.searchParams.set('sumber', this.value);
+                }
+                window.location.href = url.toString();
+            });
+        }
+
         // ===== Sticky header 4-baris tabel YanKB (hitungan dinamis, tab tersembunyi) =====
         const fixYankbSticky = () => {
             document.querySelectorAll('table.krs-yankb').forEach(tbl => {
@@ -2818,10 +3311,14 @@ $renderYankbTable = static function (array $data): string {
             const mapEl = document.getElementById('map-kecamatan');
             if (!mapEl) return;
 
-            // Metadata kecamatan dari server (nama/slug/titik) — statistik polygon
-            // diambil dari properti FeatureCollection endpoint, bukan dari sini.
+            // Metadata kecamatan dari server (nama/slug/titik) + nilai indikator
+            // dari SUMBER AKTIF (konsisten dengan kartu profil). Nilai dari sini
+            // MENIMPA properti endpoint /api/v1/map/* yang selalu berbasis laporan
+            // desa, sehingga peta tidak pernah menampilkan angka laporan desa saat
+            // kartu menampilkan Dukcapil. Peta juga hanya memuat wilayah dalam scope.
             const data = <?= json_encode($map_kecamatan) ?>;
-            const filterKec = <?= json_encode($filter_kec_slug) ?>;
+            const mapDesaData = <?= json_encode($map_desa) ?>;
+            const filterKec = <?= json_encode($effectiveKecSlug) ?>;
             const filterDesa = <?= json_encode($filter_desa_slug) ?>;
 
             // Mapping SENTRAL label Indonesia -> field snake_case (partials/map_indicators.php)
@@ -2899,30 +3396,36 @@ $renderYankbTable = static function (array $data): string {
                 return isFinite(v) ? v : 0;
             }
 
-            // Gabung properti endpoint (indikator snake_case) dengan metadata kecamatan
+            // Gabung properti endpoint (indikator snake_case) dengan metadata
+            // kecamatan + nilai dari sumber aktif (byKode). Feature di luar scope
+            // filter (kecamatan lain) di-skip → peta hanya menampilkan scope.
             function mergeKecMeta(feature) {
                 const p = feature.properties || {};
                 const k = byKode.get(String(p.kd_kecamatan));
-                const props = Object.assign({}, p);
+                if (!k) return null; // di luar scope (endpoint mengirim seluruh kabupaten)
+                const props = Object.assign({}, p, k); // nilai sumber aktif menimpa endpoint
                 props.kode = String(p.kd_kecamatan);
-                props.nama = k ? k.nama : (p.nm_kecamatan || '');
-                props.slug = k ? k.slug : '';
-                props.hasData = !!k;
-                props.isActive = !!(k && activeKec && k.kode === activeKec.kode);
+                props.nama = k.nama;
+                props.slug = k.slug;
+                props.hasData = true;
+                props.isActive = !!(activeKec && k.kode === activeKec.kode);
                 props.bucket = 0;
                 return { type: 'Feature', geometry: feature.geometry, properties: props };
             }
 
-            // Gabung properti endpoint desa dengan metadata turunan
+            // Peta per-desa dari sumber aktif (byDesa). Di luar scope → null.
+            const byDesa = new Map(mapDesaData.map(d => [d.kd_kecamatan + '.' + d.kd_kelurahan, d]));
             function mergeDesaMeta(feature) {
                 const p = feature.properties || {};
-                const nama = p.nm_kelurahan || '';
-                const props = Object.assign({}, p);
-                props.kode = String(p.kd_kecamatan) + '.' + String(p.kd_kelurahan);
-                props.nama = nama;
-                props.slug = desaSlugify(nama);
+                const kode = String(p.kd_kecamatan) + '.' + String(p.kd_kelurahan);
+                const d = byDesa.get(kode);
+                if (!d) return null; // di luar scope
+                const props = Object.assign({}, p, d); // nilai sumber aktif menimpa endpoint
+                props.kode = kode;
+                props.nama = p.nm_kelurahan || d.nama || '';
+                props.slug = desaSlugify(props.nama);
                 props.hasData = true;
-                props.isActive = !!(activeDesaSlug && desaSlugify(nama) === activeDesaSlug);
+                props.isActive = !!(activeDesaSlug && props.slug === activeDesaSlug);
                 props.bucket = 0;
                 return { type: 'Feature', geometry: feature.geometry, properties: props };
             }
@@ -3106,7 +3609,7 @@ $renderYankbTable = static function (array $data): string {
                 fetch(API_MAP_DESA + '?id_kecamatan=' + encodeURIComponent(kec.id_kecamatan))
                     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
                     .then(fc => {
-                        const features = (fc.features || []).map(mergeDesaMeta);
+                        const features = (fc.features || []).map(mergeDesaMeta).filter(Boolean);
                         if (!features.length) return;
                         desaFeatures = features;
                         desaBucket = makeBucketFn(desaFeatures.map(function (f) { return numVal(f.properties, activeField); }));
@@ -3131,7 +3634,7 @@ $renderYankbTable = static function (array $data): string {
                         showMapError('Data peta belum tersedia.');
                         return;
                     }
-                    kecFeatures = fc.features.map(mergeKecMeta);
+                    kecFeatures = fc.features.map(mergeKecMeta).filter(Boolean);
 
                     kecGeo = L.geoJSON({ type: 'FeatureCollection', features: kecFeatures }, {
                         style: kecStyle,

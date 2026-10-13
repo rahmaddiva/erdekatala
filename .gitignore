@@ -127,3 +127,6 @@ _modules/*
 
 # Superpowers SDD workspace (scratch)
 .superpowers/
+# Scratch/working artifacts
+/scratch/
+nul

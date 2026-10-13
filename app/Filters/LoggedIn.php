@@ -17,6 +17,9 @@ class LoggedIn implements FilterInterface
             return;
         }
 
+        // Helper cookie tidak di-autoload; wajib dimuat eksplisit di konteks filter.
+        // Urutan penting: helper('cookie') harus dipanggil SEBELUM get_cookie().
+        helper('cookie');
         // Coba auto-login via remember_token cookie
         $token = get_cookie('remember_token');
         if ($token) {

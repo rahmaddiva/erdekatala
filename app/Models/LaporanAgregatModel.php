@@ -142,49 +142,197 @@ class LaporanAgregatModel extends Model
     }
 
     /**
-     * Menghasilkan data untuk tabel rekapitulasi per desa
+     * Menghasilkan data untuk tabel rekapitulasi per desa.
+     *
+     * PERBAIKAN double-count: sumber baris = latestPerDesaSubquery() (1 baris
+     * terbaru per desa), sama dengan getAggregatedStats(). Pola bug ini identik
+     * dengan getSummaryPerKecamatan() — desa ber-periode ganda terhitung dua
+     * kali (DashboardController & ApiController memakai method ini).
      */
     public function getSummaryPerDesa($id_kecamatan)
     {
-        return $this->select('m_desa.id_desa, m_desa.nama_desa,
-                          SUM(jiwa_l + jiwa_p) as total_jiwa,
-                          SUM(kk_l + kk_p) as total_kk,
-                          SUM(jml_balita) as total_balita,
-                          SUM(jml_pus) as total_pus,
-                          SUM(jiwa_l) as total_jiwa_l,
-                          SUM(jiwa_p) as total_jiwa_p'
-        )
-            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
-            ->where('m_desa.id_kecamatan', $id_kecamatan)
-            ->groupBy('m_desa.id_desa')
-            ->findAll();
+        $sub = $this->latestPerDesaSubquery();
+
+        return $this->db->query(
+            "SELECT m_desa.id_desa, m_desa.nama_desa,
+                    SUM(lp.jiwa_l + lp.jiwa_p) as total_jiwa,
+                    SUM(lp.kk_l + lp.kk_p)     as total_kk,
+                    SUM(lp.jml_balita)         as total_balita,
+                    SUM(lp.jml_pus)            as total_pus,
+                    SUM(lp.jiwa_l)             as total_jiwa_l,
+                    SUM(lp.jiwa_p)             as total_jiwa_p
+             FROM {$sub} lp
+             JOIN {$this->tableName('m_desa')} m_desa ON m_desa.id_desa = lp.id_desa
+             WHERE m_desa.id_kecamatan = ?
+             GROUP BY m_desa.id_desa",
+            [$id_kecamatan]
+        )->getResultArray();
     }
 
+    /**
+     * Rekap per kecamatan — dipakai PublicController::buildMapKecamatan().
+     *
+     * PERBAIKAN double-count: sumber baris = latestPerDesaSubquery() (1 baris
+     * terbaru per desa), sumber kebenaran yang SAMA dengan getAggregatedStats().
+     * Sebelumnya menjumlahkan semua baris laporan_agregat → desa yang punya dua
+     * periode terhitung dua kali (Takisung +2.882, Batu Ampar +2.060).
+     */
     public function getSummaryPerKecamatan()
     {
-        return $this->select('kecamatan.nama_kecamatan,
-                          SUM(jiwa_l + jiwa_p) as total_jiwa,
-                          SUM(kk_l + kk_p) as total_kk,
-                          SUM(jml_balita) as total_balita,
-                          SUM(jml_pus) as total_pus,
-                          SUM(jiwa_l) as total_jiwa_l,
-                          SUM(jiwa_p) as total_jiwa_p'
-        )
-            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
-            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan')
-            ->groupBy('kecamatan.id_kecamatan')
-            ->findAll();
+        $sub = $this->latestPerDesaSubquery();
+
+        return $this->db->query(
+            "SELECT kecamatan.nama_kecamatan,
+                    SUM(lp.jiwa_l + lp.jiwa_p) as total_jiwa,
+                    SUM(lp.kk_l + lp.kk_p)     as total_kk,
+                    SUM(lp.jml_balita)         as total_balita,
+                    SUM(lp.jml_pus)            as total_pus,
+                    SUM(lp.jiwa_l)             as total_jiwa_l,
+                    SUM(lp.jiwa_p)             as total_jiwa_p
+             FROM {$sub} lp
+             JOIN {$this->tableName('m_desa')} m_desa ON m_desa.id_desa = lp.id_desa
+             JOIN {$this->tableName('kecamatan')} kecamatan ON kecamatan.id_kecamatan = m_desa.id_kecamatan
+             GROUP BY kecamatan.id_kecamatan"
+        )->getResultArray();
+    }
+
+    /**
+     * Subquery: SATU baris terpilih per desa — dasar bersama semua agregasi.
+     *
+     * Latar belakang bug: `laporan_agregat` bisa berisi lebih dari satu periode
+     * (kini: 135 baris 12/2025 + 1 baris 7/2026 + 1 baris 8/2026). SUM tanpa
+     * filter periode membuat desa yang punya dua periode terhitung DUA KALI:
+     * 380.525 padahal nilai satu periode = 375.583 (selisih +4.942).
+     *
+     * DUA opsi yang dipertimbangkan:
+     *   (a) satu periode terbaru global: `WHERE tahun*100+bulan = MAX(...)`.
+     *       Deterministik & mudah dijelaskan, TETAPI di data ini hanya berisi
+     *       1 desa (8/2026) → Total Jiwa jatuh ke 2.060: 133 desa tiba-tiba
+     *       hilang dari total. Terlalu merusak untuk "kabupaten".
+     *   (b) satu baris terbaru PER DESA: tiap desa menyumbang laporannya yang
+     *       paling baru. Terukur = 375.583 (135 desa, tepat nilai satu periode
+     *       12/2025 karena 133 desa memang hanya punya periode itu).
+     *
+     * DIPILIH: (b). Alasan:
+     *   - Kriteria utama terpenuhi persis: **setiap desa menyumbang tepat SATU
+     *     periode** → tidak ada lagi double-count, apa pun isi tabelnya.
+     *   - Tidak ada desa yang hilang: agregat selalu mencakup semua desa yang
+     *     pernah lapor, sehingga cakupan (135/135) konsisten dengan Total Jiwa.
+     *     Opsi (a) justru memunculkan ketidak-konsistenan baru itu.
+     *   - Deterministik: urutan dipilih dengan (tahun*100 + bulan) DESC, lalu
+     *     `MAX(id_laporan)` sebagai tie-break bila satu desa punya dua baris
+     *     dalam periode yang sama — hasilnya tidak bergantung pada urutan
+     *     insert, urutan fisik tabel, atau mesin DB.
+     *   - Opsi (a) adalah kasus khusus (b) saat SEMUA desa sudah lapor di
+     *     periode terbaru; jadi (b) otomatis menyatu ke (a) saat data lengkap.
+     * Trade-off yang disadari: total bisa memadukan potret dari bulan berbeda
+     * (133 desa @12/2025 + 1 @7/2026 + 1 @8/2026). Karena itu label periode
+     * TIDAK diklaim sebagai "satu bulan"; getLatestPeriod() melaporkan periode
+     * terbaru yang ikut terhitung + `desa_lapor` = jumlah desa yang memang
+     * berasal dari periode itu (lihat getAggregationPeriods()).
+     *
+     * Catatan skema: `tahun` YEAR & `bulan` 1..12 → `tahun*100 + bulan`
+     * monotonic terhadap kronologi (202512 < 202607 < 202608).
+     *
+     * @return string SQL subquery (sudah ber-prefix & ter-escape), alias `lp`.
+     */
+    private function latestPerDesaSubquery(): string
+    {
+        $t = $this->tableName('laporan_agregat');
+
+        // Dua tingkat supaya tie-break benar-benar memilih baris DALAM periode
+        // terbaru (bukan id terbesar secara global):
+        //   mp = periode terbaru per desa
+        //   lp = id_laporan terbesar di antara baris periode itu → 1 baris/desa
+        // Pemanggil WAJIB memberi alias sendiri, mis. `FROM {$sub} lp`.
+        return "(
+            SELECT {$t}.*
+            FROM {$t}
+            JOIN (
+                SELECT it.id_desa, MAX(it.id_laporan) AS id_laporan
+                FROM {$t} it
+                JOIN (
+                    SELECT id_desa, MAX(tahun * 100 + bulan) AS periode
+                    FROM {$t}
+                    GROUP BY id_desa
+                ) mp ON mp.id_desa = it.id_desa
+                     AND mp.periode = (it.tahun * 100 + it.bulan)
+                GROUP BY it.id_desa
+            ) lpf ON lpf.id_laporan = {$t}.id_laporan
+        )";
+    }
+
+    /**
+     * Periode-periode yang benar-benar ikut terhitung dalam agregasi, beserta
+     * jumlah desa dari masing-masing periode.
+     *
+     * Urutan: **periode dengan desa terbanyak lebih dulu**, baru periode
+     * terbaru sebagai tie-break. Urutan ini yang dipakai getLatestPeriod()
+     * untuk LABEL periode, supaya label tidak lagi bertentangan dengan angka
+     * yang ditampilkan: sebelumnya label menampilkan 8/2026 (1 desa) padahal
+     * Total Jiwa berasal dari 135 desa yang sebagian besar @12/2025.
+     * Deterministik: tidak ada dua periode dengan (desa, tahun, bulan) sama.
+     *
+     * @return list<array{tahun:int,bulan:int,desa:int}>
+     */
+    public function getAggregationPeriods(): array
+    {
+        $sub = $this->latestPerDesaSubquery();
+
+        $rows = $this->db->query(
+            "SELECT lp.tahun, lp.bulan, COUNT(DISTINCT lp.id_desa) AS desa
+             FROM {$sub} lp
+             GROUP BY lp.tahun, lp.bulan
+             ORDER BY desa DESC, (lp.tahun * 100 + lp.bulan) DESC",
+        )->getResultArray();
+
+        return array_map(static fn(array $r): array => [
+            'tahun' => (int) $r['tahun'],
+            'bulan' => (int) $r['bulan'],
+            'desa'  => (int) $r['desa'],
+        ], $rows);
+    }
+
+    /**
+     * Periode agregasi UTAMA: periode yang mewakili desa terbanyak di antara
+     * baris terpilih (lihat latestPerDesaSubquery()); tie-break = terbaru.
+     * Inilah periode yang dipakai sebagai label, karena periode inilah yang
+     * paling mewakili angka agregat yang ditampilkan.
+     *
+     * @return array{tahun:int,bulan:int,desa:int}|null null bila tidak ada data.
+     */
+    public function getAggregationPeriod(): ?array
+    {
+        $semua = $this->getAggregationPeriods();
+
+        return $semua === [] ? null : $semua[0];
+    }
+
+    /**
+     * Nama tabel siap-pakai untuk raw SQL: prefix konfigurasi (DBPrefix) ikut
+     * diterapkan lalu identifier-nya di-escape. Dipakai getCoverage() dan
+     * getLatestPeriod() yang masih berbentuk raw SQL.
+     */
+    private function tableName(string $name): string
+    {
+        return $this->db->protectIdentifiers($this->db->prefixTable($name));
     }
 
     /**
      * Cakupan pelaporan: berapa kecamatan/desa yang sudah punya laporan vs total wilayah publik.
      * Dipakai kartu "cakupan" di landing page — satu query, LEFT JOIN + COUNT(DISTINCT CASE).
      * Filter opsional: kalau diisi, cakupan dibatasi ke wilayah itu (kecamatan/desa terpilih).
+     *
+     * "Sudah lapor" = punya baris TERPILIH menurut latestPerDesaSubquery(),
+     * persis definisi yang dipakai getAggregatedStats(). Jadi kartu cakupan
+     * (n/m desa) selalu konsisten dengan angka Total Jiwa di sebelahnya.
      */
     public function getCoverage(?int $id_kecamatan = null, ?int $id_desa = null): array
     {
-        $params = [];
-        $scope  = 'k.is_public = 1';
+        $params  = [];
+        $scope   = 'k.is_public = 1';
+        $joinLap = 'la.id_desa = d.id_desa';
+
         if ($id_kecamatan) {
             $scope .= ' AND d.id_kecamatan = ?';
             $params[] = $id_kecamatan;
@@ -200,9 +348,9 @@ class LaporanAgregatModel extends Model
                 COUNT(DISTINCT d.id_desa)      AS total_desa,
                 COUNT(DISTINCT CASE WHEN la.id_laporan IS NOT NULL THEN d.id_kecamatan END) AS kecamatan_lapor,
                 COUNT(DISTINCT CASE WHEN la.id_laporan IS NOT NULL THEN d.id_desa END)      AS desa_lapor
-             FROM m_desa d
-             JOIN kecamatan k ON k.id_kecamatan = d.id_kecamatan
-             LEFT JOIN laporan_agregat la ON la.id_desa = d.id_desa
+             FROM {$this->tableName('m_desa')} d
+             JOIN {$this->tableName('kecamatan')} k ON k.id_kecamatan = d.id_kecamatan
+             LEFT JOIN {$this->latestPerDesaSubquery()} la ON {$joinLap}
              WHERE {$scope}",
             $params
         )->getRowArray();
@@ -216,98 +364,120 @@ class LaporanAgregatModel extends Model
     }
 
     /**
-     * Periode laporan terbaru (tahun+bulan) beserta jumlah desa yang sudah masuk di periode itu.
-     * Dipakai sebagai penanda "data per <bulan tahun>" di landing page.
+     * Periode laporan terbaru beserta jumlah desa yang sudah masuk di periode itu.
+     * Dipakai sebagai penanda "Periode laporan terbaru: <bulan> <tahun>" di landing page.
+     *
+     * PERBAIKAN: definisi diselaraskan dengan getAggregatedStats(). Periode
+     * diambil dari baris yang BENAR-BENAR ikut agregasi, dan dipilih periode
+     * UTAMA (getAggregationPeriod() = desa terbanyak), bukan sekadar periode
+     * kalender terbaru. `desa_lapor` dihitung pada periode itu. Versi lama
+     * memakai `ORDER BY tahun DESC, bulan DESC LIMIT 1` → menampilkan 8/2026
+     * yang hanya berisi 1 desa, padahal Total Jiwa berasal dari 135 desa yang
+     * sebagian besar @12/2025.
+     *
+     * `desa_total` juga dikembalikan (jumlah desa lintas periode yang
+     * diagregasi) supaya selisihnya bisa dijelaskan bila ada.
+     *
+     * @return array{tahun:int,bulan:int,desa_lapor:int,desa_total:int}|null
      */
     public function getLatestPeriod(): ?array
     {
-        $row = $this->db->query(
-            "SELECT la.tahun, la.bulan, COUNT(DISTINCT la.id_desa) AS desa_lapor
-             FROM laporan_agregat la
-             JOIN m_desa d  ON d.id_desa = la.id_desa
-             JOIN kecamatan k ON k.id_kecamatan = d.id_kecamatan
-             WHERE k.is_public = 1
-             GROUP BY la.tahun, la.bulan
-             ORDER BY la.tahun DESC, la.bulan DESC
-             LIMIT 1"
-        )->getRowArray();
-
-        if (empty($row)) {
+        $semua = $this->getAggregationPeriods();
+        if ($semua === []) {
             return null;
         }
 
+        // Periode utama = desa terbanyak (deterministik, lihat getAggregationPeriods()).
+        $utama     = $semua[0];
+        $desaTotal = array_sum(array_column($semua, 'desa'));
+
+        // Hitung desa_lapor HANYA pada desa publik & periode itu, konsisten
+        // dengan getCoverage() yang memakai filter k.is_public = 1.
+        $row = $this->db->query(
+            "SELECT COUNT(DISTINCT la.id_desa) AS desa_lapor
+             FROM {$this->latestPerDesaSubquery()} la
+             JOIN {$this->tableName('m_desa')} d  ON d.id_desa = la.id_desa
+             JOIN {$this->tableName('kecamatan')} k ON k.id_kecamatan = d.id_kecamatan
+             WHERE k.is_public = 1 AND la.tahun = ? AND la.bulan = ?",
+            [$utama['tahun'], $utama['bulan']]
+        )->getRowArray();
+
         return [
-            'tahun'      => (int) $row['tahun'],
-            'bulan'      => (int) $row['bulan'],
-            'desa_lapor' => (int) $row['desa_lapor'],
+            'tahun'      => $utama['tahun'],
+            'bulan'      => $utama['bulan'],
+            'desa_lapor' => (int) ($row['desa_lapor'] ?? 0),
+            'desa_total' => $desaTotal,
         ];
     }
 
     /**
-     * Aggregasi semua statistik langsung di SQL (menggantikan findAll + PHP loop).
+     * Agregasi semua statistik langsung di SQL (menggantikan findAll + PHP loop).
      * Filter opsional: id_kecamatan, id_desa.
      * Return: single row associative array dengan semua SUM.
+     *
+     * PERBAIKAN double-count: SUM dijalankan atas latestPerDesaSubquery() —
+     * SATU baris terpilih per desa (laporan terbaru tiap desa), bukan atas
+     * semua baris. Akibatnya setiap desa menyumbang tepat satu periode:
+     * 380.525 → 375.583 (selisih +4.942 dari 2 desa yang terhitung dua kali).
+     * Lihat latestPerDesaSubquery() untuk alasan pemilihan opsi (b) ini
+     * dibanding opsi (a) "satu periode terbaru global".
+     *
+     * Kompatibilitas: tanda tangan & kunci return tetap sama seperti sebelum
+     * perbaikan (daftar kunci = getAggregatedStatsKeys(), semua int).
      */
     public function getAggregatedStats(?int $id_kecamatan = null, ?int $id_desa = null): array
     {
-        $builder = $this->builder();
-        $builder->select('
-            SUM(jiwa_l) as jiwa_l, SUM(jiwa_p) as jiwa_p,
-            SUM(kk_l) as kk_l, SUM(kk_p) as kk_p,
-            SUM(jml_balita) as jml_balita, SUM(jml_remaja) as jml_remaja,
-            SUM(jml_lansia) as jml_lansia, SUM(jml_pus) as jml_pus,
-            SUM(kb_aktif) as kb_aktif, SUM(jml_penggunaan_alat_kontrasepsi) as jml_penggunaan_alat_kontrasepsi,
-            SUM(pend_bpjs) as pend_bpjs,
-            SUM(kk_pend_tidak_sekolah) as kk_pend_tidak_sekolah, SUM(kk_pend_sd) as kk_pend_sd,
-            SUM(kk_pend_smp) as kk_pend_smp, SUM(kk_pend_sma) as kk_pend_sma,
-            SUM(kk_pend_diploma) as kk_pend_diploma, SUM(kk_pend_s1) as kk_pend_s1,
-            SUM(kk_pend_s2_s3) as kk_pend_s2_s3,
-            SUM(kk_ker_tani) as kk_ker_tani, SUM(kk_ker_nelayan) as kk_ker_nelayan,
-            SUM(kk_ker_pns) as kk_ker_pns, SUM(kk_ker_swasta) as kk_ker_swasta,
-            SUM(kk_ker_pedagang) as kk_ker_pedagang, SUM(kk_ker_wiraswasta) as kk_ker_wiraswasta,
-            SUM(kk_ker_buruh) as kk_ker_buruh, SUM(kk_ker_tidak_kerja) as kk_ker_tidak_kerja,
-            SUM(kk_kawin) as kk_kawin, SUM(kk_belum_kawin) as kk_belum_kawin,
-            SUM(kk_cerai_hidup) as kk_cerai_hidup, SUM(kk_cerai_mati) as kk_cerai_mati,
-            SUM(pend_wajib_ktp) as pend_wajib_ktp, SUM(pend_punya_akta_lahir) as pend_punya_akta_lahir,
-            SUM(kk_punya_akta_nikah) as kk_punya_akta_nikah, SUM(kk_punya_kartu_fisik) as kk_punya_kartu_fisik,
-            SUM(kk_belum_punya_kartu_fisik) as kk_belum_punya_kartu_fisik,
-            SUM(pus_pbi) as pus_pbi, SUM(pus_non_pbi) as pus_non_pbi, SUM(non_jkn) as non_jkn,
-            SUM(u0_4_l) as u0_4_l, SUM(u0_4_p) as u0_4_p,
-            SUM(u5_9_l) as u5_9_l, SUM(u5_9_p) as u5_9_p,
-            SUM(u10_14_l) as u10_14_l, SUM(u10_14_p) as u10_14_p,
-            SUM(u15_19_l) as u15_19_l, SUM(u15_19_p) as u15_19_p,
-            SUM(u20_24_l) as u20_24_l, SUM(u20_24_p) as u20_24_p,
-            SUM(u25_29_l) as u25_29_l, SUM(u25_29_p) as u25_29_p,
-            SUM(u30_34_l) as u30_34_l, SUM(u30_34_p) as u30_34_p,
-            SUM(u35_39_l) as u35_39_l, SUM(u35_39_p) as u35_39_p,
-            SUM(u40_44_l) as u40_44_l, SUM(u40_44_p) as u40_44_p,
-            SUM(u45_49_l) as u45_49_l, SUM(u45_49_p) as u45_49_p,
-            SUM(u50_54_l) as u50_54_l, SUM(u50_54_p) as u50_54_p,
-            SUM(u55_59_l) as u55_59_l, SUM(u55_59_p) as u55_59_p,
-            SUM(u60_64_l) as u60_64_l, SUM(u60_64_p) as u60_64_p,
-            SUM(u65_69_l) as u65_69_l, SUM(u65_69_p) as u65_69_p,
-            SUM(u70_74_l) as u70_74_l, SUM(u70_74_p) as u70_74_p,
-            SUM(u75_79_l) as u75_79_l, SUM(u75_79_p) as u75_79_p,
-            SUM(u80_84_l) as u80_84_l, SUM(u80_84_p) as u80_84_p,
-            SUM(u85_atas_l) as u85_atas_l, SUM(u85_atas_p) as u85_atas_p
-        ');
+        $keys = $this->getAggregatedStatsKeys();
+        // $keys adalah LIST nama kolom → dipakai langsung sebagai kunci hasil
+        // (array_keys() di sini akan menghasilkan 0..N, bukan nama kolom).
+        $zero = array_fill_keys($keys, 0);
+
+        // Kolom yang benar-benar ada di tabel: mencegah SUM() atas kolom yang
+        // hanya ada di profil_dukcapil (dok_kia, dok_akta_cerai) → DatabaseException.
+        $dbCols  = array_flip($this->db->getFieldNames($this->table));
+        $sumCols = array_values(array_filter($keys, static fn($c) => isset($dbCols[$c])));
+        if ($sumCols === []) {
+            return $zero;
+        }
+
+        $select = [];
+        foreach ($sumCols as $c) {
+            // Kolom di-escape; namanya dari whitelist getAggregatedStatsKeys(),
+            // bukan dari input pengguna.
+            $esc      = $this->db->protectIdentifiers($c);
+            $select[] = "SUM({$esc}) as {$esc}";
+        }
+
+        // KUNCI PERBAIKAN: sumber baris = 1 baris terpilih per desa (alias lp).
+        $sub = $this->latestPerDesaSubquery();
+        $sql = 'SELECT ' . implode(', ', $select) . " FROM {$sub} lp";
+        $params = [];
 
         if ($id_desa) {
-            $builder->where('laporan_agregat.id_desa', $id_desa);
+            $sql .= ' WHERE lp.id_desa = ?';
+            $params[] = $id_desa;
         } elseif ($id_kecamatan) {
-            $builder->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa');
-            $builder->where('m_desa.id_kecamatan', $id_kecamatan);
+            // Join ke m_desa di LUAR subquery: filter wilayah tetap berlaku
+            // pada desa, sementara pemilihan baris per desa sudah selesai.
+            $sql .= ' JOIN ' . $this->tableName('m_desa') . ' d ON d.id_desa = lp.id_desa'
+                  . ' WHERE d.id_kecamatan = ?';
+            $params[] = $id_kecamatan;
         }
 
-        $row = $builder->get()->getRowArray();
+        $row = $this->db->query($sql, $params)->getRowArray();
 
-        // Return zeros jika tidak ada data
-        if ($row === null || $row['jiwa_l'] === null) {
-            return array_fill_keys(array_keys($this->getAggregatedStatsKeys()), 0);
+        // SUM atas 0 baris → semua NULL; kembalikan nol, bukan NULL.
+        if ($row === null || ($row[$sumCols[0]] ?? null) === null) {
+            return $zero;
         }
 
-        // Cast semua ke int
-        return array_map('intval', $row);
+        // Cast ke int untuk kolom yang ada; sisanya (Dukcapil-only) tetap 0.
+        $out = $zero;
+        foreach ($sumCols as $c) {
+            $out[$c] = (int) ($row[$c] ?? 0);
+        }
+
+        return $out;
     }
 
     /**
@@ -343,22 +513,31 @@ class LaporanAgregatModel extends Model
      * Agregasi per kecamatan untuk peta (1 query GROUP BY, bukan loop N query).
      * Kunci join ke GeoJSON: kd_kecamatan (3 digit via PublicController::kodeKecamatan3).
      * Mengembalikan 1 baris per kecamatan + semua field indikator (SUM, int).
+     *
+     * PERBAIKAN double-count: sumber baris = latestPerDesaSubquery() (1 baris
+     * terbaru per desa), sumber kebenaran yang SAMA dengan getAggregatedStats().
+     * Sebelumnya menjumlahkan semua baris → Takisung +2.882 & Batu Ampar +2.060
+     * (peta 380.525 vs kartu 375.583). Kunci join (kd_kecamatan) tetap sama.
      */
     public function getMapKecamatan(): array
     {
         $fields = self::mapIndicatorFields();
         $select = ['kecamatan.id_kecamatan', 'kecamatan.kode_kecamatan'];
         foreach ($fields as $f) {
-            $select[] = "SUM(laporan_agregat.{$f}) AS {$f}";
+            // Kolom di-escape; namanya dari whitelist mapIndicatorFields().
+            $esc      = $this->db->protectIdentifiers($f);
+            $select[] = "SUM(lp.{$esc}) AS {$esc}";
         }
 
-        $rows = $this->builder()
-            ->select(implode(', ', $select))
-            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
-            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan')
-            ->groupBy(['kecamatan.id_kecamatan', 'kecamatan.kode_kecamatan'])
-            ->get()
-            ->getResultArray();
+        $sub = $this->latestPerDesaSubquery();
+
+        $rows = $this->db->query(
+            'SELECT ' . implode(', ', $select) . "
+             FROM {$sub} lp
+             JOIN {$this->tableName('m_desa')} m_desa ON m_desa.id_desa = lp.id_desa
+             JOIN {$this->tableName('kecamatan')} kecamatan ON kecamatan.id_kecamatan = m_desa.id_kecamatan
+             GROUP BY kecamatan.id_kecamatan, kecamatan.kode_kecamatan"
+        )->getResultArray();
 
         return array_map(function (array $r) {
             return $this->normalizeMapRow($r, $this->kode3($r['kode_kecamatan'] ?? ''));
@@ -369,27 +548,36 @@ class LaporanAgregatModel extends Model
      * Agregasi per desa untuk peta (1 query GROUP BY, bukan loop N query).
      * Kunci join ke GeoJSON: kd_kecamatan + kd_kelurahan (dipecah dari m_desa.kode_desa).
      * @param int|null $idKecamatan Bila diset, batasi ke kecamatan tsb.
+     *
+     * PERBAIKAN double-count: sumber baris = latestPerDesaSubquery() (1 baris
+     * terbaru per desa), sumber kebenaran yang SAMA dengan getAggregatedStats().
+     * Filter ?id_kecamatan= dan kunci join (kd_kecamatan/kd_kelurahan) tetap sama.
      */
     public function getMapDesa(?int $idKecamatan = null): array
     {
         $fields = self::mapIndicatorFields();
         $select = ['m_desa.id_desa', 'm_desa.kode_desa', 'kecamatan.kode_kecamatan'];
         foreach ($fields as $f) {
-            $select[] = "SUM(laporan_agregat.{$f}) AS {$f}";
+            // Kolom di-escape; namanya dari whitelist mapIndicatorFields().
+            $esc      = $this->db->protectIdentifiers($f);
+            $select[] = "SUM(lp.{$esc}) AS {$esc}";
         }
 
-        $builder = $this->builder()
-            ->select(implode(', ', $select))
-            ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
-            ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
+        $sub     = $this->latestPerDesaSubquery();
+        $sql     = 'SELECT ' . implode(', ', $select) . "
+             FROM {$sub} lp
+             JOIN {$this->tableName('m_desa')} m_desa ON m_desa.id_desa = lp.id_desa
+             JOIN {$this->tableName('kecamatan')} kecamatan ON kecamatan.id_kecamatan = m_desa.id_kecamatan";
+        $params  = [];
 
         if ($idKecamatan !== null) {
-            $builder->where('m_desa.id_kecamatan', $idKecamatan);
+            $sql .= ' WHERE m_desa.id_kecamatan = ?';
+            $params[] = $idKecamatan;
         }
 
-        $builder->groupBy(['m_desa.id_desa', 'm_desa.kode_desa', 'kecamatan.kode_kecamatan']);
+        $sql .= ' GROUP BY m_desa.id_desa, m_desa.kode_desa, kecamatan.kode_kecamatan';
 
-        $rows = $builder->get()->getResultArray();
+        $rows = $this->db->query($sql, $params)->getResultArray();
 
         return array_map(function (array $r) {
             $kdKecamatan = $this->kode3($r['kode_kecamatan'] ?? '');
@@ -441,7 +629,7 @@ class LaporanAgregatModel extends Model
     /**
      * Helper: daftar key yang direturn getAggregatedStats
      */
-    private function getAggregatedStatsKeys(): array
+    public function getAggregatedStatsKeys(): array
     {
         return [
             'jiwa_l', 'jiwa_p', 'kk_l', 'kk_p', 'jml_balita', 'jml_remaja', 'jml_lansia',
@@ -453,6 +641,10 @@ class LaporanAgregatModel extends Model
             'kk_kawin', 'kk_belum_kawin', 'kk_cerai_hidup', 'kk_cerai_mati',
             'pend_wajib_ktp', 'pend_punya_akta_lahir', 'kk_punya_akta_nikah',
             'kk_punya_kartu_fisik', 'kk_belum_punya_kartu_fisik',
+            // Dukcapil-only (Kelompok A) — laporan_agregat tidak punya kolom ini,
+            // jadi selalu 0 dari sisi laporan; ada di daftar agar ikut di-SUM
+            // saat landing page menggabungkan profil_dukcapil + laporan_agregat.
+            'dok_kia', 'dok_akta_cerai',
             'pus_pbi', 'pus_non_pbi', 'non_jkn',
             'u0_4_l', 'u0_4_p', 'u5_9_l', 'u5_9_p', 'u10_14_l', 'u10_14_p',
             'u15_19_l', 'u15_19_p', 'u20_24_l', 'u20_24_p', 'u25_29_l', 'u25_29_p',
@@ -498,6 +690,9 @@ class LaporanAgregatModel extends Model
         $dokumen = [
             'KTP-el' => $s['pend_wajib_ktp'], 'Akta Lahir' => $s['pend_punya_akta_lahir'],
             'Akta Nikah' => $s['kk_punya_akta_nikah'], 'KK Fisik' => $s['kk_punya_kartu_fisik'],
+            // Dukcapil-only (Kelompok A). 0 saat data murni dari laporan desa.
+            'KIA' => (int) ($s['dok_kia'] ?? 0),
+            'Akta Cerai' => (int) ($s['dok_akta_cerai'] ?? 0),
         ];
 
         $jkn_bpjs = [

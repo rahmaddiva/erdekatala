@@ -1,0 +1,693 @@
+{
+    "sumber": "m_desa",
+    "generated_at": "2026-10-09T06:12:06+00:00",
+    "fixture": "tests/data/dukcapil_sm1_2026.json",
+    "map": {
+        "63.01.01.2001": {
+            "id_desa": 1,
+            "nama_desa": "Benua Lawas",
+            "nama_excel": "BENUA LAWAS"
+        },
+        "63.01.01.2002": {
+            "id_desa": 2,
+            "nama_desa": "Tabanio",
+            "nama_excel": "TABANIO"
+        },
+        "63.01.01.2003": {
+            "id_desa": 3,
+            "nama_desa": "Kuala Tambangan",
+            "nama_excel": "KUALA TAMBANGAN"
+        },
+        "63.01.01.2004": {
+            "id_desa": 4,
+            "nama_desa": "Takisung",
+            "nama_excel": "TAKISUNG"
+        },
+        "63.01.01.2005": {
+            "id_desa": 5,
+            "nama_desa": "Gunung Makmur",
+            "nama_excel": "GUNUNG MAKMUR"
+        },
+        "63.01.01.2006": {
+            "id_desa": 6,
+            "nama_desa": "Benua Tengah",
+            "nama_excel": "BENUA TENGAH"
+        },
+        "63.01.01.2007": {
+            "id_desa": 7,
+            "nama_desa": "Ranggang",
+            "nama_excel": "RANGGANG"
+        },
+        "63.01.01.2008": {
+            "id_desa": 8,
+            "nama_desa": "Pagatan Besar",
+            "nama_excel": "PAGATAN BESAR"
+        },
+        "63.01.01.2009": {
+            "id_desa": 9,
+            "nama_desa": "Batilai",
+            "nama_excel": "BATILAI"
+        },
+        "63.01.01.2010": {
+            "id_desa": 10,
+            "nama_desa": "Ranggang Dalam",
+            "nama_excel": "RANGGANG DALAM"
+        },
+        "63.01.01.2011": {
+            "id_desa": 11,
+            "nama_desa": "Telaga Langsat",
+            "nama_excel": "TELAGA LANGSAT"
+        },
+        "63.01.01.2012": {
+            "id_desa": 12,
+            "nama_desa": "Sumber Makmur",
+            "nama_excel": "SUMBER MAKMUR"
+        },
+        "63.01.02.2001": {
+            "id_desa": 13,
+            "nama_desa": "Sabuhur",
+            "nama_excel": "SABUHUR"
+        },
+        "63.01.02.2002": {
+            "id_desa": 14,
+            "nama_desa": "Jorong",
+            "nama_excel": "JORONG"
+        },
+        "63.01.02.2003": {
+            "id_desa": 15,
+            "nama_desa": "Asam-Asam",
+            "nama_excel": "ASAM-ASAM"
+        },
+        "63.01.02.2004": {
+            "id_desa": 16,
+            "nama_desa": "Batalang",
+            "nama_excel": "BATALANG"
+        },
+        "63.01.02.2005": {
+            "id_desa": 17,
+            "nama_desa": "Swarangan",
+            "nama_excel": "SWARANGAN"
+        },
+        "63.01.02.2006": {
+            "id_desa": 18,
+            "nama_desa": "Muara Asam-Asam",
+            "nama_excel": "MUARA ASAM-ASAM"
+        },
+        "63.01.02.2007": {
+            "id_desa": 19,
+            "nama_desa": "Alur",
+            "nama_excel": "ALUR"
+        },
+        "63.01.02.2008": {
+            "id_desa": 20,
+            "nama_desa": "Asri Mulya",
+            "nama_excel": "ASRI MULYA"
+        },
+        "63.01.02.2009": {
+            "id_desa": 21,
+            "nama_desa": "Karang Rejo",
+            "nama_excel": "KARANG REJO"
+        },
+        "63.01.02.2010": {
+            "id_desa": 22,
+            "nama_desa": "Asam Jaya",
+            "nama_excel": "ASAM JAYA"
+        },
+        "63.01.02.2011": {
+            "id_desa": 23,
+            "nama_desa": "Simpang Empat Sungai Baru",
+            "nama_excel": "SIMPANG EMPAT SUNGAI BARU"
+        },
+        "63.01.03.1001": {
+            "id_desa": 24,
+            "nama_desa": "Sarang Halang",
+            "nama_excel": "SARANG HALANG"
+        },
+        "63.01.03.1002": {
+            "id_desa": 25,
+            "nama_desa": "Karang Taruna",
+            "nama_excel": "KARANG TARUNA"
+        },
+        "63.01.03.1003": {
+            "id_desa": 26,
+            "nama_desa": "Pelaihari",
+            "nama_excel": "PELAIHARI"
+        },
+        "63.01.03.1004": {
+            "id_desa": 27,
+            "nama_desa": "Angsau",
+            "nama_excel": "ANGSAU"
+        },
+        "63.01.03.1005": {
+            "id_desa": 28,
+            "nama_desa": "Pabahanan",
+            "nama_excel": "PABAHANAN"
+        },
+        "63.01.03.2006": {
+            "id_desa": 29,
+            "nama_desa": "Bumi Jaya",
+            "nama_excel": "BUMI JAYA"
+        },
+        "63.01.03.2008": {
+            "id_desa": 30,
+            "nama_desa": "Sungai Riam",
+            "nama_excel": "SUNGAI RIAM"
+        },
+        "63.01.03.2009": {
+            "id_desa": 31,
+            "nama_desa": "Tampang",
+            "nama_excel": "TAMPANG"
+        },
+        "63.01.03.2010": {
+            "id_desa": 32,
+            "nama_desa": "Telaga",
+            "nama_excel": "TELAGA"
+        },
+        "63.01.03.2011": {
+            "id_desa": 33,
+            "nama_desa": "Panjaratan",
+            "nama_excel": "PANJARATAN"
+        },
+        "63.01.03.2012": {
+            "id_desa": 34,
+            "nama_desa": "Atu-Atu",
+            "nama_excel": "ATU-ATU"
+        },
+        "63.01.03.2015": {
+            "id_desa": 35,
+            "nama_desa": "Panggung",
+            "nama_excel": "PANGGUNG"
+        },
+        "63.01.03.2016": {
+            "id_desa": 36,
+            "nama_desa": "Tungkaran",
+            "nama_excel": "TUNGKARAN"
+        },
+        "63.01.03.2017": {
+            "id_desa": 37,
+            "nama_desa": "Ujung Batu",
+            "nama_excel": "UJUNG BATU"
+        },
+        "63.01.03.2020": {
+            "id_desa": 38,
+            "nama_desa": "Panggung Baru",
+            "nama_excel": "PANGGUNG BARU"
+        },
+        "63.01.03.2024": {
+            "id_desa": 39,
+            "nama_desa": "Ambungan",
+            "nama_excel": "AMBUNGAN"
+        },
+        "63.01.03.2025": {
+            "id_desa": 40,
+            "nama_desa": "Guntung Besar",
+            "nama_excel": "GUNTUNG BESAR"
+        },
+        "63.01.03.2026": {
+            "id_desa": 41,
+            "nama_desa": "Kampung Baru",
+            "nama_excel": "KAMPUNG BARU"
+        },
+        "63.01.03.2027": {
+            "id_desa": 42,
+            "nama_desa": "Sumber Mulia",
+            "nama_excel": "SUMBER MULIA"
+        },
+        "63.01.03.2029": {
+            "id_desa": 43,
+            "nama_desa": "Pemuda",
+            "nama_excel": "PEMUDA"
+        },
+        "63.01.04.2001": {
+            "id_desa": 44,
+            "nama_desa": "Sungai Bakau",
+            "nama_excel": "SUNGAI BAKAU"
+        },
+        "63.01.04.2002": {
+            "id_desa": 45,
+            "nama_desa": "Maluka Baulin",
+            "nama_excel": "MALUKA BAULIN"
+        },
+        "63.01.04.2003": {
+            "id_desa": 46,
+            "nama_desa": "Bawah Layung",
+            "nama_excel": "BAWAH LAYUNG"
+        },
+        "63.01.04.2004": {
+            "id_desa": 47,
+            "nama_desa": "Tambak Sarinah",
+            "nama_excel": "TAMBAK SARINAH"
+        },
+        "63.01.04.2005": {
+            "id_desa": 48,
+            "nama_desa": "Kali Besar",
+            "nama_excel": "KALI BESAR"
+        },
+        "63.01.04.2006": {
+            "id_desa": 49,
+            "nama_desa": "Handil Negara",
+            "nama_excel": "HANDIL NEGARA"
+        },
+        "63.01.04.2007": {
+            "id_desa": 50,
+            "nama_desa": "Padang Luas",
+            "nama_excel": "PADANG LUAS"
+        },
+        "63.01.04.2008": {
+            "id_desa": 51,
+            "nama_desa": "Kurau",
+            "nama_excel": "KURAU"
+        },
+        "63.01.04.2017": {
+            "id_desa": 52,
+            "nama_desa": "Tambak Karya",
+            "nama_excel": "TAMBAK KARYA"
+        },
+        "63.01.04.2018": {
+            "id_desa": 53,
+            "nama_desa": "Raden",
+            "nama_excel": "RADEN"
+        },
+        "63.01.04.2019": {
+            "id_desa": 54,
+            "nama_desa": "Sarikandi",
+            "nama_excel": "SARIKANDI"
+        },
+        "63.01.05.2001": {
+            "id_desa": 55,
+            "nama_desa": "Benua Raya",
+            "nama_excel": "BENUA RAYA"
+        },
+        "63.01.05.2002": {
+            "id_desa": 56,
+            "nama_desa": "Bati-Bati",
+            "nama_excel": "BATI-BATI"
+        },
+        "63.01.05.2003": {
+            "id_desa": 57,
+            "nama_desa": "Ujung",
+            "nama_excel": "UJUNG"
+        },
+        "63.01.05.2004": {
+            "id_desa": 58,
+            "nama_desa": "Liang Anggang",
+            "nama_excel": "LIANG ANGGANG"
+        },
+        "63.01.05.2005": {
+            "id_desa": 59,
+            "nama_desa": "Bentok Kampung",
+            "nama_excel": "BENTOK KAMPUNG"
+        },
+        "63.01.05.2006": {
+            "id_desa": 60,
+            "nama_desa": "Bentok Darat",
+            "nama_excel": "BENTOK DARAT"
+        },
+        "63.01.05.2007": {
+            "id_desa": 61,
+            "nama_desa": "Banyu Irang",
+            "nama_excel": "BANYU IRANG"
+        },
+        "63.01.05.2008": {
+            "id_desa": 62,
+            "nama_desa": "Nusa Indah",
+            "nama_excel": "NUSA INDAH"
+        },
+        "63.01.05.2009": {
+            "id_desa": 63,
+            "nama_desa": "Pandahan",
+            "nama_excel": "PANDAHAN"
+        },
+        "63.01.05.2010": {
+            "id_desa": 64,
+            "nama_desa": "Padang",
+            "nama_excel": "PADANG"
+        },
+        "63.01.05.2011": {
+            "id_desa": 65,
+            "nama_desa": "Ujung Baru",
+            "nama_excel": "UJUNG BARU"
+        },
+        "63.01.05.2012": {
+            "id_desa": 66,
+            "nama_desa": "Sambangan",
+            "nama_excel": "SAMBANGAN"
+        },
+        "63.01.05.2013": {
+            "id_desa": 67,
+            "nama_desa": "Kait-Kait",
+            "nama_excel": "KAIT-KAIT"
+        },
+        "63.01.05.2014": {
+            "id_desa": 68,
+            "nama_desa": "Kait-Kait Baru",
+            "nama_excel": "KAIT-KAIT BARU"
+        },
+        "63.01.06.2001": {
+            "id_desa": 69,
+            "nama_desa": "Batu Tungku",
+            "nama_excel": "BATU TUNGKU"
+        },
+        "63.01.06.2002": {
+            "id_desa": 70,
+            "nama_desa": "Panyipatan",
+            "nama_excel": "PANYIPATAN"
+        },
+        "63.01.06.2003": {
+            "id_desa": 71,
+            "nama_desa": "Kandangan Baru",
+            "nama_excel": "KANDANGAN BARU"
+        },
+        "63.01.06.2004": {
+            "id_desa": 72,
+            "nama_desa": "Kandangan Lama",
+            "nama_excel": "KANDANGAN LAMA"
+        },
+        "63.01.06.2005": {
+            "id_desa": 73,
+            "nama_desa": "Batakan",
+            "nama_excel": "BATAKAN"
+        },
+        "63.01.06.2006": {
+            "id_desa": 74,
+            "nama_desa": "Kuringkit",
+            "nama_excel": "KURINGKIT"
+        },
+        "63.01.06.2007": {
+            "id_desa": 75,
+            "nama_desa": "Tanjung Dewa",
+            "nama_excel": "TANJUNG DEWA"
+        },
+        "63.01.06.2008": {
+            "id_desa": 76,
+            "nama_desa": "Suka Ramah",
+            "nama_excel": "SUKA RAMAH"
+        },
+        "63.01.06.2009": {
+            "id_desa": 77,
+            "nama_desa": "Batu Mulya",
+            "nama_excel": "BATU MULYA"
+        },
+        "63.01.06.2010": {
+            "id_desa": 78,
+            "nama_desa": "Bumi Asih",
+            "nama_excel": "BUMI ASIH"
+        },
+        "63.01.07.2001": {
+            "id_desa": 79,
+            "nama_desa": "Pandan Sari",
+            "nama_excel": "PANDAN SARI"
+        },
+        "63.01.07.2002": {
+            "id_desa": 80,
+            "nama_desa": "Kintap",
+            "nama_excel": "KINTAP"
+        },
+        "63.01.07.2003": {
+            "id_desa": 81,
+            "nama_desa": "Kintapura",
+            "nama_excel": "KINTAPURA"
+        },
+        "63.01.07.2004": {
+            "id_desa": 82,
+            "nama_desa": "Sungai Cuka",
+            "nama_excel": "SUNGAI CUKA"
+        },
+        "63.01.07.2005": {
+            "id_desa": 83,
+            "nama_desa": "Riam Adungan",
+            "nama_excel": "RIAM ADUNGAN"
+        },
+        "63.01.07.2006": {
+            "id_desa": 84,
+            "nama_desa": "Muara Kintap",
+            "nama_excel": "MUARA KINTAP"
+        },
+        "63.01.07.2007": {
+            "id_desa": 85,
+            "nama_desa": "Salaman",
+            "nama_excel": "SALAMAN"
+        },
+        "63.01.07.2008": {
+            "id_desa": 86,
+            "nama_desa": "Kintap Kecil",
+            "nama_excel": "KINTAP KECIL"
+        },
+        "63.01.07.2009": {
+            "id_desa": 87,
+            "nama_desa": "Pasir Putih",
+            "nama_excel": "PASIR PUTIH"
+        },
+        "63.01.07.2010": {
+            "id_desa": 88,
+            "nama_desa": "Sumber Jaya",
+            "nama_excel": "SUMBER JAYA"
+        },
+        "63.01.07.2011": {
+            "id_desa": 89,
+            "nama_desa": "Bukit Mulia",
+            "nama_excel": "BUKIT MULIA"
+        },
+        "63.01.07.2012": {
+            "id_desa": 90,
+            "nama_desa": "Kebun Raya",
+            "nama_excel": "KEBUN RAYA"
+        },
+        "63.01.07.2013": {
+            "id_desa": 91,
+            "nama_desa": "Mekar Raya",
+            "nama_excel": "MEKAR SARI"
+        },
+        "63.01.07.2014": {
+            "id_desa": 92,
+            "nama_desa": "Sebamban Baru",
+            "nama_excel": "SEBAMBAN BARU"
+        },
+        "63.01.08.2001": {
+            "id_desa": 93,
+            "nama_desa": "Tambang Ulang",
+            "nama_excel": "TAMBANG ULANG"
+        },
+        "63.01.08.2002": {
+            "id_desa": 94,
+            "nama_desa": "Sungai Pinang",
+            "nama_excel": "SUNGAI PINANG"
+        },
+        "63.01.08.2003": {
+            "id_desa": 95,
+            "nama_desa": "Martadah",
+            "nama_excel": "MARTADAH"
+        },
+        "63.01.08.2004": {
+            "id_desa": 96,
+            "nama_desa": "Sungai Jelai",
+            "nama_excel": "SUNGAI JELAI"
+        },
+        "63.01.08.2005": {
+            "id_desa": 97,
+            "nama_desa": "Bingkulu",
+            "nama_excel": "BINGKULU"
+        },
+        "63.01.08.2006": {
+            "id_desa": 98,
+            "nama_desa": "Gunung Raja",
+            "nama_excel": "GUNUNG RAJA"
+        },
+        "63.01.08.2007": {
+            "id_desa": 99,
+            "nama_desa": "Pulau Sari",
+            "nama_excel": "PULAU SARI"
+        },
+        "63.01.08.2008": {
+            "id_desa": 100,
+            "nama_desa": "Kayu Abang",
+            "nama_excel": "KAYU ABANG"
+        },
+        "63.01.08.2009": {
+            "id_desa": 101,
+            "nama_desa": "Martadah Baru",
+            "nama_excel": "MARTADAH BARU"
+        },
+        "63.01.09.2001": {
+            "id_desa": 102,
+            "nama_desa": "Batu Ampar",
+            "nama_excel": "BATU AMPAR"
+        },
+        "63.01.09.2002": {
+            "id_desa": 103,
+            "nama_desa": "Gunung Mas",
+            "nama_excel": "GUNUNG MAS"
+        },
+        "63.01.09.2003": {
+            "id_desa": 104,
+            "nama_desa": "Tajau Mulya",
+            "nama_excel": "TAJAU MULYA"
+        },
+        "63.01.09.2004": {
+            "id_desa": 105,
+            "nama_desa": "Jilatan",
+            "nama_excel": "JILATAN"
+        },
+        "63.01.09.2005": {
+            "id_desa": 106,
+            "nama_desa": "Durian Bungkuk",
+            "nama_excel": "DURIAN BUNGKUK"
+        },
+        "63.01.09.2006": {
+            "id_desa": 107,
+            "nama_desa": "Ambawang",
+            "nama_excel": "AMBAWANG"
+        },
+        "63.01.09.2007": {
+            "id_desa": 108,
+            "nama_desa": "Damit",
+            "nama_excel": "DAMIT"
+        },
+        "63.01.09.2008": {
+            "id_desa": 109,
+            "nama_desa": "Gunung Melati",
+            "nama_excel": "GUNUNG MELATI"
+        },
+        "63.01.09.2009": {
+            "id_desa": 110,
+            "nama_desa": "Bluru",
+            "nama_excel": "BLURU"
+        },
+        "63.01.09.2010": {
+            "id_desa": 111,
+            "nama_desa": "Pantai Linuh",
+            "nama_excel": "PANTAI LINUH"
+        },
+        "63.01.09.2011": {
+            "id_desa": 112,
+            "nama_desa": "Damit Hulu",
+            "nama_excel": "DAMIT HULU"
+        },
+        "63.01.09.2012": {
+            "id_desa": 113,
+            "nama_desa": "Jilatan Alur",
+            "nama_excel": "JILATAN ALUR"
+        },
+        "63.01.09.2013": {
+            "id_desa": 114,
+            "nama_desa": "Damar Lima",
+            "nama_excel": "DAMAR LIMA"
+        },
+        "63.01.09.2014": {
+            "id_desa": 115,
+            "nama_desa": "Tajau Pecah",
+            "nama_excel": "TAJAU PECAH"
+        },
+        "63.01.10.2001": {
+            "id_desa": 116,
+            "nama_desa": "Bajuin",
+            "nama_excel": "BAJUIN"
+        },
+        "63.01.10.2002": {
+            "id_desa": 117,
+            "nama_desa": "Sungai Bakar",
+            "nama_excel": "SUNGAI BAKAR"
+        },
+        "63.01.10.2003": {
+            "id_desa": 118,
+            "nama_desa": "Ketapang",
+            "nama_excel": "KETAPANG"
+        },
+        "63.01.10.2004": {
+            "id_desa": 119,
+            "nama_desa": "Tirta Jaya",
+            "nama_excel": "TIRTA JAYA"
+        },
+        "63.01.10.2005": {
+            "id_desa": 120,
+            "nama_desa": "Galam",
+            "nama_excel": "GALAM"
+        },
+        "63.01.10.2006": {
+            "id_desa": 121,
+            "nama_desa": "Pemalongan",
+            "nama_excel": "PEMALONGAN"
+        },
+        "63.01.10.2007": {
+            "id_desa": 122,
+            "nama_desa": "Kunyit",
+            "nama_excel": "KUNYIT"
+        },
+        "63.01.10.2008": {
+            "id_desa": 123,
+            "nama_desa": "Tebing Siring",
+            "nama_excel": "TEBING SIRING"
+        },
+        "63.01.10.2009": {
+            "id_desa": 124,
+            "nama_desa": "Tanjung",
+            "nama_excel": "TANJUNG"
+        },
+        "63.01.11.2001": {
+            "id_desa": 125,
+            "nama_desa": "Handil Babirik",
+            "nama_excel": "HANDIL BABIRIK"
+        },
+        "63.01.11.2002": {
+            "id_desa": 126,
+            "nama_desa": "Kurau Utara",
+            "nama_excel": "KURAU UTARA"
+        },
+        "63.01.11.2003": {
+            "id_desa": 127,
+            "nama_desa": "Bumi Harapan",
+            "nama_excel": "BUMI HARAPAN"
+        },
+        "63.01.11.2004": {
+            "id_desa": 128,
+            "nama_desa": "Sungai Rasau",
+            "nama_excel": "SUNGAI RASAU"
+        },
+        "63.01.11.2005": {
+            "id_desa": 129,
+            "nama_desa": "Pantai Harapan",
+            "nama_excel": "PANTAI HARAPAN"
+        },
+        "63.01.11.2006": {
+            "id_desa": 130,
+            "nama_desa": "Handil Suruk",
+            "nama_excel": "HANDIL SURUK"
+        },
+        "63.01.11.2007": {
+            "id_desa": 131,
+            "nama_desa": "Handil Gayam",
+            "nama_excel": "HANDIL GAYAM"
+        },
+        "63.01.11.2008": {
+            "id_desa": 132,
+            "nama_desa": "Handil Birayang Atas",
+            "nama_excel": "HANDIL BIRAYANG ATAS"
+        },
+        "63.01.11.2009": {
+            "id_desa": 133,
+            "nama_desa": "Handil Birayang Bawah",
+            "nama_excel": "HANDIL BIRAYANG BAWAH"
+        },
+        "63.01.11.2010": {
+            "id_desa": 134,
+            "nama_desa": "Handil Maluka",
+            "nama_excel": "HANDIL MALUKA"
+        },
+        "63.01.11.2011": {
+            "id_desa": 135,
+            "nama_desa": "Handil Labuan Amas",
+            "nama_excel": "HANDIL LABUAN AMAS"
+        }
+    },
+    "hanya_di_excel": [],
+    "hanya_di_db": [],
+    "nama_beda": [
+        {
+            "kode": "63.01.07.2013",
+            "db": "Mekar Raya",
+            "excel": "MEKAR SARI",
+            "id_desa": 91,
+            "kecamatan": "Kintap"
+        }
+    ]
+}

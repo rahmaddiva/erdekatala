@@ -1,0 +1,154 @@
+{
+    "sumber": "tests/data/dukcapil_sm1_2026.json",
+    "generated_at": "2026-10-09T06:19:13+00:00",
+    "kabupaten": {
+        "kk_total": 132030,
+        "kk_lk": 103688,
+        "kk_pr": 28342,
+        "jiwa_total": 378190,
+        "jiwa_lk": 192047,
+        "jiwa_pr": 186143,
+        "desa": 135
+    },
+    "per_kecamatan": [
+        {
+            "kode": "63.01.01",
+            "nama": "TAKISUNG",
+            "desa": 12,
+            "kk_total": 12275,
+            "jiwa_total": 34944,
+            "jiwa_lk": 17724,
+            "jiwa_pr": 17220,
+            "kk_lk": 9647,
+            "kk_pr": 2628
+        },
+        {
+            "kode": "63.01.02",
+            "nama": "JORONG",
+            "desa": 11,
+            "kk_total": 12823,
+            "jiwa_total": 37431,
+            "jiwa_lk": 19173,
+            "jiwa_pr": 18258,
+            "kk_lk": 10279,
+            "kk_pr": 2544
+        },
+        {
+            "kode": "63.01.03",
+            "nama": "PELAIHARI",
+            "desa": 20,
+            "kk_total": 29432,
+            "jiwa_total": 84816,
+            "jiwa_lk": 42612,
+            "jiwa_pr": 42204,
+            "kk_lk": 22931,
+            "kk_pr": 6501
+        },
+        {
+            "kode": "63.01.04",
+            "nama": "KURAU",
+            "desa": 11,
+            "kk_total": 5407,
+            "jiwa_total": 14995,
+            "jiwa_lk": 7573,
+            "jiwa_pr": 7422,
+            "kk_lk": 4081,
+            "kk_pr": 1326
+        },
+        {
+            "kode": "63.01.05",
+            "nama": "BATI BATI",
+            "desa": 14,
+            "kk_total": 16805,
+            "jiwa_total": 48022,
+            "jiwa_lk": 24487,
+            "jiwa_pr": 23535,
+            "kk_lk": 13112,
+            "kk_pr": 3693
+        },
+        {
+            "kode": "63.01.06",
+            "nama": "PANYIPATAN",
+            "desa": 10,
+            "kk_total": 9606,
+            "jiwa_total": 27069,
+            "jiwa_lk": 13668,
+            "jiwa_pr": 13401,
+            "kk_lk": 7415,
+            "kk_pr": 2191
+        },
+        {
+            "kode": "63.01.07",
+            "nama": "KINTAP",
+            "desa": 14,
+            "kk_total": 15538,
+            "jiwa_total": 46070,
+            "jiwa_lk": 23570,
+            "jiwa_pr": 22500,
+            "kk_lk": 12489,
+            "kk_pr": 3049
+        },
+        {
+            "kode": "63.01.08",
+            "nama": "TAMBANG ULANG",
+            "desa": 9,
+            "kk_total": 7000,
+            "jiwa_total": 19740,
+            "jiwa_lk": 10037,
+            "jiwa_pr": 9703,
+            "kk_lk": 5449,
+            "kk_pr": 1551
+        },
+        {
+            "kode": "63.01.09",
+            "nama": "BATU AMPAR",
+            "desa": 14,
+            "kk_total": 10354,
+            "jiwa_total": 29529,
+            "jiwa_lk": 15133,
+            "jiwa_pr": 14396,
+            "kk_lk": 8502,
+            "kk_pr": 1852
+        },
+        {
+            "kode": "63.01.10",
+            "nama": "BAJUIN",
+            "desa": 9,
+            "kk_total": 7500,
+            "jiwa_total": 20774,
+            "jiwa_lk": 10625,
+            "jiwa_pr": 10149,
+            "kk_lk": 5874,
+            "kk_pr": 1626
+        },
+        {
+            "kode": "63.01.11",
+            "nama": "BUMI MAKMUR",
+            "desa": 11,
+            "kk_total": 5290,
+            "jiwa_total": 14800,
+            "jiwa_lk": 7445,
+            "jiwa_pr": 7355,
+            "kk_lk": 3909,
+            "kk_pr": 1381
+        }
+    ],
+    "per_kecamatan_usia_kabupaten": {
+        "00-04": 24249,
+        "05-09": 32178,
+        "10-14": 33522,
+        "15-19": 32542,
+        "20-24": 31095,
+        "25-29": 28949,
+        "30-34": 28031,
+        "35-39": 28364,
+        "40-44": 29342,
+        "45-49": 27899,
+        "50-54": 24575,
+        "55-59": 19333,
+        "60-64": 14462,
+        "65-69": 10349,
+        "70-74": 6028,
+        "75+": 7272
+    }
+}
