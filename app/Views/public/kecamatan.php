@@ -32,6 +32,56 @@ $kawinTotal = array_sum($status_kawin);
 $jknTotal   = array_sum($jkn_bpjs);
 $dokTotal   = array_sum($dokumen);
 
+/* ===== Sumber data aktif (konsisten landing page) =====
+ * 'dukcapil' (DEFAULT) | 'desa' | 'campuran'. $profilMeta dari controller;
+ * nilai fallback menjaga view tetap benar bila meta kosong. */
+$sumberNow      = $sumberFilter ?? ($profilMeta['sumber_filter'] ?? 'dukcapil');
+$profilMode     = $profilMeta['mode'] ?? $sumberNow;
+$dkbLabel       = $profilMeta['sumber_label_dkb'] ?? \App\Models\ProfilDukcapilModel::SUMBER_LABEL_DKB;
+$romawiSemester = static fn(int $s): string => [1 => 'I', 2 => 'II'][$s] ?? (string) $s;
+$sumberBadge    = [
+    'desa'     => ['label' => 'Laporan Desa',             'icon' => 'bi-clipboard-check', 'cls' => 'src-desa'],
+    'dukcapil' => ['label' => 'Dukcapil Kab. Tanah Laut', 'icon' => 'bi-building-check',  'cls' => 'src-dukcapil'],
+    'campuran' => ['label' => 'Dukcapil + Laporan Desa',  'icon' => 'bi-layers-half',     'cls' => 'src-dukcapil'],
+][$sumberNow] ?? ['label' => 'Dukcapil Kab. Tanah Laut', 'icon' => 'bi-building-check', 'cls' => 'src-dukcapil'];
+
+// Provenance Kelompok A (KIA & Akta Cerai) — selalu dari snapshot Dukcapil.
+$dokumenSumber   = $profilMeta['dokumen_sumber'] ?? [];
+$kelompokAAktif  = !empty($profilMeta['kelompok_a_aktif']) && isset($dokumen['KIA'], $dokumen['Akta Cerai']);
+$dokumenCampuran = $kelompokAAktif && $profilMode !== 'dukcapil';
+
+// Label sumber untuk teks jujur (stat-card, tabel, catatan, peta).
+$sumberShort = $profilMode === 'dukcapil'
+    ? 'Dukcapil'
+    : ($profilMode === 'campuran' ? 'gabungan laporan desa + Dukcapil' : 'laporan desa');
+// Kolom KB & PUS (jml_pus/kb_aktif/alat kontrasepsi) ada di KEDUA sumber.
+$kbSrcLabel  = $profilMode === 'dukcapil'
+    ? 'Dukcapil'
+    : ($profilMode === 'campuran' ? 'laporan/Dukcapil' : 'laporan desa');
+// Filter sumber untuk URL: default dukcapil ≡ tanpa param (URL bersih).
+$sumberQuery = $sumberNow === 'dukcapil' ? '' : '&sumber=' . rawurlencode($sumberNow);
+
+/* ===== Indikator turunan (dihitung dari piramida usia & KK) =====
+ * Rumus rasio ketergantungan mengikuti BPS: (0–14 + 65+) / 15–64 × 100.
+ * $piramidaL/$piramidaP = 18 kelompok 5-tahunan: indeks 0..2 = 0–14,
+ * 3..12 = 15–64, 13..17 = 65+. */
+$produktif = $usia014 = $usia65 = null;
+if (isset($piramidaL, $piramidaP) && count($piramidaL) >= 18 && count($piramidaP) >= 18) {
+    $produktif = $usia014 = $usia65 = 0;
+    foreach ($piramidaL as $i => $v) {
+        $n = (int) $v + (int) ($piramidaP[$i] ?? 0);
+        if ($i <= 2)      { $usia014  += $n; }
+        elseif ($i <= 12) { $produktif += $n; }
+        else              { $usia65   += $n; }
+    }
+}
+$sexRatio     = $jiwaP > 0 ? $jiwaL / $jiwaP * 100 : null;
+$depRatio     = ($produktif !== null && $produktif > 0) ? ($usia014 + $usia65) / $produktif * 100 : null;
+$produktifPct = ($produktif !== null && $jiwaTotal > 0) ? $produktif / $jiwaTotal * 100 : null;
+$jiwaPerKk    = $kkTotal > 0 ? $jiwaTotal / $kkTotal : null;
+$kkFisikVal   = (int) ($dokumen['KK Fisik'] ?? 0);
+$kkFisikPct   = $kkTotal > 0 ? $kkFisikVal / $kkTotal * 100 : null;
+
 // Helper slug untuk view
 $slugify = function($name) {
     return strtolower(str_replace(' ', '-', $name));
@@ -221,6 +271,75 @@ $slugify = function($name) {
         .section-head .crumb { font-size: 0.82rem; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
         .section-head .crumb strong { color: var(--primary); }
 
+        /* ===== PENANDA SUMBER DATA (badge/pill + dropdown) ===== */
+        .section-head .tag {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.06em; padding: 0.22rem 0.55rem; border-radius: 4px;
+            background: var(--paper-3); color: var(--ink-soft);
+        }
+        .section-head .tag.src-dukcapil { background: #e7f0fb; color: #0b4a8f; border: 1px solid #bcd6f2; }
+        .section-head .tag.src-dukcapil i { color: #0b4a8f; }
+        .section-head .tag.src-desa { background: var(--paper-3); color: var(--ink-soft); border: 1px solid var(--border); }
+        .section-head .tag + strong { margin-left: 0.5rem; }
+
+        .group-filter {
+            display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        .group-filter label {
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--muted); margin: 0;
+        }
+        .group-filter select.form-select {
+            width: auto; min-width: 15rem;
+            padding: 0.55rem 2.4rem 0.55rem 0.85rem;
+            border: 1px solid var(--border); border-radius: 8px;
+            background-color: var(--paper-2); color: var(--ink);
+            font-family: inherit; font-size: 0.88rem; font-weight: 500;
+            line-height: 1.4; cursor: pointer; appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 0.8rem center;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .group-filter select.form-select:hover { border-color: var(--primary); }
+        .group-filter select.form-select:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 91, 172, 0.18);
+        }
+        .group-filter .sumber-hint {
+            display: inline-flex; align-items: flex-start; gap: 0.35rem;
+            margin-left: 0.6rem; font-size: 0.76rem; line-height: 1.5;
+            color: var(--muted); max-width: 46rem;
+        }
+        .group-filter .sumber-hint > i { color: var(--primary); line-height: 1.5; }
+        .group-filter .sumber-hint strong { color: var(--ink-soft); font-weight: 600; }
+
+        /* label sumber RESMI DKB + chip mini (dipakai tabel Dokumen) */
+        .src-official {
+            display: inline-block; margin-top: 0.35rem;
+            font-size: 0.78rem; font-weight: 600; line-height: 1.5; color: #0b4a8f;
+        }
+        .src-chip {
+            display: inline-block; font-size: 0.62rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            padding: 0.1rem 0.35rem; border-radius: 3px;
+            margin-left: 0.35rem; vertical-align: middle; white-space: nowrap;
+        }
+        .src-chip.dukcapil { background: #e7f0fb; color: #0b4a8f; border: 1px solid #bcd6f2; }
+        .src-chip.desa     { background: var(--paper-3); color: var(--ink-soft); border: 1px solid var(--border); }
+        .desa-badge .src-official { color: #fff; margin: 0; font-weight: 600; }
+        /* catatan provenance di bawah chart (KIA & Akta Cerai) */
+        .src-note {
+            display: flex; align-items: flex-start; gap: 0.5rem;
+            margin: 0.5rem 0 0; padding: 0.5rem 0.7rem;
+            background: var(--paper-3); border: 1px dashed var(--border);
+            border-radius: 6px; font-size: 0.76rem; line-height: 1.55; color: var(--muted);
+        }
+        .src-note > i { color: var(--primary); font-size: 0.9rem; flex-shrink: 0; line-height: 1.5; }
+        .src-note p { margin: 0; }
+        .src-note strong { color: var(--ink-soft); font-weight: 600; }
+
         /* ===== STAT CARDS ===== */
         .stat-grid {
             display: grid; grid-template-columns: repeat(4, 1fr);
@@ -245,6 +364,9 @@ $slugify = function($name) {
             color: var(--ink); line-height: 1; margin-bottom: 0.35rem;
         }
         .stat-card .sub { font-size: 0.82rem; color: var(--muted); }
+        .stat-card .value .unit { font-size: 0.95rem; font-weight: 500; color: var(--muted); margin-left: 0.3rem; letter-spacing: 0; }
+        .stat-card .meter { height: 4px; border-radius: 999px; background: var(--paper-3); overflow: hidden; margin: 0 0 0.5rem; }
+        .stat-card .meter > span { display: block; height: 100%; border-radius: 999px; background: var(--good); transition: width .4s ease; }
         .stat-card .icon-circle {
             position: absolute; top: 1rem; right: 1.1rem;
             width: 38px; height: 38px; border-radius: 50%;
@@ -259,18 +381,18 @@ $slugify = function($name) {
         /* ===== PROFIL KECAMATAN ===== */
         .profil-card {
             background: var(--paper); border: 1px solid var(--border);
-            border-radius: 10px; padding: 1.5rem 1.75rem; box-shadow: var(--shadow-sm);
+            border-radius: 10px; padding: 1.75rem 2rem; box-shadow: var(--shadow-sm);
         }
         .profil-card .profil-desc {
-            font-size: 0.95rem; line-height: 1.7; color: var(--ink-soft); margin: 0 0 1.25rem;
+            font-size: 0.95rem; line-height: 1.7; color: var(--ink-soft); margin: 0 0 1.5rem;
         }
         .profil-grid {
-            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem 1.5rem;
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem;
         }
         .profil-field {
             display: flex; align-items: flex-start; gap: 0.75rem;
             background: var(--paper-2); border: 1px solid var(--border);
-            border-radius: 8px; padding: 0.75rem 0.9rem;
+            border-radius: 8px; padding: 0.9rem 1rem;
         }
         .profil-field.full { grid-column: 1 / -1; }
         .profil-field .pf-icon {
@@ -676,6 +798,13 @@ $slugify = function($name) {
             </div>
             <h1><?= esc($kecTitle) ?></h1>
             <p class="lead">Portal data agregat kependudukan tingkat Desa di Kecamatan <?= esc($kecNama) ?>, Kabupaten Tanah Laut.</p>
+            <div class="desa-badge">
+                <i class="bi <?= esc($sumberBadge['icon']) ?>"></i>
+                Sumber: <?= esc($sumberBadge['label']) ?>
+                <?php if ($profilMode !== 'desa' && !empty($profilMeta['semester'])): ?>
+                    <span class="src-official">DKB Semester <?= esc($romawiSemester((int) $profilMeta['semester'])) ?> <?= (int) ($profilMeta['tahun'] ?? 2026) ?></span>
+                <?php endif; ?>
+            </div>
             <?php if ($selected_desa): ?>
                 <div class="desa-badge">
                     <i class="bi bi-geo-alt-fill"></i>
@@ -683,6 +812,37 @@ $slugify = function($name) {
                     <a href="<?= site_url('/' . $kecSlug) ?>">← Lihat semua desa</a>
                 </div>
             <?php endif; ?>
+
+            <!-- Ganti sumber data (?sumber=desa|dukcapil|campuran) + filter desa.
+                 Form GET menjaga ?desa= aktif; default Dukcapil ≡ tanpa param. -->
+            <form method="GET" action="<?= site_url('/' . $kecSlug) ?>" class="group-filter" style="margin-top:1rem;position:relative;z-index:1;">
+                <?php if ($selected_desa): ?>
+                    <input type="hidden" name="desa" value="<?= esc($slugify($selected_desa['nama_desa'])) ?>">
+                <?php endif; ?>
+                <label for="sumber-data">Sumber data</label>
+                <select id="sumber-data" name="sumber" class="form-select" onchange="this.form.submit()" aria-label="Filter sumber data profil kependudukan">
+                    <option value="dukcapil" <?= $sumberNow === 'dukcapil' ? 'selected' : '' ?>>Hanya Dukcapil (default)</option>
+                    <option value="desa"     <?= $sumberNow === 'desa'     ? 'selected' : '' ?>>Hanya Laporan Desa</option>
+                    <option value="campuran" <?= $sumberNow === 'campuran' ? 'selected' : '' ?>>Campuran — Laporan Desa + Dukcapil</option>
+                </select>
+                <noscript><button type="submit" class="form-select" style="cursor:pointer;background-image:none;min-width:auto;">Terapkan</button></noscript>
+                <?php if ($sumberNow === 'dukcapil'): ?>
+                    <span class="sumber-hint"><i class="bi bi-info-circle"></i>
+                        Data profil memakai <strong>snapshot resmi Dukcapil</strong>.
+                        <?php if ($kelompokAAktif): ?>KIA &amp; Akta Cerai memang selalu dari Dukcapil.<?php endif; ?>
+                    </span>
+                <?php elseif ($sumberNow === 'campuran'): ?>
+                    <span class="sumber-hint"><i class="bi bi-info-circle"></i>
+                        Mode campuran: laporan desa untuk desa yang sudah lapor
+                        (<?= (int) ($profilMeta['laporan_count_scope'] ?? 0) ?> desa), snapshot Dukcapil untuk sisanya
+                        (<?= (int) ($profilMeta['dukcapil_count_scope'] ?? 0) ?> desa).
+                    </span>
+                <?php else: ?>
+                    <span class="sumber-hint"><i class="bi bi-info-circle"></i>
+                        Data diturunkan dari laporan desa yang diinput admin desa.
+                    </span>
+                <?php endif; ?>
+            </form>
         </div>
     </header>
 
@@ -694,12 +854,13 @@ $slugify = function($name) {
     ?>
     <?php if ($hasProfile && !$selected_desa): ?>
     <!-- ===== PROFIL KECAMATAN ===== -->
-    <section class="block" style="padding-top: 2rem;">
+    <section class="block" style="padding-top: 3rem;">
+        <div class="container">
         <div class="section-head">
             <h2>Profil Kecamatan</h2>
             <span class="crumb">Informasi resmi kecamatan</span>
         </div>
-        <div class="profil-grid-wrap" style="display: grid; grid-template-columns: minmax(0, 380px) 1fr; gap: 1.5rem; align-items: start;">
+        <div class="profil-grid-wrap" style="display: grid; grid-template-columns: minmax(0, 380px) 1fr; gap: 2rem; align-items: start;">
             <?php if (!empty($kecamatan['foto']) && file_exists(FCPATH . $kecamatan['foto'])): ?>
                 <div class="profil-photo">
                     <img src="<?= base_url($kecamatan['foto']) ?>" alt="Foto Kecamatan <?= esc($kecNama) ?>">
@@ -765,6 +926,7 @@ $slugify = function($name) {
                 </div>
             </div>
         </div>
+        </div>
         <style>
         @media (max-width: 768px) {
             .profil-grid-wrap { grid-template-columns: 1fr !important; }
@@ -776,11 +938,14 @@ $slugify = function($name) {
     <main class="container">
 
         <?php if (!$selected_desa && !empty($desa_stats)): ?>
-        <!-- ===== DESA TABLE ===== -->
+        <!-- ===== DESA TABLE (mengikuti sumber aktif) ===== -->
         <section class="block" style="padding-bottom: 1.5rem;">
             <div class="section-head">
                 <h2>Desa di Kecamatan <?= esc($kecNama) ?></h2>
-                <span class="crumb">Klik desa untuk melihat detail</span>
+                <span class="crumb">
+                    <span class="tag <?= esc($sumberBadge['cls']) ?>"><i class="bi <?= esc($sumberBadge['icon']) ?>"></i><?= esc($sumberBadge['label']) ?></span>
+                    Klik desa untuk melihat detail
+                </span>
             </div>
             <div class="desa-section">
                 <div class="desa-search-bar">
@@ -794,13 +959,16 @@ $slugify = function($name) {
                                 <th>Nama Desa</th>
                                 <th class="num">Total Jiwa</th>
                                 <th class="num">Total KK</th>
-                                <th class="num">Laporan</th>
+                                <th class="num"><?= $profilMode === 'desa' ? 'Laporan' : 'Snapshot' ?></th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($desa_stats as $ds): ?>
-                            <tr onclick="window.location.href='<?= site_url('/' . $kecSlug . '?desa=' . $slugify($ds['nama_desa'])) ?>'">
+                            <?php foreach ($desa_stats as $ds):
+                                $dsSumber = $ds['sumber'] ?? 'desa';
+                                $dsSumberQ = $dsSumber === 'dukcapil' ? '&sumber=dukcapil' : '';
+                            ?>
+                            <tr onclick="window.location.href='<?= site_url('/' . $kecSlug . '?desa=' . $slugify($ds['nama_desa']) . $dsSumberQ) ?>'">
                                 <td>
                                     <span class="desa-link">
                                         <i class="bi bi-geo-alt"></i><?= esc($ds['nama_desa']) ?>
@@ -808,7 +976,7 @@ $slugify = function($name) {
                                 </td>
                                 <td class="num"><?= number_format((int)$ds['total_jiwa_l'] + (int)$ds['total_jiwa_p'], 0, ',', '.') ?></td>
                                 <td class="num"><?= number_format((int)$ds['total_kk'], 0, ',', '.') ?></td>
-                                <td class="num"><span class="rt-pill"><?= (int)$ds['rt_count'] ?> laporan</span></td>
+                                <td class="num"><span class="rt-pill"><?= (int)$ds['rt_count'] ?> <?= $dsSumber === 'dukcapil' ? 'snapshot' : 'laporan' ?></span></td>
                                 <td class="num"><i class="bi bi-chevron-right text-muted"></i></td>
                             </tr>
                             <?php endforeach; ?>
@@ -884,7 +1052,39 @@ $slugify = function($name) {
                     <div class="icon-circle tone-green"><i class="bi bi-heart-pulse-fill"></i></div>
                     <div class="label">PUS</div>
                     <div class="value"><?= number_format($pus, 0, ',', '.') ?></div>
-                    <div class="sub">Pasangan Usia Subur · Laporan Desa</div>
+                    <div class="sub">Pasangan Usia Subur · Sumber: <?= esc($sumberShort) ?></div>
+                </div>
+            </div>
+
+            <div class="section-head" style="margin-top:.5rem;">
+                <h2 style="font-size:1.15rem;">Indikator Turunan</h2>
+                <span class="crumb">Dihitung dari piramida usia &amp; jumlah KK · <strong><?= esc($pendudukKey) ?></strong></span>
+            </div>
+            <div class="stat-grid">
+                <div class="stat-card alt-blue">
+                    <div class="icon-circle tone-blue"><i class="bi bi-gender-ambiguous"></i></div>
+                    <div class="label">Rasio Jenis Kelamin</div>
+                    <div class="value"><?= $sexRatio !== null ? number_format($sexRatio, 1, ',', '.') : '—' ?></div>
+                    <div class="sub">laki-laki per 100 perempuan</div>
+                </div>
+                <div class="stat-card alt-pink">
+                    <div class="icon-circle tone-pink"><i class="bi bi-diagram-3"></i></div>
+                    <div class="label">Rasio Ketergantungan</div>
+                    <div class="value"><?= $depRatio !== null ? number_format($depRatio, 1, ',', '.') : '—' ?><span class="unit">%</span></div>
+                    <div class="sub">usia non-produktif per 100 produktif</div>
+                </div>
+                <div class="stat-card alt-green">
+                    <div class="icon-circle tone-green"><i class="bi bi-briefcase"></i></div>
+                    <div class="label">Usia Produktif</div>
+                    <div class="value"><?= $produktifPct !== null ? number_format($produktifPct, 1, ',', '.') : '—' ?><span class="unit">%</span></div>
+                    <div class="sub"><?= $produktif !== null ? $fmt($produktif) . ' jiwa (15–64 th)' : 'data usia belum tersedia' ?></div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon-circle tone-primary"><i class="bi bi-house-check"></i></div>
+                    <div class="label">Cakupan KK Fisik</div>
+                    <div class="value"><?= $kkFisikPct !== null ? number_format($kkFisikPct, 1, ',', '.') : '—' ?><span class="unit">%</span></div>
+                    <div class="meter" role="progressbar" aria-valuenow="<?= $kkFisikPct !== null ? (int) round($kkFisikPct) : 0 ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Cakupan kepemilikan kartu keluarga"><span style="width: <?= $kkFisikPct !== null ? min(100, max(0, $kkFisikPct)) : 0 ?>%"></span></div>
+                    <div class="sub"><?= $fmt($kkFisikVal) ?> dari <?= $fmt($kkTotal) ?> KK · Rata-rata <?= $jiwaPerKk !== null ? number_format($jiwaPerKk, 2, ',', '.') : '—' ?> jiwa/KK</div>
                 </div>
             </div>
 
@@ -892,7 +1092,18 @@ $slugify = function($name) {
                 <i class="bi bi-info-circle-fill info-icon"></i>
                 <div>
                     <h4>Skop data: <strong><?= esc($pendudukKey) ?></strong></h4>
-                    <p>Data diturunkan dari laporan agregat desa yang diinput oleh admin desa. Klik desa pada tabel di atas untuk mempersempit lingkup data.</p>
+                    <p>
+                        <?php if ($profilMode === 'dukcapil'): ?>
+                            Data bersumber dari snapshot resmi <strong>Dukcapil Kab. Tanah Laut</strong> (DKB Semester <?= esc($romawiSemester((int) ($profilMeta['semester'] ?? 1))) ?> <?= (int) ($profilMeta['tahun'] ?? 2026) ?>).
+                            <span class="src-official"><?= esc($dkbLabel) ?></span>
+                        <?php elseif ($profilMode === 'campuran'): ?>
+                            Data gabungan: laporan desa untuk desa yang sudah lapor, snapshot Dukcapil untuk sisanya.
+                            <span class="src-official"><?= esc($dkbLabel) ?></span>
+                        <?php else: ?>
+                            Data diturunkan dari laporan agregat desa yang diinput oleh admin desa.
+                        <?php endif; ?>
+                        Klik desa pada tabel di atas untuk mempersempit lingkup data. Peta memakai sumber angka yang sama dengan kartu profil.
+                    </p>
                 </div>
             </div>
         </section>
@@ -1141,11 +1352,29 @@ $slugify = function($name) {
                                 <div class="chart-head">
                                     <div>
                                         <h3>Dokumen Kependudukan</h3>
-                                        <p>Kepemilikan KTP-el, akta lahir, akta nikah, KK fisik</p>
+                                        <p>Kepemilikan KTP-el, akta lahir, akta nikah, KK fisik<?= $kelompokAAktif ? ', KIA &amp; akta cerai' : '' ?></p>
                                     </div>
-                                    <span class="badge-nde">4 jenis</span>
+                                    <span class="badge-nde"><?= count($dokumen) ?> jenis</span>
                                 </div>
                                 <div class="chart-wrap"><div id="zc-dokumen" class="zc zc-tall"></div></div>
+                                <?php if ($kelompokAAktif): ?>
+                                    <!-- Penanda provenance: KIA & Akta Cerai selalu dari snapshot Dukcapil -->
+                                    <div class="src-note">
+                                        <i class="bi bi-tags-fill"></i>
+                                        <p>
+                                            <?php if ($profilMode === 'dukcapil'): ?>
+                                                <strong>Semua <?= count($dokumen) ?> indikator</strong> bersumber dari snapshot
+                                                <strong>Dukcapil Kab. Tanah Laut</strong>.
+                                            <?php else: ?>
+                                                <strong>KIA</strong> &amp; <strong>Akta Cerai</strong> bersumber dari snapshot
+                                                <strong>Dukcapil Kab. Tanah Laut</strong>,
+                                                bukan dari <?= $profilMode === 'campuran' ? 'gabungan' : 'laporan desa' ?> seperti
+                                                KTP-el, Akta Lahir, Akta Nikah &amp; KK Fisik. Laporan desa tidak memuat kedua indikator ini.
+                                            <?php endif; ?>
+                                            <span class="src-official"><?= esc($dkbLabel) ?></span>
+                                        </p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -1172,28 +1401,35 @@ $slugify = function($name) {
                                     <td class="dt-num dt-pct"><?= $jknTotal > 0 ? number_format($val / $jknTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
                                 <?php endforeach; ?>
-                                <?php foreach ($dokumen as $label => $val): ?>
+                                <?php foreach ($dokumen as $label => $val):
+                                    $dokSrc = $dokumenSumber[$label] ?? 'utama';
+                                    $dokSrcIsDukcapil = $dokSrc === 'dukcapil';
+                                    $dokSrcLabel = $dokSrcIsDukcapil
+                                        ? 'Dukcapil'
+                                        : ($profilMode === 'dukcapil' ? 'Dukcapil' : ($profilMode === 'campuran' ? 'laporan/Dukcapil' : 'laporan desa'));
+                                    $dokSrcTitle = $dokSrcIsDukcapil ? $dkbLabel : 'Sumber data indikator ini';
+                                ?>
                                 <tr>
                                     <td class="dt-cat">Dokumen</td>
-                                    <td class="dt-sub"><?= esc($label) ?></td>
+                                    <td class="dt-sub"><?= esc($label) ?><span class="src-chip <?= $dokSrcIsDukcapil ? 'dukcapil' : 'desa' ?>" title="<?= esc($dokSrcTitle) ?>"><?= esc($dokSrcLabel) ?></span></td>
                                     <td class="dt-num"><?= $fmt($val) ?></td>
                                     <td class="dt-num dt-pct"><?= $jiwaTotal > 0 ? number_format($val / $jiwaTotal * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
+                                    <td class="dt-cat">KB &amp; PUS · <?= esc(ucfirst($kbSrcLabel)) ?></td>
                                     <td class="dt-sub">KB Aktif</td>
                                     <td class="dt-num"><?= $fmt($kbAktif) ?></td>
                                     <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($kbAktif / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
+                                    <td class="dt-cat">KB &amp; PUS · <?= esc(ucfirst($kbSrcLabel)) ?></td>
                                     <td class="dt-sub">Jumlah PUS</td>
                                     <td class="dt-num"><?= $fmt($pus) ?></td>
                                     <td class="dt-num dt-pct">—</td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
+                                    <td class="dt-cat">KB &amp; PUS · <?= esc(ucfirst($kbSrcLabel)) ?></td>
                                     <td class="dt-sub">Penggunaan Alat Kontrasepsi</td>
                                     <td class="dt-num"><?= $fmt($alatKontra) ?></td>
                                     <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($alatKontra / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
@@ -1211,8 +1447,13 @@ $slugify = function($name) {
         <section class="block">
             <div class="empty-state">
                 <i class="bi bi-inbox"></i>
-                <h3>Belum ada data laporan</h3>
-                <p>Belum ada laporan agregat desa untuk <?= esc($pendudukKey) ?>.</p>
+                <?php if ($profilMode === 'desa'): ?>
+                    <h3>Belum ada data laporan</h3>
+                    <p>Belum ada laporan agregat desa untuk <?= esc($pendudukKey) ?>.</p>
+                <?php else: ?>
+                    <h3>Belum ada data Dukcapil</h3>
+                    <p>Belum ada snapshot Dukcapil untuk <?= esc($pendudukKey) ?>. Coba ganti sumber data ke &ldquo;Laporan Desa&rdquo;.</p>
+                <?php endif; ?>
             </div>
         </section>
 
@@ -1618,6 +1859,9 @@ $slugify = function($name) {
             const filterDesa = <?= json_encode($selected_desa ? $slugify($selected_desa['nama_desa']) : '') ?>;
             const API_MAP_DESA = <?= json_encode(base_url('api/v1/map/desa')) ?>;
             const BASE_URL = <?= json_encode(site_url('/')) ?>;
+            // Sumber aktif → endpoint peta memakai angka yang sama dgn kartu profil.
+            const SUMBER = <?= json_encode($sumberNow) ?>;
+            const SUMBER_QUERY = <?= json_encode($sumberQuery) ?>;
 
             // Mapping SENTRAL label Indonesia -> field snake_case (partials/map_indicators.php)
             const INDICATOR_GROUPS = <?= json_encode($mapIndicatorGroups) ?>;
@@ -1803,7 +2047,7 @@ $slugify = function($name) {
                 });
                 html += '<div class="pk-row"><span>Jiwa L / P</span><b>' + fmt(numVal(d, 'jiwa_l')) + ' / ' + fmt(numVal(d, 'jiwa_p')) + '</b></div>';
                 if (kecSlug && d.slug) {
-                    html += '<a class="pk-link" href="' + BASE_URL + escHtml(kecSlug) + '?desa=' + encodeURIComponent(d.slug) + '">Lihat detail desa →</a>';
+                    html += '<a class="pk-link" href="' + BASE_URL + escHtml(kecSlug) + '?desa=' + encodeURIComponent(d.slug) + escHtml(SUMBER_QUERY) + '">Lihat detail desa →</a>';
                 }
                 return html;
             }
@@ -1815,7 +2059,8 @@ $slugify = function($name) {
             }
 
             // ===== Muat FeatureCollection desa dari endpoint publik =====
-            fetch(API_MAP_DESA + '?id_kecamatan=' + encodeURIComponent(kecId))
+            // Sertakan ?sumber= agar angka peta konsisten dgn kartu profil.
+            fetch(API_MAP_DESA + '?id_kecamatan=' + encodeURIComponent(kecId) + '&sumber=' + encodeURIComponent(SUMBER))
                 .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
                 .then(fc => {
                     if (!fc || !Array.isArray(fc.features) || !fc.features.length) {
@@ -1875,6 +2120,7 @@ $slugify = function($name) {
             // Klik poligon (popup) dan hover highlight ditangani langsung
             // via bindPopup + event layer di onEachDesa.
         })();
+    </script>
     <script>
         (function() {
             var f = document.getElementById('cursorFollower');
