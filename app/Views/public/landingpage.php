@@ -7,9 +7,16 @@ $kkL         = (int)($totals['kk_l'] ?? 0);
 $kkP         = (int)($totals['kk_p'] ?? 0);
 $kkTotal     = $kkL + $kkP;
 $balita      = (int)($totals['balita'] ?? 0);
+$balitaL     = (int)($totals['balita_l'] ?? 0);
+$balitaP     = (int)($totals['balita_p'] ?? 0);
 $remaja      = (int)($totals['remaja'] ?? 0);
+$remajaL     = (int)($totals['remaja_l'] ?? 0);
+$remajaP     = (int)($totals['remaja_p'] ?? 0);
 $lansia      = (int)($totals['lansia'] ?? 0);
+$lansiaL     = (int)($totals['lansia_l'] ?? 0);
+$lansiaP     = (int)($totals['lansia_p'] ?? 0);
 $pus         = (int)($totals['pus'] ?? 0);
+$pusP        = (int)($totals['pus_p'] ?? $pus);
 $kbAktif     = (int)($totals['kb_aktif'] ?? 0);
 $alatKontra  = (int)($totals['alat_kontrasepsi'] ?? 0);
 // ===== Label SKOP dari HASIL RESOLUSI filter wilayah =====
@@ -1751,27 +1758,27 @@ $renderYankbTable = static function (array $data): string {
                                     <td class="dt-num dt-total"><?= $fmt($kkTotal) ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">Balita</td>
-                                    <td class="dt-num">—</td>
-                                    <td class="dt-num">—</td>
+                                    <td class="dt-cat" title="Usia 0–4 tahun">Balita</td>
+                                    <td class="dt-num"><?= $fmt($balitaL) ?></td>
+                                    <td class="dt-num"><?= $fmt($balitaP) ?></td>
                                     <td class="dt-num dt-total"><?= $fmt($balita) ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">Remaja</td>
-                                    <td class="dt-num">—</td>
-                                    <td class="dt-num">—</td>
+                                    <td class="dt-cat" title="Usia 10–19 tahun">Remaja</td>
+                                    <td class="dt-num"><?= $fmt($remajaL) ?></td>
+                                    <td class="dt-num"><?= $fmt($remajaP) ?></td>
                                     <td class="dt-num dt-total"><?= $fmt($remaja) ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">Lansia</td>
-                                    <td class="dt-num">—</td>
-                                    <td class="dt-num">—</td>
+                                    <td class="dt-cat" title="Usia 60 tahun ke atas">Lansia</td>
+                                    <td class="dt-num"><?= $fmt($lansiaL) ?></td>
+                                    <td class="dt-num"><?= $fmt($lansiaP) ?></td>
                                     <td class="dt-num dt-total"><?= $fmt($lansia) ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">PUS</td>
+                                    <td class="dt-cat" title="Perempuan usia 15–49 tahun (proxy pasangan usia subur)">PUS</td>
                                     <td class="dt-num">—</td>
-                                    <td class="dt-num">—</td>
+                                    <td class="dt-num"><?= $fmt($pusP) ?></td>
                                     <td class="dt-num dt-total"><?= $fmt($pus) ?></td>
                                 </tr>
                             </tbody>
@@ -1991,14 +1998,14 @@ $renderYankbTable = static function (array $data): string {
                                 </tr>
                                 <?php endforeach; ?>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
+                                    <td class="dt-cat" title="KB aktif dibagi PUS (perempuan 15–49)">KB &amp; PUS · Laporan Desa</td>
                                     <td class="dt-sub">KB Aktif</td>
                                     <td class="dt-num"><?= $fmt($kbAktif) ?></td>
                                     <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($kbAktif / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS · Laporan Desa</td>
-                                    <td class="dt-sub">Jumlah PUS</td>
+                                    <td class="dt-cat">Kelompok Umur</td>
+                                    <td class="dt-sub">PUS (perempuan 15–49)</td>
                                     <td class="dt-num"><?= $fmt($pus) ?></td>
                                     <td class="dt-num dt-pct">—</td>
                                 </tr>
@@ -2082,6 +2089,73 @@ $renderYankbTable = static function (array $data): string {
                 <span class="ms-auto text-muted">Klik poligon untuk detail</span>
             </div>
             </div>
+
+            <?php if (!empty($map_kecamatan)): ?>
+            <div class="section-head" style="margin-top:1.5rem;">
+                <h2 style="font-size:1.15rem;">Perbandingan Wilayah</h2>
+                <span class="crumb">
+                    Komposisi usia · rasio ketergantungan · cakupan KB ·
+                    <strong><?= count($map_kecamatan) ?></strong> kecamatan · sumber data sama dengan peta
+                </span>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Komposisi Usia per Kecamatan</h3>
+                                <p>Persentase penduduk 0–14 · 15–64 · 65+ (urut total jiwa)</p>
+                            </div>
+                            <span class="badge-nde">3 kelompok</span>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-kec-usia" class="zc"></div></div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Rasio Ketergantungan</h3>
+                                <p>(0–14 + 65+) ÷ 15–64 × 100 per kecamatan</p>
+                            </div>
+                            <span class="badge-nde">Tinggi ke rendah</span>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-kec-dep" class="zc"></div></div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Cakupan KB</h3>
+                                <p>KB aktif ÷ PUS (perempuan 15–49) per kecamatan</p>
+                            </div>
+                            <span class="badge-nde">%</span>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-kec-kb" class="zc"></div></div>
+                    </div>
+                </div>
+                <?php if (!empty($desa_rank_rows)): ?>
+                <div class="col-lg-6">
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <div>
+                                <h3>Desa Terbesar</h3>
+                                <p>10 desa teratas menurut metrik terpilih</p>
+                            </div>
+                            <select id="rank-metric" class="form-select" style="width:auto;" aria-label="Metrik ranking desa">
+                                <option value="jiwa" selected>Total Jiwa</option>
+                                <option value="balita">Balita</option>
+                                <option value="lansia">Lansia</option>
+                                <option value="pus">PUS</option>
+                            </select>
+                        </div>
+                        <div class="chart-wrap"><div id="zc-desa-rank" class="zc"></div></div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </section>
 
         <!-- ===== BAGIAN 3: MONITORING BKKBN (mirror SIGA) ===== -->
@@ -2639,6 +2713,35 @@ $renderYankbTable = static function (array $data): string {
             array_keys($dokumen)
         )) ?>;
 
+        // ===== Perbandingan wilayah (Bagian 2) =====
+        const kecCompare = <?= json_encode(array_map(static fn(array $r): array => [
+            'nama'      => (string) ($r['nama'] ?? ''),
+            'total'     => (int) ($r['total_jiwa'] ?? 0),
+            'anak'      => (int) ($r['jml_anak_0_14'] ?? 0),
+            'produktif' => (int) ($r['jml_produktif'] ?? 0),
+            'lansia65'  => (int) ($r['jml_usia_65_plus'] ?? 0),
+            'kb'        => (int) ($r['kb_aktif'] ?? 0),
+            'pus'       => (int) ($r['jml_pus'] ?? 0),
+        ], $map_kecamatan), JSON_UNESCAPED_UNICODE) ?>;
+        <?php
+        // Label desa + nama kecamatan untuk chart ranking.
+        $kecNamaByKode = [];
+        foreach ($list_kecamatan as $lk) {
+            $p = explode('.', (string) ($lk['kode_kecamatan'] ?? ''));
+            $kecNamaByKode[str_pad((string) (end($p) ?: ''), 3, '0', STR_PAD_LEFT)] = (string) $lk['nama_kecamatan'];
+        }
+        ?>
+        const desaRank = <?= json_encode(array_map(static function (array $r) use ($kecNamaByKode): array {
+            $kec = $kecNamaByKode[(string) ($r['kd_kecamatan'] ?? '')] ?? '';
+            return [
+                'nama'   => trim((string) ($r['nama_desa'] ?? '')) . ($kec !== '' ? ' · ' . $kec : ''),
+                'jiwa'   => (int) ($r['total_jiwa'] ?? 0),
+                'balita' => (int) ($r['jml_balita'] ?? 0),
+                'lansia' => (int) ($r['jml_lansia'] ?? 0),
+                'pus'    => (int) ($r['jml_pus'] ?? 0),
+            ];
+        }, $desa_rank_rows ?? []), JSON_UNESCAPED_UNICODE) ?>;
+
         // ============ TAB POKOK — render langsung (tab aktif) ============
         renderGender = function () {
         zingchart.render({
@@ -2682,6 +2785,157 @@ $renderYankbTable = static function (array $data): string {
         });
         };
         renderGender();
+
+        // ============ PERBANDINGAN WILAYAH (Bagian 2) ============
+        const pctOf = (v, t) => t > 0 ? Math.round((v / t) * 1000) / 10 : 0;
+
+        if (kecCompare.length) {
+            const byTotal = kecCompare.slice().sort((a, b) => b.total - a.total);
+            // ZingChart hbar menggambar nilai pertama di BOTTOM. Balik urutan
+            // tampilan supaya terbesar di ATAS, terkecil di bawah.
+            const bottomUp = (rows) => rows.slice().reverse();
+            const usiaPlot = bottomUp(byTotal);
+            const namaKec = usiaPlot.map(r => r.nama);
+            const hbarAxis = (names) => ({
+                "scale-x": {
+                    values: names,
+                    item: Object.assign({ "font-size": 10 }, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                },
+                "scale-y": {
+                    format: "%v",
+                    item: Object.assign({}, AX),
+                    guide: GUIDE,
+                    tick: { "line-color": C.border }
+                }
+            });
+
+            // (1) Komposisi usia 0–14 / 15–64 / 65+ (persen, stacked)
+            zingchart.render({
+                id: "zc-kec-usia",
+                height: 420,
+                width: "100%",
+                data: {
+                    type: "hbar",
+                    "background-color": "transparent",
+                    stacked: true,
+                    legend: {
+                        layout: "x2", position: "0% 2%",
+                        "background-color": "none", "border-width": 0,
+                        marker: { "border-radius": 3 },
+                        item: Object.assign({}, AX)
+                    },
+                    plot: {
+                        "bar-width": "80%",
+                        "border-radius": 3,
+                        tooltip: Object.assign({ text: "%t · %scale-key-text: %v%" }, TIP),
+                        animation: { effect: 2, speed: 500 }
+                    },
+                    plotarea: { margin: "50 45 dynamic 130" },
+                    ...hbarAxis(namaKec),
+                    series: [
+                        { text: "0–14",  values: usiaPlot.map(r => pctOf(r.anak, r.total)),      "background-color": C.blue },
+                        { text: "15–64", values: usiaPlot.map(r => pctOf(r.produktif, r.total)), "background-color": C.primary },
+                        { text: "65+",   values: usiaPlot.map(r => pctOf(r.lansia65, r.total)),  "background-color": C.amber }
+                    ]
+                }
+            });
+
+            // (2) Rasio ketergantungan per kecamatan (tinggi → rendah)
+            const depRows = bottomUp(kecCompare
+                .map(r => ({ nama: r.nama, v: r.produktif > 0 ? Math.round(((r.anak + r.lansia65) / r.produktif) * 1000) / 10 : 0 }))
+                .sort((a, b) => b.v - a.v));
+            zingchart.render({
+                id: "zc-kec-dep",
+                height: 420,
+                width: "100%",
+                data: {
+                    type: "hbar",
+                    "background-color": "transparent",
+                    plot: {
+                        "bar-width": "70%",
+                        "border-radius": 4,
+                        tooltip: Object.assign({ text: "%scale-key-text: %v%" }, TIP),
+                        "value-box": { text: "%v%", "font-color": C.ink, "font-size": 10, placement: "right", "offset-x": 6 },
+                        animation: { effect: 2, speed: 500 }
+                    },
+                    plotarea: { margin: "dynamic 55 dynamic 130" },
+                    ...hbarAxis(depRows.map(r => r.nama)),
+                    series: [{ text: "Rasio ketergantungan", values: depRows.map(r => r.v), "background-color": C.primary }]
+                }
+            });
+
+            // (3) Cakupan KB: KB aktif ÷ PUS (perempuan 15–49)
+            const kbRows = bottomUp(kecCompare
+                .map(r => ({ nama: r.nama, v: pctOf(r.kb, r.pus) }))
+                .sort((a, b) => b.v - a.v));
+            zingchart.render({
+                id: "zc-kec-kb",
+                height: 420,
+                width: "100%",
+                data: {
+                    type: "hbar",
+                    "background-color": "transparent",
+                    plot: {
+                        "bar-width": "70%",
+                        "border-radius": 4,
+                        tooltip: Object.assign({ text: "%scale-key-text: %v% dari PUS" }, TIP),
+                        "value-box": { text: "%v%", "font-color": C.ink, "font-size": 10, placement: "right", "offset-x": 6 },
+                        animation: { effect: 2, speed: 500 }
+                    },
+                    plotarea: { margin: "dynamic 55 dynamic 130" },
+                    ...hbarAxis(kbRows.map(r => r.nama)),
+                    series: [{ text: "KB aktif / PUS", values: kbRows.map(r => r.v), "background-color": C.green }]
+                }
+            });
+        }
+
+        // (4) Ranking desa top-10 (metrik bisa diganti)
+        const renderRank = (metric) => {
+            if (!desaRank.length) return;
+            const ranked = desaRank.slice()
+                .sort((a, b) => (b[metric] ?? 0) - (a[metric] ?? 0))
+                .slice(0, 10)
+                .map((r, i) => ({ ...r, label: (i + 1) + ". " + (r.nama.length > 30 ? r.nama.slice(0, 29) + "…" : r.nama) }));
+            // hbar menggambar nilai pertama di bawah → balik agar #1 di atas.
+            const plot = ranked.slice().reverse();
+            zingchart.render({
+                id: "zc-desa-rank",
+                height: 400,
+                width: "100%",
+                data: {
+                    type: "hbar",
+                    "background-color": "transparent",
+                    plot: {
+                        "bar-width": "70%",
+                        "border-radius": 4,
+                        tooltip: Object.assign({ text: "%scale-key-text: %v" }, TIP),
+                        "value-box": { text: "%v", "font-color": C.ink, "font-size": 10, placement: "right", "offset-x": 6 },
+                        animation: { effect: 2, speed: 400 }
+                    },
+                    plotarea: { margin: "dynamic 55 dynamic 220" },
+                    "scale-x": {
+                        values: plot.map(r => r.label),
+                        item: Object.assign({ "font-size": 9 }, AX),
+                        guide: GUIDE,
+                        tick: { "line-color": C.border }
+                    },
+                    "scale-y": {
+                        format: "%v",
+                        item: Object.assign({}, AX),
+                        guide: GUIDE,
+                        tick: { "line-color": C.border }
+                    },
+                    series: [{ text: metric, values: plot.map(r => r[metric] ?? 0), "background-color": C.blue }]
+                }
+            });
+        };
+        renderRank('jiwa');
+        const rankMetric = document.getElementById('rank-metric');
+        if (rankMetric) {
+            rankMetric.addEventListener('change', e => renderRank(e.target.value));
+        }
 
         // ============ LAZY RENDER: hanya saat tab pertama kali dibuka ============
         renderPiramida = function () {

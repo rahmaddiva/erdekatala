@@ -39,6 +39,13 @@ final class PeriodeAgregatTest extends CIUnitTestCase
     /** Subset kolom statistik — cukup untuk membuktikan tidak ada double-count. */
     private const STATS = ['jiwa_l', 'jiwa_p', 'kk_l', 'kk_p', 'jml_balita', 'jml_lansia'];
 
+    /** Kolom piramida (kelompok khusus dihitung dari kolom ini). */
+    private const UMUR = [
+        'u0_4', 'u5_9', 'u10_14', 'u15_19', 'u20_24', 'u25_29', 'u30_34', 'u35_39',
+        'u40_44', 'u45_49', 'u50_54', 'u55_59', 'u60_64', 'u65_69', 'u70_74',
+        'u75_79', 'u80_84', 'u85_atas',
+    ];
+
     private Forge $forge;
 
     protected function setUp(): void
@@ -113,6 +120,10 @@ final class PeriodeAgregatTest extends CIUnitTestCase
         foreach (LaporanAgregatModel::mapIndicatorFields() as $c) {
             $fields[$c] = ['type' => 'INT', 'constraint' => 11, 'null' => true];
         }
+        foreach (self::UMUR as $b) {
+            $fields[$b . '_l'] = ['type' => 'INT', 'constraint' => 11, 'null' => true];
+            $fields[$b . '_p'] = ['type' => 'INT', 'constraint' => 11, 'null' => true];
+        }
 
         return $fields;
     }
@@ -128,6 +139,10 @@ final class PeriodeAgregatTest extends CIUnitTestCase
         ];
         foreach (self::STATS as $c) {
             $fields[$c] = ['type' => 'INT', 'constraint' => 11, 'null' => true];
+        }
+        foreach (self::UMUR as $b) {
+            $fields[$b . '_l'] = ['type' => 'INT', 'constraint' => 11, 'null' => true];
+            $fields[$b . '_p'] = ['type' => 'INT', 'constraint' => 11, 'null' => true];
         }
 
         return $fields;

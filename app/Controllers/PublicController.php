@@ -374,6 +374,11 @@ class PublicController extends BaseController
         // Peta sebaran: ikut filter kecamatan + konsisten dengan sumber aktif.
         $mapKecamatan = $this->buildMapKecamatan($id_kecamatan_filter, $sumberFilter);
         $mapDesa      = $this->buildMapDesa($id_kecamatan_filter, $sumberFilter);
+        // Baris per desa untuk chart ranking — sumber & filter sama dengan peta.
+        // (map_desa hanya terisi saat filter kecamatan aktif; ranking butuh semua.)
+        $desaRankRows = $id_desa_filter
+            ? []
+            : array_values($this->mapRowsPerDesa($id_kecamatan_filter, $sumberFilter));
         $mapSumberLabel = $sumberFilter === 'desa'
             ? 'laporan desa'
             : ($sumberFilter === 'campuran' ? 'gabungan laporan desa + Dukcapil' : 'snapshot Dukcapil');
@@ -401,6 +406,7 @@ class PublicController extends BaseController
             'latestPeriod'    => $latestPeriod,
             'map_kecamatan'   => $mapKecamatan,
             'map_desa'        => $mapDesa,
+            'desa_rank_rows'  => $desaRankRows,
             'map_meta'        => $mapMeta,
             'desa_stats'      => $id_kecamatan_filter ? $this->getDesaStats($id_kecamatan_filter) : [],
             'totals'          => $chart['totals'],

@@ -7,9 +7,16 @@ $kkL        = (int)($totals['kk_l'] ?? 0);
 $kkP        = (int)($totals['kk_p'] ?? 0);
 $kkTotal    = $kkL + $kkP;
 $balita     = (int)($totals['balita'] ?? 0);
+$balitaL    = (int)($totals['balita_l'] ?? 0);
+$balitaP    = (int)($totals['balita_p'] ?? 0);
 $remaja     = (int)($totals['remaja'] ?? 0);
+$remajaL    = (int)($totals['remaja_l'] ?? 0);
+$remajaP    = (int)($totals['remaja_p'] ?? 0);
 $lansia     = (int)($totals['lansia'] ?? 0);
+$lansiaL    = (int)($totals['lansia_l'] ?? 0);
+$lansiaP    = (int)($totals['lansia_p'] ?? 0);
 $pus        = (int)($totals['pus'] ?? 0);
+$pusP       = (int)($totals['pus_p'] ?? $pus);
 $kbAktif    = (int)($totals['kb_aktif'] ?? 0);
 $alatKontra = (int)($totals['alat_kontrasepsi'] ?? 0);
 
@@ -50,11 +57,8 @@ $dokumenSumber   = $profilMeta['dokumen_sumber'] ?? [];
 $kelompokAAktif  = !empty($profilMeta['kelompok_a_aktif']) && isset($dokumen['KIA'], $dokumen['Akta Cerai']);
 $dokumenCampuran = $kelompokAAktif && $profilMode !== 'dukcapil';
 
-// Label sumber untuk teks jujur (stat-card, tabel, catatan, peta).
-$sumberShort = $profilMode === 'dukcapil'
-    ? 'Dukcapil'
-    : ($profilMode === 'campuran' ? 'gabungan laporan desa + Dukcapil' : 'laporan desa');
-// Kolom KB & PUS (jml_pus/kb_aktif/alat kontrasepsi) ada di KEDUA sumber.
+// KB Aktif & alat kontrasepsi ada di KEDUA sumber; PUS diturunkan dari
+// piramida umur (perempuan 15–49), bukan dari kolom jml_pus input desa.
 $kbSrcLabel  = $profilMode === 'dukcapil'
     ? 'Dukcapil'
     : ($profilMode === 'campuran' ? 'laporan/Dukcapil' : 'laporan desa');
@@ -1046,13 +1050,13 @@ $slugify = function($name) {
                     <div class="icon-circle tone-pink"><i class="bi bi-balloon-fill"></i></div>
                     <div class="label">Balita</div>
                     <div class="value"><?= number_format($balita, 0, ',', '.') ?></div>
-                    <div class="sub">Usia 0-5 tahun</div>
+                    <div class="sub">Usia 0–4 tahun</div>
                 </div>
                 <div class="stat-card alt-green">
                     <div class="icon-circle tone-green"><i class="bi bi-heart-pulse-fill"></i></div>
                     <div class="label">PUS</div>
                     <div class="value"><?= number_format($pus, 0, ',', '.') ?></div>
-                    <div class="sub">Pasangan Usia Subur · Sumber: <?= esc($sumberShort) ?></div>
+                    <div class="sub">Perempuan 15–49 tahun · dari piramida umur</div>
                 </div>
             </div>
 
@@ -1179,27 +1183,27 @@ $slugify = function($name) {
                                     <td class="dt-num dt-total"><?= $fmt($kkTotal) ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">Balita</td>
-                                    <td class="dt-num">—</td>
-                                    <td class="dt-num">—</td>
+                                    <td class="dt-cat" title="Usia 0–4 tahun">Balita</td>
+                                    <td class="dt-num"><?= $fmt($balitaL) ?></td>
+                                    <td class="dt-num"><?= $fmt($balitaP) ?></td>
                                     <td class="dt-num dt-total"><?= $fmt($balita) ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">Remaja</td>
-                                    <td class="dt-num">—</td>
-                                    <td class="dt-num">—</td>
+                                    <td class="dt-cat" title="Usia 10–19 tahun">Remaja</td>
+                                    <td class="dt-num"><?= $fmt($remajaL) ?></td>
+                                    <td class="dt-num"><?= $fmt($remajaP) ?></td>
                                     <td class="dt-num dt-total"><?= $fmt($remaja) ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">Lansia</td>
-                                    <td class="dt-num">—</td>
-                                    <td class="dt-num">—</td>
+                                    <td class="dt-cat" title="Usia 60 tahun ke atas">Lansia</td>
+                                    <td class="dt-num"><?= $fmt($lansiaL) ?></td>
+                                    <td class="dt-num"><?= $fmt($lansiaP) ?></td>
                                     <td class="dt-num dt-total"><?= $fmt($lansia) ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">PUS</td>
+                                    <td class="dt-cat" title="Perempuan usia 15–49 tahun (proxy pasangan usia subur)">PUS</td>
                                     <td class="dt-num">—</td>
-                                    <td class="dt-num">—</td>
+                                    <td class="dt-num"><?= $fmt($pusP) ?></td>
                                     <td class="dt-num dt-total"><?= $fmt($pus) ?></td>
                                 </tr>
                             </tbody>
@@ -1417,14 +1421,14 @@ $slugify = function($name) {
                                 </tr>
                                 <?php endforeach; ?>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS · <?= esc(ucfirst($kbSrcLabel)) ?></td>
+                                    <td class="dt-cat" title="KB aktif dibagi PUS (perempuan 15–49)">KB &amp; PUS · <?= esc(ucfirst($kbSrcLabel)) ?></td>
                                     <td class="dt-sub">KB Aktif</td>
                                     <td class="dt-num"><?= $fmt($kbAktif) ?></td>
                                     <td class="dt-num dt-pct"><?= $pus > 0 ? number_format($kbAktif / $pus * 100, 1, ',', '.') . '%' : '—' ?></td>
                                 </tr>
                                 <tr>
-                                    <td class="dt-cat">KB &amp; PUS · <?= esc(ucfirst($kbSrcLabel)) ?></td>
-                                    <td class="dt-sub">Jumlah PUS</td>
+                                    <td class="dt-cat">Kelompok Umur</td>
+                                    <td class="dt-sub">PUS (perempuan 15–49)</td>
                                     <td class="dt-num"><?= $fmt($pus) ?></td>
                                     <td class="dt-num dt-pct">—</td>
                                 </tr>

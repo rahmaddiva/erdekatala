@@ -235,11 +235,11 @@
                             <i class="fas fa-baby"></i>
                         </span>
                         <div class="info-box-content">
-                            <span class="info-box-text">Balita (0-5 Tahun)</span>
+                            <span class="info-box-text">Balita (0-4 Tahun)</span>
                             <span class="info-box-number">
                                 <?= number_format($totals['balita']) ?>
                             </span>
-                            <small class="text-muted">Anak usia 0-5 tahun</small>
+                            <small class="text-muted">Anak usia 0-4 tahun</small>
                         </div>
                     </div>
                 </div>
@@ -250,11 +250,11 @@
                             <i class="fas fa-heart"></i>
                         </span>
                         <div class="info-box-content">
-                            <span class="info-box-text">Pasangan Usia Subur</span>
+                            <span class="info-box-text">Perempuan Usia Subur</span>
                             <span class="info-box-number">
                                 <?= number_format($totals['pus']) ?>
                             </span>
-                            <small class="text-muted">PUS aktif</small>
+                            <small class="text-muted">Perempuan 15-49 tahun</small>
                         </div>
                     </div>
                 </div>

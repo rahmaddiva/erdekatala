@@ -247,6 +247,16 @@ class ProfilDukcapilModel extends Model
             $out[$c] = (int) ($row[$c] ?? 0);
         }
 
+        // Kelompok khusus dari piramida umur — definisi sama dengan
+        // LaporanAgregatModel::statsToChartData()/getAggregatedStats().
+        if (array_key_exists('u0_4_l', $out)) {
+            $kel = LaporanAgregatModel::hitungKelompokUmur($out);
+            $out['jml_balita'] = $kel['balita']['total'];
+            $out['jml_remaja'] = $kel['remaja']['total'];
+            $out['jml_lansia'] = $kel['lansia']['total'];
+            $out['jml_pus']    = $kel['pus']['total'];
+        }
+
         return $out;
     }
 
@@ -270,11 +280,12 @@ class ProfilDukcapilModel extends Model
     public function getMapDesa(?int $idKecamatan = null): array
     {
         $fields = LaporanAgregatModel::mapIndicatorFields();
-        $select = ['m_desa.id_desa', 'm_desa.kode_desa', 'kecamatan.kode_kecamatan'];
+        $select = ['m_desa.id_desa', 'm_desa.nama_desa', 'm_desa.kode_desa', 'kecamatan.kode_kecamatan'];
         foreach ($fields as $f) {
             // Kolom di-escape; namanya dari whitelist mapIndicatorFields().
             $esc      = $this->db->protectIdentifiers($f);
-            $select[] = "SUM(lp.{$esc}) AS {$esc}";
+            $expr     = LaporanAgregatModel::kelompokUmurSumExpr($f);
+            $select[] = ($expr ?? "SUM(lp.{$esc})") . " AS {$esc}";
         }
 
         $sub    = $this->latestPerDesaSubquery();
@@ -313,7 +324,8 @@ class ProfilDukcapilModel extends Model
         $select = ['kecamatan.id_kecamatan', 'kecamatan.kode_kecamatan'];
         foreach ($fields as $f) {
             $esc      = $this->db->protectIdentifiers($f);
-            $select[] = "SUM(lp.{$esc}) AS {$esc}";
+            $expr     = LaporanAgregatModel::kelompokUmurSumExpr($f);
+            $select[] = ($expr ?? "SUM(lp.{$esc})") . " AS {$esc}";
         }
 
         $sub    = $this->latestPerDesaSubquery();
@@ -347,6 +359,9 @@ class ProfilDukcapilModel extends Model
         $out = ['kd_kecamatan' => $kdKecamatan];
         if ($kdKelurahan !== null) {
             $out['kd_kelurahan'] = $kdKelurahan;
+        }
+        if (isset($row['nama_desa'])) {
+            $out['nama_desa'] = (string) $row['nama_desa'];
         }
 
         foreach (LaporanAgregatModel::mapIndicatorFields() as $f) {

@@ -477,6 +477,16 @@ class LaporanAgregatModel extends Model
             $out[$c] = (int) ($row[$c] ?? 0);
         }
 
+        // Kelompok khusus: hitung ulang dari piramida umur (definisi sama dengan
+        // statsToChartData) — kolom jml_* input desa tidak dipakai sebagai sumber.
+        if (array_key_exists('u0_4_l', $out)) {
+            $kel = self::hitungKelompokUmur($out);
+            $out['jml_balita'] = $kel['balita']['total'];
+            $out['jml_remaja'] = $kel['remaja']['total'];
+            $out['jml_lansia'] = $kel['lansia']['total'];
+            $out['jml_pus']    = $kel['pus']['total'];
+        }
+
         return $out;
     }
 
@@ -491,6 +501,9 @@ class LaporanAgregatModel extends Model
             'jiwa_l', 'jiwa_p', 'kk_l', 'kk_p',
             // Kelompok umur
             'jml_balita', 'jml_remaja', 'jml_lansia',
+            // Turunan piramida untuk rasio ketergantungan (bukan kolom DB —
+            // dihitung lewat kelompokUmurSumExpr()).
+            'jml_anak_0_14', 'jml_produktif', 'jml_usia_65_plus',
             // Pendidikan (7)
             'kk_pend_tidak_sekolah', 'kk_pend_sd', 'kk_pend_smp', 'kk_pend_sma',
             'kk_pend_diploma', 'kk_pend_s1', 'kk_pend_s2_s3',
@@ -526,7 +539,8 @@ class LaporanAgregatModel extends Model
         foreach ($fields as $f) {
             // Kolom di-escape; namanya dari whitelist mapIndicatorFields().
             $esc      = $this->db->protectIdentifiers($f);
-            $select[] = "SUM(lp.{$esc}) AS {$esc}";
+            $expr     = self::kelompokUmurSumExpr($f); // kelompok khusus dari piramida umur
+            $select[] = ($expr ?? "SUM(lp.{$esc})") . " AS {$esc}";
         }
 
         $sub = $this->latestPerDesaSubquery();
@@ -556,11 +570,12 @@ class LaporanAgregatModel extends Model
     public function getMapDesa(?int $idKecamatan = null): array
     {
         $fields = self::mapIndicatorFields();
-        $select = ['m_desa.id_desa', 'm_desa.kode_desa', 'kecamatan.kode_kecamatan'];
+        $select = ['m_desa.id_desa', 'm_desa.nama_desa', 'm_desa.kode_desa', 'kecamatan.kode_kecamatan'];
         foreach ($fields as $f) {
             // Kolom di-escape; namanya dari whitelist mapIndicatorFields().
             $esc      = $this->db->protectIdentifiers($f);
-            $select[] = "SUM(lp.{$esc}) AS {$esc}";
+            $expr     = self::kelompokUmurSumExpr($f); // kelompok khusus dari piramida umur
+            $select[] = ($expr ?? "SUM(lp.{$esc})") . " AS {$esc}";
         }
 
         $sub     = $this->latestPerDesaSubquery();
@@ -615,6 +630,9 @@ class LaporanAgregatModel extends Model
         if ($kdKelurahan !== null) {
             $out['kd_kelurahan'] = $kdKelurahan;
         }
+        if (isset($row['nama_desa'])) {
+            $out['nama_desa'] = (string) $row['nama_desa'];
+        }
 
         foreach (self::mapIndicatorFields() as $f) {
             $out[$f] = (int) ($row[$f] ?? 0);
@@ -656,15 +674,119 @@ class LaporanAgregatModel extends Model
     }
 
     /**
+     * Definisi BAKU kelompok umur — satu sumber kebenaran untuk balita, remaja,
+     * lansia, dan PUS. Basis: kolom piramida `u*_l`/`u*_p` (kelompok 5-tahunan).
+     *
+     *   balita 0–4, remaja 10–19, lansia 60+, PUS perempuan 15–49.
+     *
+     * PUS = PEREMPUAN usia subur (proxy baku BKKBN untuk pasangan usia subur;
+     * data agregat hanya menyediakan jumlah penduduk per umur & jenis kelamin).
+     *
+     * @return array<string, string[]> key => daftar prefix kolom umur
+     */
+    public static function kelompokUmurBands(): array
+    {
+        return [
+            'balita' => ['u0_4'],
+            'remaja' => ['u10_14', 'u15_19'],
+            'lansia' => ['u60_64', 'u65_69', 'u70_74', 'u75_79', 'u80_84', 'u85_atas'],
+            'pus'    => ['u15_19', 'u20_24', 'u25_29', 'u30_34', 'u35_39', 'u40_44', 'u45_49'],
+        ];
+    }
+
+    /**
+     * Bucket 3 kelompok baku untuk rasio ketergantungan: 0–14, 15–64, 65+.
+     * Nama key = nama field keluaran (bukan kolom DB; dipakai SUM expression).
+     *
+     * @return array<string, string[]> field => daftar prefix kolom umur
+     */
+    public static function usiaBucketBands(): array
+    {
+        return [
+            'jml_anak_0_14'    => ['u0_4', 'u5_9', 'u10_14'],
+            'jml_produktif'    => [
+                'u15_19', 'u20_24', 'u25_29', 'u30_34', 'u35_39',
+                'u40_44', 'u45_49', 'u50_54', 'u55_59', 'u60_64',
+            ],
+            'jml_usia_65_plus' => ['u65_69', 'u70_74', 'u75_79', 'u80_84', 'u85_atas'],
+        ];
+    }
+
+    /**
+     * Ekspresi SUM untuk field kelompok khusus pada query peta. Mengembalikan
+     * null untuk field lain (caller memakai SUM kolom biasa). Definisi rentang
+     * umur tetap satu: kelompokUmurBands() + usiaBucketBands().
+     */
+    public static function kelompokUmurSumExpr(string $field): ?string
+    {
+        $groups = self::kelompokUmurBands() + self::usiaBucketBands();
+
+        foreach ($groups as $key => $bands) {
+            if ($field !== $key && $field !== 'jml_' . $key) {
+                continue;
+            }
+            $parts = [];
+            foreach ($bands as $b) {
+                if ($key !== 'pus') {
+                    $parts[] = "lp.{$b}_l";
+                }
+                $parts[] = "lp.{$b}_p";
+            }
+
+            return 'SUM(' . implode(' + ', $parts) . ')';
+        }
+
+        return null;
+    }
+
+    /**
+     * Hitung kelompok umur dari array statistik/baris yang punya kolom u*_l/u*_p.
+     * Untuk PUS hanya kolom perempuan yang dijumlahkan (l = 0).
+     *
+     * @return array<string, array{l:int, p:int, total:int}>
+     */
+    public static function hitungKelompokUmur(array $s): array
+    {
+        $out = [];
+        foreach (self::kelompokUmurBands() as $key => $bands) {
+            $l = 0;
+            $p = 0;
+            foreach ($bands as $b) {
+                if ($key !== 'pus') {
+                    $l += (int) ($s[$b . '_l'] ?? 0);
+                }
+                $p += (int) ($s[$b . '_p'] ?? 0);
+            }
+            $out[$key] = ['l' => $l, 'p' => $p, 'total' => $l + $p];
+        }
+
+        return $out;
+    }
+
+    /**
      * Helper: extract chart arrays dari single aggregated row
      */
     public static function statsToChartData(array $s): array
     {
+        // Kelompok khusus SELALU diturunkan dari piramida umur, bukan dari kolom
+        // jml_* yang diinput desa (angka itu tidak konsisten antar desa).
+        // Fallback ke jml_* hanya bila array tidak membawa kolom umur sama sekali.
+        $umur = array_key_exists('u0_4_l', $s) ? self::hitungKelompokUmur($s) : null;
+        $kel  = static fn(string $k, string $field, string $sex = 'total') => $umur !== null
+            ? $umur[$k][$sex]
+            : (int) ($s[$field] ?? 0);
+
         $totals = [
             'jiwa_l' => $s['jiwa_l'], 'jiwa_p' => $s['jiwa_p'],
             'kk_l' => $s['kk_l'], 'kk_p' => $s['kk_p'],
-            'balita' => $s['jml_balita'], 'remaja' => $s['jml_remaja'],
-            'lansia' => $s['jml_lansia'], 'pus' => $s['jml_pus'],
+            'balita' => $kel('balita', 'jml_balita'), 'balita_l' => $kel('balita', 'jml_balita', 'l'),
+            'balita_p' => $kel('balita', 'jml_balita', 'p'),
+            'remaja' => $kel('remaja', 'jml_remaja'), 'remaja_l' => $kel('remaja', 'jml_remaja', 'l'),
+            'remaja_p' => $kel('remaja', 'jml_remaja', 'p'),
+            'lansia' => $kel('lansia', 'jml_lansia'), 'lansia_l' => $kel('lansia', 'jml_lansia', 'l'),
+            'lansia_p' => $kel('lansia', 'jml_lansia', 'p'),
+            'pus' => $kel('pus', 'jml_pus'), 'pus_l' => $kel('pus', 'jml_pus', 'l'),
+            'pus_p' => $kel('pus', 'jml_pus', 'p'),
             'kb_aktif' => $s['kb_aktif'], 'alat_kontrasepsi' => $s['jml_penggunaan_alat_kontrasepsi'],
             'bpjs' => $s['pend_bpjs'],
         ];
