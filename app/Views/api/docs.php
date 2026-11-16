@@ -127,16 +127,54 @@
         openapi: "3.0.3",
         info: {
             title: "Erdekatala Public API",
-            version: "1.0.0",
-            description: "API publik untuk mengakses data agregat kependudukan Kabupaten Tanah Laut, Kalimantan Selatan.\n\n**Cara Penggunaan:**\n1. [Daftarkan diri](/api/register) untuk mendapatkan API key gratis\n2. Gunakan API key sebagai Bearer token: `Authorization: Bearer <api_key>`\n3. Atau sebagai query param: `?api_key=<api_key>`\n\n**Rate Limit:** 1000 request per hari per API key. Header `X-RateLimit-Remaining` menunjukkan sisa kuota.",
+            version: "1.1.0",
+            description: "API publik untuk mengakses data agregat kependudukan Kabupaten Tanah Laut, Kalimantan Selatan.\n\n**Cara Penggunaan:**\n1. [Daftarkan diri](/api/register) untuk mendapatkan API key gratis\n2. Gunakan API key sebagai Bearer token: `Authorization: Bearer <api_key>`\n3. Atau sebagai query param: `?api_key=<api_key>`\n\n**Sumber data:** default `dukcapil` = snapshot resmi DKB Semester I 2026 (Total Jiwa 378.190). `?sumber=desa` memakai laporan desa; `?sumber=campuran` memakai laporan desa bila ada, Dukcapil bila desa belum lapor. Endpoint peta menerima parameter ini.\n\n**Agregasi:** endpoint rekap & peta memakai **satu baris terbaru per desa** (bukan `SUM` semua periode) agar tidak double-count. Endpoint `/api/v1/laporan` sebaliknya mengembalikan **baris mentah** per desa × periode.\n\n**Kelompok umur:** `balita` 0–4, `remaja` 10–19, `lansia` 60+, `PUS` perempuan 15–49 — diturunkan dari kolom piramida `u*`, bukan dari input desa.\n\n**Rate Limit:** 1000 request per hari per API key. Header respons: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`. Saat kuota habis → HTTP 429.",
             contact: {
                 name: "DP3AP2KB Tanah Laut",
                 url: window.location.origin
             },
             license: { name: "Open Data", url: "https://creativecommons.org/licenses/by/4.0/" }
         },
+        tags: [
+            { name: "Info", description: "Metadata API dan daftar endpoint." },
+            { name: "Wilayah", description: "Daftar kecamatan dan desa." },
+            { name: "Laporan Agregat", description: "Baris laporan mentah per desa dan periode." },
+            { name: "Rekapitulasi", description: "Agregasi satu baris terbaru per desa (tanpa double-count)." },
+            { name: "Peta GeoJSON", description: "Peta tematik publik — tanpa API key." },
+            { name: "Cermin BKKBN", description: "Salinan data SIGA BKKBN (pihak ketiga, cache 30 menit)." }
+        ],
         servers: [{ url: window.location.origin, description: "Production Server" }],
         components: {
+            responses: {
+                Unauthorized: {
+                    description: "API key tidak ada, tidak valid, atau tidak aktif.",
+                    content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } }
+                },
+                RateLimited: {
+                    description: "Kuota harian habis (reset tengah malam).",
+                    content: { "application/json": { schema: {
+                        type: "object",
+                        properties: {
+                            status:  { type: "string", example: "error" },
+                            code:    { type: "integer", example: 429 },
+                            message: { type: "string" },
+                            limit:   { type: "integer", example: 1000 },
+                            used:    { type: "integer", example: 1000 },
+                            reset:   { type: "string", format: "date", example: "2026-11-17" }
+                        }
+                    }}}
+                },
+                ValidationError: {
+                    description: "Parameter query tidak valid.",
+                    content: { "application/json": { schema: {
+                        type: "object",
+                        properties: {
+                            status:  { type: "string", example: "error" },
+                            message: { type: "string", example: "Parameter id_kecamatan harus berupa angka positif." }
+                        }
+                    }}}
+                }
+            },
             securitySchemes: {
                 BearerAuth: {
                     type: "http", scheme: "bearer",
@@ -158,28 +196,33 @@
                 },
                 Kecamatan: {
                     type: "object",
+                    description: "Baris tabel kecamatan. Endpoint mengembalikan seluruh kolomnya, termasuk profil publik (slug, deskripsi, kontak, is_public).",
                     properties: {
-                        id_kecamatan:   { type: "integer", example: 1 },
+                        id_kecamatan:   { type: "integer", example: 4 },
                         nama_kecamatan: { type: "string",  example: "Kurau" },
-                        kode_kecamatan: { type: "string",  example: "6307010" }
+                        kode_kecamatan: { type: "string",  example: "63.01.04", description: "Format BPS bertitik" },
+                        slug:           { type: "string",  example: "kurau" },
+                        is_public:      { type: "integer", example: 1, description: "0 = halaman publik disembunyikan" }
                     }
                 },
                 Desa: {
                     type: "object",
+                    description: "Baris tabel m_desa (seluruh kolom, termasuk koordinat) + nama_kecamatan hasil join.",
                     properties: {
                         id_desa:        { type: "integer", example: 1 },
-                        id_kecamatan:   { type: "integer", example: 1 },
+                        id_kecamatan:   { type: "integer", example: 4 },
                         nama_desa:      { type: "string",  example: "Kurau" },
-                        kode_desa:      { type: "string",  example: "6307010001" },
+                        kode_desa:      { type: "string",  example: "63.01.04.2001", description: "Format BPS bertitik" },
                         nama_kecamatan: { type: "string",  example: "Kurau" }
                     }
                 },
                 LaporanAgregat: {
                     type: "object",
+                    description: "BARIS MENTAH laporan desa (satu baris per desa × bulan × tahun) — bukan hasil agregasi. Endpoint mengembalikan seluruh ~80 kolom statistik; contoh di bawah hanya kolom utama. `jml_*` di sini adalah nilai yang diinput/diimpor, bukan turunan piramida.",
                     properties: {
                         id_laporan:     { type: "integer" },
-                        bulan:          { type: "integer", example: 1, description: "1-12" },
-                        tahun:          { type: "integer", example: 2025 },
+                        bulan:          { type: "integer", example: 6, description: "1-12" },
+                        tahun:          { type: "integer", example: 2026 },
                         id_desa:        { type: "integer", example: 1 },
                         nama_desa:      { type: "string",  example: "Kurau" },
                         nama_kecamatan: { type: "string",  example: "Kurau" },
@@ -187,11 +230,11 @@
                         jiwa_p:         { type: "integer", description: "Jumlah jiwa perempuan" },
                         kk_l:           { type: "integer", description: "Kepala keluarga laki-laki" },
                         kk_p:           { type: "integer", description: "Kepala keluarga perempuan" },
-                        jml_balita:     { type: "integer" },
-                        jml_remaja:     { type: "integer" },
-                        jml_lansia:     { type: "integer" },
+                        jml_balita:     { type: "integer", description: "Nilai input desa; endpoint rekap/peta menghitung 0–4 dari kolom umur" },
+                        jml_remaja:     { type: "integer", description: "Nilai input desa; definisi baku 10–19" },
+                        jml_lansia:     { type: "integer", description: "Nilai input desa; definisi baku 60+" },
                         kb_aktif:       { type: "integer" },
-                        jml_pus:        { type: "integer" },
+                        jml_pus:        { type: "integer", description: "Nilai input desa; endpoint rekap/peta memakai PUS = perempuan 15–49" },
                         pus_pbi:        { type: "integer", description: "BPJS PBI" },
                         pus_non_pbi:    { type: "integer", description: "BPJS Non-PBI" },
                         non_jkn:        { type: "integer", description: "Tidak ber-JKN" }
@@ -199,21 +242,57 @@
                 },
                 RekapKecamatan: {
                     type: "object",
+                    description: "Agregasi satu baris terbaru per desa. `total_balita` = 0–4 dan `total_pus` = perempuan 15–49, keduanya diturunkan dari kolom piramida umur.",
                     properties: {
                         nama_kecamatan: { type: "string",  example: "Kurau" },
-                        total_jiwa:     { type: "integer" },
-                        total_kk:       { type: "integer" },
-                        total_balita:   { type: "integer" },
-                        total_pus:      { type: "integer" },
-                        total_jiwa_l:   { type: "integer" },
-                        total_jiwa_p:   { type: "integer" }
+                        total_jiwa:     { type: "integer", example: 14995 },
+                        total_kk:       { type: "integer", example: 5407 },
+                        total_balita:   { type: "integer", example: 957 },
+                        total_pus:      { type: "integer", example: 3967 },
+                        total_jiwa_l:   { type: "integer", example: 7573 },
+                        total_jiwa_p:   { type: "integer", example: 7422 }
+                    }
+                },
+                RekapDesa: {
+                    type: "object",
+                    description: "Agregasi satu baris terbaru per desa dalam satu kecamatan. Semantik balita/PUS sama dengan RekapKecamatan.",
+                    properties: {
+                        id_desa:      { type: "integer", example: 1 },
+                        nama_desa:    { type: "string",  example: "Kurau" },
+                        total_jiwa:   { type: "integer" },
+                        total_kk:     { type: "integer" },
+                        total_balita: { type: "integer" },
+                        total_pus:    { type: "integer" },
+                        total_jiwa_l: { type: "integer" },
+                        total_jiwa_p: { type: "integer" }
+                    }
+                },
+                BkkbnMirror: {
+                    type: "object",
+                    description: "Cermin SIGA BKKBN (pihak ketiga, cache 30 menit). `error` bernilai null saat sukses; bila gateway BKKBN gagal, pesan error diisi sambil tetap mengembalikan cache lama. Angka BUKAN data Erdekatala — sertakan label sumber.",
+                    properties: {
+                        status:     { type: "string", example: "ok" },
+                        sumber:     { type: "string", example: "BKKBN (SIGA gateway), cache 30 menit — bukan data Erdekatala" },
+                        tahun:      { type: "integer", example: 2026 },
+                        bulan:      { type: "integer", nullable: true, example: 8 },
+                        report:     { type: "string", nullable: true, example: "Tabel1" },
+                        updated_at: { type: "string", nullable: true, description: "Waktu cache terakhir diperbarui." },
+                        error:      { type: "string", nullable: true, example: null },
+                        defs:       { type: "object", description: "Definisi kolom (khusus endpoint dallap)." },
+                        data: {
+                            type: "array",
+                            items: { type: "object" },
+                            description: "Baris per kecamatan; endpoint krs menambahkan baris kabupaten."
+                        }
                     }
                 },
                 GeojsonFeatureCollection: {
                     type: "object",
-                    description: "FeatureCollection GeoJSON standar (RFC 7946). Setiap feature membawa properti wilayah asli (kd_kecamatan, nm_kecamatan / kd_kelurahan, nm_kelurahan) ditambah field indikator statistik gabungan (jiwa, KK, pendidikan, pekerjaan, JKN, dokumen adminduk, status kawin, kelompok umur, KB & PUS). Wilayah tanpa laporan tetap memiliki semua field indikator dengan nilai 0.",
+                    description: "FeatureCollection GeoJSON standar (RFC 7946) + foreign member `sumber` dan `sumber_label` di level koleksi. Setiap feature membawa properti wilayah asli (kd_kecamatan, nm_kecamatan / kd_kelurahan, nm_kelurahan, nama_desa untuk peta desa) ditambah ±40 field indikator statistik gabungan (satu baris terbaru per desa): jiwa, KK, kelompok umur (termasuk `jml_anak_0_14`, `jml_produktif` 15–64, `jml_usia_65_plus`, `jml_balita`, `jml_remaja`, `jml_lansia`, `jml_pus`), pendidikan, pekerjaan, status kawin, dokumen adminduk, JKN/BPJS, serta KB & PUS. Wilayah tanpa data tetap memiliki semua field indikator dengan nilai 0.",
                     properties: {
                         type: { type: "string", example: "FeatureCollection" },
+                        sumber: { type: "string", enum: ["desa", "dukcapil", "campuran"], example: "dukcapil" },
+                        sumber_label: { type: "string", example: "* Sumber data adalah Data Konsolidasi Bersih (DKB) Semester I Tahun 2026" },
                         features: {
                             type: "array",
                             items: {
@@ -223,15 +302,23 @@
                                     geometry: { type: "object", description: "Polygon/MultiPolygon geometri wilayah" },
                                     properties: {
                                         type: "object",
-                                        description: "Contoh: kd_kecamatan, nm_kecamatan, total_jiwa, total_kk, jiwa_l, jiwa_p, kk_pend_sd, kk_ker_tani, pend_bpjs, jml_balita, jml_lansia, kb_aktif, jml_pus, dll. (30+ indikator)",
+                                        description: "Properti wilayah + indikator. Contoh kunci: kd_kecamatan, nm_kecamatan, total_jiwa, total_kk, jiwa_l, jiwa_p, jml_anak_0_14, jml_produktif, jml_usia_65_plus, jml_balita, jml_remaja, jml_lansia, jml_pus, kb_aktif, kk_pend_sd, kk_ker_tani, pend_bpjs, dok_kia. Peta desa juga memuat `nama_desa`.",
                                         example: {
-                                            kd_kecamatan: "006",
+                                            kd_kecamatan: "004",
                                             nm_kecamatan: "KURAU",
-                                            total_jiwa: 15000,
-                                            total_kk: 4500,
-                                            jml_balita: 1200,
+                                            nama_desa: "Kurau",
+                                            total_jiwa: 14995,
+                                            total_kk: 5407,
+                                            jml_anak_0_14: 3494,
+                                            jml_produktif: 10484,
+                                            jml_usia_65_plus: 1017,
+                                            jml_balita: 957,
+                                            jml_remaja: 2492,
+                                            jml_lansia: 1593,
+                                            jml_pus: 3967,
+                                            kb_aktif: 3512,
                                             kk_pend_sd: 900,
-                                            pend_bpjs: 8000
+                                            pend_bpjs: 11996
                                         }
                                     }
                                 }
@@ -250,8 +337,22 @@
                     description: "Menampilkan informasi umum API dan daftar endpoint tersedia.",
                     security: [{ BearerAuth: [] }],
                     responses: {
-                        "200": { description: "OK", content: { "application/json": { schema: { type: "object" } } } },
-                        "401": { description: "API key tidak valid", content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } } }
+                        "200": {
+                            description: "OK",
+                            content: { "application/json": { schema: {
+                                type: "object",
+                                properties: {
+                                    status:      { type: "string", example: "ok" },
+                                    api:         { type: "string", example: "Erdekatala Public API" },
+                                    version:     { type: "string", example: "v1" },
+                                    description: { type: "string" },
+                                    docs:        { type: "string", format: "uri" },
+                                    endpoints:   { type: "object", description: "Peta endpoint → deskripsi singkat." }
+                                }
+                            }}}
+                        },
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" }
                     }
                 }
             },
@@ -259,7 +360,7 @@
                 get: {
                     tags: ["Wilayah"],
                     summary: "Daftar Kecamatan",
-                    description: "Mengembalikan semua kecamatan di Kabupaten Tanah Laut.",
+                    description: "Mengembalikan semua kecamatan di Kabupaten Tanah Laut beserta seluruh kolomnya (termasuk slug/profil publik).",
                     security: [{ BearerAuth: [] }],
                     responses: {
                         "200": {
@@ -273,7 +374,8 @@
                                 }
                             }}}
                         },
-                        "401": { description: "Unauthorized" }
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" }
                     }
                 }
             },
@@ -281,12 +383,12 @@
                 get: {
                     tags: ["Wilayah"],
                     summary: "Daftar Desa",
-                    description: "Mengembalikan daftar desa. Bisa difilter per kecamatan.",
+                    description: "Mengembalikan daftar desa (seluruh kolom `m_desa` + `nama_kecamatan`). Bisa difilter per kecamatan.",
                     security: [{ BearerAuth: [] }],
                     parameters: [{
                         name: "id_kecamatan", in: "query", required: false,
-                        description: "Filter berdasarkan ID kecamatan",
-                        schema: { type: "integer" }
+                        description: "Filter berdasarkan ID kecamatan (integer positif)",
+                        schema: { type: "integer", minimum: 1 }
                     }],
                     responses: {
                         "200": {
@@ -300,7 +402,8 @@
                                 }
                             }}}
                         },
-                        "401": { description: "Unauthorized" }
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" }
                     }
                 }
             },
@@ -308,15 +411,15 @@
                 get: {
                     tags: ["Laporan Agregat"],
                     summary: "Data Laporan Agregat",
-                    description: "Mengambil data laporan agregat per Desa. Mendukung filter dan paginasi.",
+                    description: "Mengambil **baris mentah** laporan desa (satu baris per desa × bulan × tahun), diurutkan periode terbaru. Bukan hasil agregasi — desa bisa punya banyak periode. Gunakan endpoint rekap/peta untuk angka 'satu baris terbaru per desa'. Filter tidak valid diabaikan (dianggap tidak difilter).",
                     security: [{ BearerAuth: [] }],
                     parameters: [
-                        { name: "id_kecamatan", in: "query", schema: { type: "integer" }, description: "Filter kecamatan" },
-                        { name: "id_desa",      in: "query", schema: { type: "integer" }, description: "Filter desa" },
+                        { name: "id_kecamatan", in: "query", schema: { type: "integer", minimum: 1 }, description: "Filter kecamatan" },
+                        { name: "id_desa",      in: "query", schema: { type: "integer", minimum: 1 }, description: "Filter desa" },
                         { name: "bulan",        in: "query", schema: { type: "integer", minimum: 1, maximum: 12 }, description: "Filter bulan (1-12)" },
-                        { name: "tahun",        in: "query", schema: { type: "integer" }, description: "Filter tahun (misal: 2025)" },
-                        { name: "page",         in: "query", schema: { type: "integer", default: 1 }, description: "Halaman" },
-                        { name: "per_page",     in: "query", schema: { type: "integer", default: 100, maximum: 500 }, description: "Jumlah data per halaman (maks 500)" }
+                        { name: "tahun",        in: "query", schema: { type: "integer", minimum: 2000, maximum: 2100 }, description: "Filter tahun (2000-2100)" },
+                        { name: "page",         in: "query", schema: { type: "integer", minimum: 1, default: 1 }, description: "Halaman" },
+                        { name: "per_page",     in: "query", schema: { type: "integer", minimum: 10, maximum: 500, default: 100 }, description: "Jumlah data per halaman (10-500)" }
                     ],
                     responses: {
                         "200": {
@@ -333,7 +436,8 @@
                                 }
                             }}}
                         },
-                        "401": { description: "Unauthorized" }
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" }
                     }
                 }
             },
@@ -341,7 +445,7 @@
                 get: {
                     tags: ["Rekapitulasi"],
                     summary: "Rekap per Kecamatan",
-                    description: "Mengembalikan rekapitulasi total jiwa, KK, balita, dan PUS per kecamatan.",
+                    description: "Rekapitulasi per kecamatan memakai **satu baris terbaru per desa** (tanpa double-count periode). `total_balita` dihitung dari umur 0–4 dan `total_pus` dari perempuan 15–49 (kolom piramida, bukan `jml_*` input desa).",
                     security: [{ BearerAuth: [] }],
                     responses: {
                         "200": {
@@ -355,7 +459,8 @@
                                 }
                             }}}
                         },
-                        "401": { description: "Unauthorized" }
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" }
                     }
                 }
             },
@@ -363,17 +468,28 @@
                 get: {
                     tags: ["Rekapitulasi"],
                     summary: "Rekap per Desa",
-                    description: "Rekapitulasi per desa dalam satu kecamatan.",
+                    description: "Rekapitulasi per desa dalam satu kecamatan, memakai **satu baris terbaru per desa**. Semantik balita/PUS sama dengan rekap kecamatan.",
                     security: [{ BearerAuth: [] }],
                     parameters: [{
                         name: "id_kecamatan", in: "query", required: true,
-                        description: "ID kecamatan (wajib)",
-                        schema: { type: "integer" }
+                        description: "ID kecamatan (wajib, integer positif)",
+                        schema: { type: "integer", minimum: 1 }
                     }],
                     responses: {
-                        "200": { description: "OK" },
-                        "401": { description: "Unauthorized" },
-                        "422": { description: "Parameter id_kecamatan wajib diisi" }
+                        "200": {
+                            description: "OK",
+                            content: { "application/json": { schema: {
+                                type: "object",
+                                properties: {
+                                    status: { type: "string" },
+                                    total:  { type: "integer" },
+                                    data:   { type: "array", items: { "$ref": "#/components/schemas/RekapDesa" } }
+                                }
+                            }}}
+                        },
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" },
+                        "422": { "$ref": "#/components/responses/ValidationError" }
                     }
                 }
             },
@@ -381,8 +497,13 @@
                 get: {
                     tags: ["Peta GeoJSON"],
                     summary: "GeoJSON Peta Kecamatan + Statistik",
-                    description: "**PUBLIK — tanpa API key.**\n\nMengembalikan FeatureCollection GeoJSON batas seluruh kecamatan di Kabupaten Tanah Laut dengan indikator statistik gabungan (jiwa, KK, pendidikan, pekerjaan, JKN/BPJS, dokumen adminduk, status kawin, kelompok umur, KB & PUS) digabungkan ke `properties` tiap feature. Cocok untuk langsung dipakai Leaflet `L.geoJSON()` guna membangun peta tematik choropleth. Wilayah tanpa laporan tetap tampil dengan nilai indikator 0.",
+                    description: "**PUBLIK — tanpa API key.**\n\nMengembalikan FeatureCollection GeoJSON batas seluruh kecamatan dengan indikator statistik gabungan (satu baris terbaru per desa) di `properties` tiap feature, plus foreign member `sumber` & `sumber_label` di level koleksi. Indikator mencakup jiwa/KK, kelompok umur (`jml_anak_0_14`, `jml_produktif`, `jml_usia_65_plus`, `jml_balita`, `jml_remaja`, `jml_lansia`, `jml_pus`), pendidikan, pekerjaan, status kawin, dokumen adminduk, JKN/BPJS, KB & PUS. Wilayah tanpa data tetap tampil dengan indikator 0. Cocok untuk Leaflet `L.geoJSON()`.",
                     security: [],
+                    parameters: [{
+                        name: "sumber", in: "query", required: false,
+                        description: "Sumber angka: `dukcapil` (default, snapshot DKB Semester I 2026), `desa` (laporan desa), atau `campuran` (laporan desa menimpa Dukcapil per desa). Nilai tak dikenal → default.",
+                        schema: { type: "string", enum: ["desa", "dukcapil", "campuran"], default: "dukcapil" }
+                    }],
                     responses: {
                         "200": {
                             description: "FeatureCollection GeoJSON (11 fitur kecamatan)",
@@ -396,19 +517,26 @@
                 get: {
                     tags: ["Peta GeoJSON"],
                     summary: "GeoJSON Peta Desa + Statistik",
-                    description: "**PUBLIK — tanpa API key.**\n\nMengembalikan FeatureCollection GeoJSON batas desa dengan indikator statistik gabungan (sama seperti endpoint kecamatan) digabungkan ke `properties` tiap feature. Tanpa filter: semua desa di kabupaten. Dengan `?id_kecamatan=`: hanya desa di kecamatan tersebut. Kecamatan valid tanpa data laporan tetap mengembalikan features dengan indikator 0; tanpa file peta sama sekali → `features: []`.",
+                    description: "**PUBLIK — tanpa API key.**\n\nFeatureCollection GeoJSON batas desa + indikator statistik gabungan (satu baris terbaru per desa) di `properties`, termasuk `nama_desa`; foreign member `sumber` & `sumber_label` ada di level koleksi. Tanpa filter: semua desa. Dengan `?id_kecamatan=`: hanya desa di kecamatan itu. Kecamatan valid tanpa data → features dengan indikator 0; file peta tidak ada → `features: []`.",
                     security: [],
-                    parameters: [{
-                        name: "id_kecamatan", in: "query", required: false,
-                        description: "Filter berdasarkan ID kecamatan (integer positif, opsional)",
-                        schema: { type: "integer" }
-                    }],
+                    parameters: [
+                        {
+                            name: "id_kecamatan", in: "query", required: false,
+                            description: "Filter berdasarkan ID kecamatan (integer positif, opsional)",
+                            schema: { type: "integer", minimum: 1 }
+                        },
+                        {
+                            name: "sumber", in: "query", required: false,
+                            description: "Sumber angka: `dukcapil` (default), `desa`, atau `campuran`. Nilai tak dikenal → default.",
+                            schema: { type: "string", enum: ["desa", "dukcapil", "campuran"], default: "dukcapil" }
+                        }
+                    ],
                     responses: {
                         "200": {
                             description: "FeatureCollection GeoJSON per desa",
                             content: { "application/geo+json": { schema: { "$ref": "#/components/schemas/GeojsonFeatureCollection" } } }
                         },
-                        "422": { description: "Parameter id_kecamatan tidak valid", content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } } },
+                        "422": { "$ref": "#/components/responses/ValidationError" },
                         "500": { description: "File peta tidak dapat dibaca", content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } } }
                     }
                 }
@@ -421,13 +549,17 @@
                     security: [{ BearerAuth: [] }],
                     parameters: [{
                         name: "tahun", in: "query", required: false,
-                        description: "Tahun (default 2026)",
-                        schema: { type: "integer", default: 2026 }
+                        description: "Tahun (2000-2100, default 2026)",
+                        schema: { type: "integer", minimum: 2000, maximum: 2100, default: 2026 }
                     }],
                     responses: {
-                        "200": { description: "OK" },
-                        "401": { description: "Unauthorized" },
-                        "422": { description: "Parameter tahun tidak valid" }
+                        "200": {
+                            description: "OK — `data` berisi baris per kecamatan + baris kabupaten.",
+                            content: { "application/json": { schema: { "$ref": "#/components/schemas/BkkbnMirror" } } }
+                        },
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" },
+                        "422": { "$ref": "#/components/responses/ValidationError" }
                     }
                 }
             },
@@ -438,13 +570,17 @@
                     description: "Cermin live matriks Rekap Program Bangga Kencana (8 laporan Dallap: PKB, UPPKA, BKB, BKL, BKR, PIK Remaja, PUS, KB Aktif) per kecamatan dari SIGA gateway BKKBN (cache 30 menit). **Bukan data Erdekatala**.",
                     security: [{ BearerAuth: [] }],
                     parameters: [
-                        { name: "tahun", in: "query", schema: { type: "integer", default: 2026 }, description: "Tahun" },
+                        { name: "tahun", in: "query", schema: { type: "integer", minimum: 2000, maximum: 2100, default: 2026 }, description: "Tahun (2000-2100)" },
                         { name: "bulan", in: "query", schema: { type: "integer", minimum: 1, maximum: 12, default: 8 }, description: "Bulan (1-12)" }
                     ],
                     responses: {
-                        "200": { description: "OK" },
-                        "401": { description: "Unauthorized" },
-                        "422": { description: "Parameter tidak valid" }
+                        "200": {
+                            description: "OK — menyertakan `defs` (definisi kolom) dan `data` (baris per kecamatan).",
+                            content: { "application/json": { schema: { "$ref": "#/components/schemas/BkkbnMirror" } } }
+                        },
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" },
+                        "422": { "$ref": "#/components/responses/ValidationError" }
                     }
                 }
             },
@@ -455,14 +591,18 @@
                     description: "Cermin live laporan YanKB (Tabel1 = Cakupan Laporan Tempat Pelayanan KB, Tabel21 = Pelayanan Peserta KB Baru per Metode Kontrasepsi) per kecamatan dari SIGA gateway BKKBN (cache 30 menit). **Bukan data Erdekatala**.",
                     security: [{ BearerAuth: [] }],
                     parameters: [
-                        { name: "report", in: "query", required: true, schema: { type: "string", enum: ["Tabel1", "Tabel21"] }, description: "Nama laporan (wajib)" },
-                        { name: "tahun", in: "query", schema: { type: "integer", default: 2026 }, description: "Tahun" },
+                        { name: "report", in: "query", required: true, schema: { type: "string", enum: ["Tabel1", "Tabel21"] }, description: "Nama laporan (wajib, case-insensitive): Tabel1 = cakupan tempat pelayanan KB; Tabel21 = peserta KB baru per metode" },
+                        { name: "tahun", in: "query", schema: { type: "integer", minimum: 2000, maximum: 2100, default: 2026 }, description: "Tahun (2000-2100)" },
                         { name: "bulan", in: "query", schema: { type: "integer", minimum: 1, maximum: 12, default: 8 }, description: "Bulan (1-12)" }
                     ],
                     responses: {
-                        "200": { description: "OK" },
-                        "401": { description: "Unauthorized" },
-                        "422": { description: "Parameter tidak valid" }
+                        "200": {
+                            description: "OK — `data` berisi tabel terstruktur hasil parse HTML SIGA.",
+                            content: { "application/json": { schema: { "$ref": "#/components/schemas/BkkbnMirror" } } }
+                        },
+                        "401": { "$ref": "#/components/responses/Unauthorized" },
+                        "429": { "$ref": "#/components/responses/RateLimited" },
+                        "422": { "$ref": "#/components/responses/ValidationError" }
                     }
                 }
             }

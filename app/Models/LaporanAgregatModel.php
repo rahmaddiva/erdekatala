@@ -152,13 +152,17 @@ class LaporanAgregatModel extends Model
     public function getSummaryPerDesa($id_kecamatan)
     {
         $sub = $this->latestPerDesaSubquery();
+        // Kelompok khusus diturunkan dari piramida umur (satu definisi dengan
+        // statsToChartData/getAggregatedStats), bukan kolom jml_* input desa.
+        $balita = self::kelompokUmurSumExpr('jml_balita');
+        $pus    = self::kelompokUmurSumExpr('jml_pus');
 
         return $this->db->query(
             "SELECT m_desa.id_desa, m_desa.nama_desa,
                     SUM(lp.jiwa_l + lp.jiwa_p) as total_jiwa,
                     SUM(lp.kk_l + lp.kk_p)     as total_kk,
-                    SUM(lp.jml_balita)         as total_balita,
-                    SUM(lp.jml_pus)            as total_pus,
+                    {$balita}                  as total_balita,
+                    {$pus}                     as total_pus,
                     SUM(lp.jiwa_l)             as total_jiwa_l,
                     SUM(lp.jiwa_p)             as total_jiwa_p
              FROM {$sub} lp
@@ -179,14 +183,16 @@ class LaporanAgregatModel extends Model
      */
     public function getSummaryPerKecamatan()
     {
-        $sub = $this->latestPerDesaSubquery();
+        $sub    = $this->latestPerDesaSubquery();
+        $balita = self::kelompokUmurSumExpr('jml_balita');
+        $pus    = self::kelompokUmurSumExpr('jml_pus');
 
         return $this->db->query(
             "SELECT kecamatan.nama_kecamatan,
                     SUM(lp.jiwa_l + lp.jiwa_p) as total_jiwa,
                     SUM(lp.kk_l + lp.kk_p)     as total_kk,
-                    SUM(lp.jml_balita)         as total_balita,
-                    SUM(lp.jml_pus)            as total_pus,
+                    {$balita}                  as total_balita,
+                    {$pus}                     as total_pus,
                     SUM(lp.jiwa_l)             as total_jiwa_l,
                     SUM(lp.jiwa_p)             as total_jiwa_p
              FROM {$sub} lp
