@@ -276,6 +276,9 @@
     </section>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
 <script>
 $(document).ready(function () {
     // Chained dropdown admin_dinas
