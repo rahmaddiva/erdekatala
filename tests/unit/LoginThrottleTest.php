@@ -35,6 +35,34 @@ final class LoginThrottleTest extends CIUnitTestCase
         return $this->tmp . DIRECTORY_SEPARATOR . 'login_bf_' . hash('sha256', strtolower($username) . '|' . $ip) . '.json';
     }
 
+    private function fileGlobal(string $username): string
+    {
+        return $this->tmp . DIRECTORY_SEPARATOR . 'login_bf_global_' . hash('sha256', strtolower($username)) . '.json';
+    }
+
+    public function testBruteForceLintasIpTerkunciGlobal(): void
+    {
+        $t = $this->throttle();
+        for ($i = 0; $i < LoginThrottle::MAX_ATTEMPTS_GLOBAL; $i++) {
+            $t->registerFailure('budi', '10.0.0.' . $i);
+        }
+
+        $this->assertIsInt($t->isLocked('budi', '192.168.9.9'));   // IP baru tetap terkunci
+        $this->assertFalse($t->isLocked('ani', '192.168.9.9'));    // username lain aman
+    }
+
+    public function testClearMenghapusCounterGlobal(): void
+    {
+        $t = $this->throttle();
+        for ($i = 0; $i < LoginThrottle::MAX_ATTEMPTS_GLOBAL; $i++) {
+            $t->registerFailure('budi', '10.0.0.' . $i);
+        }
+
+        $t->clear('budi', '1.2.3.4');
+        $this->assertFalse($t->isLocked('budi', '192.168.9.9'));
+        $this->assertFileDoesNotExist($this->fileGlobal('budi'));
+    }
+
     public function testEmpatKegagalanBelumTerkunci(): void
     {
         $t = $this->throttle();

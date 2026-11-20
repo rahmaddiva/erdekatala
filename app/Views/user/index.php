@@ -11,7 +11,7 @@
                     </h1>
                 </div>
                 <div class="col-sm-6 text-right">
-                    <?php if (!isset($is_kecamatan) || !$is_kecamatan): ?>
+                    <?php if (can('users.manage')): ?>
                         <a href="/users/create" class="btn btn-success">Tambah Pengguna</a>
                     <?php endif; ?>
                 </div>
@@ -50,7 +50,7 @@
                                         <?= esc($u['nama_lengkap']) ?>
                                     </td>
                                     <td>
-                                        <?= esc($u['role']) ?>
+                                        <?= esc($role_labels[$u['role']] ?? $u['role']) ?>
                                     </td>
                                     <?php if (isset($is_kecamatan) && $is_kecamatan): ?>
                                         <td>
@@ -61,12 +61,16 @@
                                         <?= esc($u['created_at']) ?>
                                     </td>
                                     <td>
+                                        <?php if (!empty($can_manage)): ?>
                                         <a href="/users/edit/<?= $u['id_user'] ?>" class="btn btn-sm btn-primary">Edit</a>
                                         <form action="/users/delete/<?= $u['id_user'] ?>" method="post" style="display:inline">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn btn-sm btn-danger btn-delete-user"
                                                 data-url="/users/delete/<?= $u['id_user'] ?>">Hapus</button>
                                         </form>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -78,6 +82,9 @@
     </section>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
 <script>
     $(function () {
         $('.btn-delete-user').on('click', function (e) {
@@ -98,5 +105,4 @@
         });
     });
 </script>
-
 <?= $this->endSection() ?>

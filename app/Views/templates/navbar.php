@@ -30,19 +30,22 @@
         <li class="nav-item dropdown">
             <a class="nav-link" data-toggle="dropdown" href="#">
                 <i class="fas fa-user-circle">
-                    <?= session()->get('username') ?>
+                    <?= esc(session()->get('username')) ?>
                 </i>
             </a>
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                <span class="dropdown-item dropdown-header"><?= session()->get('nama_lengkap'); ?></span>
+                <span class="dropdown-item dropdown-header"><?= esc(session()->get('nama_lengkap')); ?></span>
                 <div class="dropdown-divider"></div>
                 <a href="/profile" class="dropdown-item">
                     <i class="fas fa-user mr-2"></i> Profile
                 </a>
                 <div class="dropdown-divider"></div>
-                <a href="#" class="dropdown-item logout-btn" data-logout-url="<?= base_url('logout'); ?>">
-                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
-                </a>
+                <form action="<?= base_url('logout'); ?>" method="post" class="m-0">
+                    <?= csrf_field() ?>
+                    <button type="button" class="dropdown-item logout-btn">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </button>
+                </form>
             </div>
         </li>
 

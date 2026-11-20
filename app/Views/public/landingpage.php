@@ -2395,7 +2395,7 @@ $renderYankbTable = static function (array $data): string {
 			    <?= $renderYankbTable($yankbData) ?>
 			<?php else: ?>
 			            <div class="yankb-frame">
-			                <iframe srcdoc="<?= esc($yankbHtml, 'attr') ?>" title="Cakupan Laporan Tempat Pelayanan KB" loading="lazy"></iframe>
+			                <iframe srcdoc="<?= esc($yankbHtml, 'attr') ?>" sandbox referrerpolicy="no-referrer" title="Cakupan Laporan Tempat Pelayanan KB" loading="lazy"></iframe>
 			            </div>
 			<?php endif; ?>
 			            <div class="krs-hint">

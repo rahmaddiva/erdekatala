@@ -1,0 +1,21 @@
+# Keamanan: docroot produksi HARUS public/ (lihat DEPLOY.md).
+# File ini lapisan kedua agar Laragon/Apache yang menyajikan root proyek
+# tidak membocorkan .env, .git, source, data, dan artefak build.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Folder internal (tidak pernah perlu diakses via URL)
+    RewriteRule ^(app|vendor|writable|docs|scratch|tests|build|builds|node_modules)(/|$) - [F,L,NC]
+
+    # Dotfiles (.env, .git, .idea, ...), kecuali .well-known
+    RewriteRule (^|/)\.(?!well-known/) - [F,L,NC]
+
+    # File konfigurasi & skrip root
+    RewriteRule ^(composer\.(json|lock)|phpunit\.xml\.dist|preload\.php|spark|env)$ - [F,L,NC]
+
+    # Dokumen, data, arsip, log
+    RewriteRule \.(md|sql|zip|bak|log|xlsx|xls|csv|ini|dist)$ - [F,L,NC]
+</IfModule>

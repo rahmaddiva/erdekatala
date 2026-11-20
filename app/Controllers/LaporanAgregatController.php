@@ -57,7 +57,7 @@ class LaporanAgregatController extends BaseController
     {
         $user = session()->get();
 
-        if ($user['role'] == 'admin_desa') {
+        if (role_scope() === 'desa') {
             $list_desa = $this->desaModel->where('id_desa', $user['id_desa'])->findAll();
         } else {
             $list_desa = $this->desaModel->orderBy('nama_desa', 'ASC')->findAll();
@@ -72,6 +72,41 @@ class LaporanAgregatController extends BaseController
         ], $extra);
 
         return view('laporan/form', $data);
+    }
+
+    /** True bila desa berada dalam cakupan wilayah user yang login. */
+    private function desaDalamScope(int $idDesa): bool
+    {
+        $scope = role_scope();
+
+        if ($scope === 'dinas') {
+            return true;
+        }
+        if ($scope === 'desa') {
+            return $idDesa === (int) session('id_desa');
+        }
+
+        return (bool) $this->desaModel
+            ->where('id_desa', $idDesa)
+            ->where('id_kecamatan', session('id_kecamatan'))
+            ->countAllResults();
+    }
+
+    /** True bila laporan milik wilayah user yang login. */
+    private function laporanDalamScope(?array $laporan): bool
+    {
+        return $laporan !== null && $this->desaDalamScope((int) $laporan['id_desa']);
+    }
+
+    /** Response standar saat permission tidak dimiliki. */
+    private function tolak(string $message = 'Akses ditolak.')
+    {
+        if ($this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)
+                ->setJSON(['status' => 'error', 'message' => $message]);
+        }
+
+        return redirect()->to('/dashboard')->with('error', $message);
     }
 
     private function generatePdf($laporan, $user, array $sections = [])
@@ -257,6 +292,10 @@ class LaporanAgregatController extends BaseController
 
     public function index()
     {
+        if (!can('laporan.view')) {
+            return $this->tolak();
+        }
+
         $user = session()->get();
 
         // 1. Menangani Request Data via AJAX (Server-side)
@@ -278,7 +317,8 @@ class LaporanAgregatController extends BaseController
                 ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa')
                 ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
-            if ($user['role'] == 'admin_dinas') {
+            $scope = role_scope();
+            if ($scope === 'dinas') {
                 // Jika Desa dipilih, filter berdasarkan Desa
                 if (!empty($id_desa_filter)) {
                     $builder->where('laporan_agregat.id_desa', $id_desa_filter);
@@ -287,12 +327,12 @@ class LaporanAgregatController extends BaseController
                 elseif (!empty($id_kecamatan_filter)) {
                     $builder->where('m_desa.id_kecamatan', $id_kecamatan_filter);
                 }
-            } elseif ($user['role'] == 'admin_kecamatan') {
+            } elseif ($scope === 'kecamatan') {
                 $builder->where('m_desa.id_kecamatan', $user['id_kecamatan']);
-                if (!empty($id_desa_filter)) {
+                if (!empty($id_desa_filter) && $this->desaDalamScope((int) $id_desa_filter)) {
                     $builder->where('laporan_agregat.id_desa', $id_desa_filter);
                 }
-            } elseif ($user['role'] == 'admin_desa') {
+            } else {
                 $builder->where('laporan_agregat.id_desa', $user['id_desa']);
             }
 
@@ -371,17 +411,23 @@ class LaporanAgregatController extends BaseController
             $no = $start + 1;
 
             foreach ($laporan as $row) {
-                // Button Aksi
-                $editBtn    = '<a href="' . base_url('laporan/edit/' . $row['id_laporan']) . '" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>';
-                $riwayatBtn = '<button type="button" class="btn btn-sm btn-info btn-riwayat" data-id="' . $row['id_laporan'] . '" title="Riwayat"><i class="fas fa-history"></i></button>';
-                $deleteBtn  = '<button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(' . $row['id_laporan'] . ')" title="Hapus"><i class="fas fa-trash"></i></button>';
+                // Button Aksi (mengikuti permission role)
+                $editBtn    = can('laporan.edit')
+                    ? '<a href="' . base_url('laporan/edit/' . $row['id_laporan']) . '" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>'
+                    : '';
+                $riwayatBtn = can('laporan.view')
+                    ? '<button type="button" class="btn btn-sm btn-info btn-riwayat" data-id="' . $row['id_laporan'] . '" title="Riwayat"><i class="fas fa-history"></i></button>'
+                    : '';
+                $deleteBtn  = can('laporan.delete')
+                    ? '<button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(' . $row['id_laporan'] . ')" title="Hapus"><i class="fas fa-trash"></i></button>'
+                    : '';
 
                 $rowArray = [];
                 $rowArray[] = $no++;
                 $rowArray[] = '<strong>' . ($this->bulanList[$row['bulan']] ?? $row['bulan']) . '</strong> ' . $row['tahun'];
 
-                // Kolom Desa (selalu tampil untuk admin kecamatan dan dinas)
-                if (in_array($user['role'], ['admin_kecamatan', 'admin_dinas'])) {
+                // Kolom Desa (tampil untuk scope kecamatan dan dinas)
+                if (role_scope() !== 'desa') {
                     $rowArray[] = '<span class="badge badge-secondary">' . esc($row['nama_desa']) . '</span>';
                 }
 
@@ -404,9 +450,10 @@ class LaporanAgregatController extends BaseController
 
         // 2. Menampilkan Halaman Utama (Request Biasa)
         $desaModel  = new \App\Models\DesaModel();
+        $scope      = role_scope();
 
-        // --- Tampilan khusus admin_desa: accordion timeline per bulan ---
-        if ($user['role'] == 'admin_desa') {
+        // --- Tampilan scope desa: accordion timeline per bulan ---
+        if ($scope === 'desa') {
             $filterBulan = $this->request->getGet('bulan');
             $filterTahun = $this->request->getGet('tahun');
 
@@ -449,10 +496,17 @@ class LaporanAgregatController extends BaseController
             return view('laporan/index_desa', $data);
         }
 
-        // --- Tampilan khusus admin_kecamatan: card grid per desa ---
-        if ($user['role'] == 'admin_kecamatan') {
-            $filterBulan = $this->request->getGet('bulan') ?? date('n');
-            $filterTahun = $this->request->getGet('tahun') ?? date('Y');
+        // --- Tampilan scope kecamatan: card grid per desa ---
+        if ($scope === 'kecamatan') {
+            // Wajib int: nilai ini masuk ke kondisi JOIN (bukan bound parameter).
+            $filterBulan = (int) ($this->request->getGet('bulan') ?? date('n'));
+            $filterTahun = (int) ($this->request->getGet('tahun') ?? date('Y'));
+            if ($filterBulan < 1 || $filterBulan > 12) {
+                $filterBulan = (int) date('n');
+            }
+            if ($filterTahun < 2000 || $filterTahun > 2100) {
+                $filterTahun = (int) date('Y');
+            }
 
             $listDesa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
 
@@ -503,20 +557,22 @@ class LaporanAgregatController extends BaseController
 
     public function getPreviousData()
     {
-        $user = session()->get();
+        if (!can('laporan.input')) {
+            return $this->tolak();
+        }
 
-        // --- Otorisasi lintas wilayah (DoD PRD #3: tidak ada kebocoran data antar wilayah) ---
-        // admin_desa hanya boleh mengambil data desanya sendiri; param id_desa dari klien diabaikan.
-        if ($user['role'] === 'admin_desa') {
-            $id_desa = $user['id_desa'];
-        } elseif ($user['role'] === 'admin_kecamatan') {
-            // admin_kecamatan tidak terlibat input laporan (konsisten dengan create/store)
-            return $this->response->setJSON([
-                'status'  => 'error',
-                'message' => 'Admin kecamatan tidak dapat mengambil data untuk form input laporan.',
-            ]);
+        $scope = role_scope();
+
+        if ($scope === 'desa') {
+            $id_desa = (int) session('id_desa');
         } else {
-            $id_desa = $this->request->getGet('id_desa');
+            $id_desa = (int) $this->request->getGet('id_desa');
+            if ($id_desa && !$this->desaDalamScope($id_desa)) {
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Desa tidak valid untuk wilayah Anda.',
+                ]);
+            }
         }
 
         if (!$id_desa) {
@@ -568,8 +624,8 @@ class LaporanAgregatController extends BaseController
     // Form Input Baru
     public function create()
     {
-        if (session()->get('role') == 'admin_kecamatan') {
-            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat menginput laporan.');
+        if (!can('laporan.input')) {
+            return $this->tolak();
         }
 
         return $this->renderForm();
@@ -577,8 +633,8 @@ class LaporanAgregatController extends BaseController
 
     public function store()
     {
-        if (session()->get('role') == 'admin_kecamatan') {
-            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat menginput laporan.');
+        if (!can('laporan.input')) {
+            return $this->tolak();
         }
 
         $data = $this->request->getPost();
@@ -587,6 +643,24 @@ class LaporanAgregatController extends BaseController
         if (!$userId) {
             return redirect()->back()->with('error', 'Sesi habis, silakan login ulang.');
         }
+
+        // Scope desa dipaksa dari sesi; scope kecamatan hanya boleh desa di wilayahnya.
+        if (role_scope() === 'desa') {
+            $data['id_desa'] = (int) session('id_desa');
+        }
+        $idDesa = (int) ($data['id_desa'] ?? 0);
+        if (!$idDesa || !$this->desaModel->find($idDesa) || !$this->desaDalamScope($idDesa)) {
+            return redirect()->back()->withInput()->with('error', 'Desa tidak valid untuk wilayah Anda.');
+        }
+        $data['id_desa'] = $idDesa;
+
+        $bulan = (int) ($data['bulan'] ?? 0);
+        $tahun = (int) ($data['tahun'] ?? 0);
+        if ($bulan < 1 || $bulan > 12 || $tahun < 2000 || $tahun > 2100) {
+            return redirect()->back()->withInput()->with('error', 'Bulan/tahun laporan tidak valid.');
+        }
+        $data['bulan'] = $bulan;
+        $data['tahun'] = $tahun;
 
         // --- VALIDASI DASAR (hard, C1) ---
         $consistency = new LaporanConsistency();
@@ -627,15 +701,13 @@ class LaporanAgregatController extends BaseController
     // Form Edit
     public function edit($id)
     {
-        $user = session()->get();
-
-        if ($user['role'] == 'admin_kecamatan') {
-            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat mengubah laporan.');
+        if (!can('laporan.edit')) {
+            return $this->tolak();
         }
 
         $laporan = $this->laporanModel->find($id);
 
-        if (!$laporan)
+        if (!$this->laporanDalamScope($laporan))
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
 
         return $this->renderForm([], $laporan);
@@ -644,15 +716,49 @@ class LaporanAgregatController extends BaseController
     // Update Data
     public function update($id)
     {
-        if (session()->get('role') == 'admin_kecamatan') {
-            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat mengubah laporan.');
+        if (!can('laporan.edit')) {
+            return $this->tolak();
         }
 
         $old  = $this->laporanModel->find($id);
-        if (!$old) {
+        if (!$this->laporanDalamScope($old)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
         $post = $this->request->getPost();
+
+        // Jangan biarkan pelaku mengubah pemilik/identitas baris via POST.
+        unset($post['id_user'], $post['id_laporan'], $post['created_at'], $post['updated_at']);
+
+        // Scope desa dipaksa dari sesi; scope kecamatan hanya boleh desa di wilayahnya.
+        if (role_scope() === 'desa') {
+            $post['id_desa'] = (int) session('id_desa');
+        }
+        $idDesa = (int) ($post['id_desa'] ?? $old['id_desa']);
+        if (!$idDesa || !$this->desaModel->find($idDesa) || !$this->desaDalamScope($idDesa)) {
+            return redirect()->back()->withInput()->with('error', 'Desa tidak valid untuk wilayah Anda.');
+        }
+        $post['id_desa'] = $idDesa;
+
+        $bulan = (int) ($post['bulan'] ?? 0);
+        $tahun = (int) ($post['tahun'] ?? 0);
+        if ($bulan < 1 || $bulan > 12 || $tahun < 2000 || $tahun > 2100) {
+            return redirect()->back()->withInput()->with('error', 'Bulan/tahun laporan tidak valid.');
+        }
+        $post['bulan'] = $bulan;
+        $post['tahun'] = $tahun;
+
+        // Cegah unique constraint (id_desa, bulan, tahun) jadi 500 saat periode diubah.
+        $exists = $this->laporanModel->where([
+            'id_desa' => $idDesa,
+            'bulan'   => $bulan,
+            'tahun'   => $tahun,
+        ])->where('id_laporan !=', $id)->first();
+        if ($exists) {
+            return redirect()->back()->withInput()->with(
+                'error',
+                'Data untuk desa dan periode tersebut sudah ada.'
+            );
+        }
 
         // --- VALIDASI DASAR (hard, C1) ---
         $consistency = new LaporanConsistency();
@@ -684,8 +790,13 @@ class LaporanAgregatController extends BaseController
     // Hapus Data
     public function delete($id)
     {
-        if (session()->get('role') == 'admin_kecamatan') {
-            return redirect()->to('/laporan')->with('error', 'Admin kecamatan hanya dapat melihat data, tidak dapat menghapus laporan.');
+        if (!can('laporan.delete')) {
+            return $this->tolak();
+        }
+
+        $laporan = $this->laporanModel->find($id);
+        if (!$this->laporanDalamScope($laporan)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
         $this->logModel->insert(['id_laporan' => $id, 'id_user' => session()->get('id_user'), 'aksi' => 'delete']);
@@ -696,6 +807,14 @@ class LaporanAgregatController extends BaseController
     // Riwayat perubahan sebuah laporan (AJAX)
     public function getRiwayat($id)
     {
+        if (!can('laporan.view')) {
+            return $this->tolak();
+        }
+
+        if (!$this->laporanDalamScope($this->laporanModel->find($id))) {
+            return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Laporan tidak ditemukan']);
+        }
+
         $logs = $this->logModel
             ->select('laporan_log.aksi, laporan_log.perubahan, laporan_log.created_at, users.nama_lengkap, users.role')
             ->join('users', 'users.id_user = laporan_log.id_user', 'left')
@@ -712,17 +831,15 @@ class LaporanAgregatController extends BaseController
 
     /**
      * Feed aktivitas perubahan laporan se-wilayah.
-     * admin_kecamatan → desa di kecamatannya; admin_dinas → semua.
+     * Scope kecamatan → desa di kecamatannya; dinas → semua; desa → desa sendiri.
      */
     public function aktivitas()
     {
-        $user  = session()->get();
-        $role  = $user['role'] ?? '';
-
-        if (!in_array($role, ['admin_kecamatan', 'admin_dinas'], true)) {
-            return redirect()->to('/laporan')->with('error', 'Akses ditolak.');
+        if (!can('laporan.aktivitas')) {
+            return $this->tolak();
         }
 
+        $scope = role_scope();
         $id_desa = $this->request->getGet('id_desa');
         $aksi    = $this->request->getGet('aksi');
         $bulan   = $this->request->getGet('bulan');
@@ -737,8 +854,10 @@ class LaporanAgregatController extends BaseController
             ->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa', 'left')
             ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan', 'left');
 
-        if ($role === 'admin_kecamatan') {
-            $builder->where('m_desa.id_kecamatan', $user['id_kecamatan']);
+        if ($scope === 'kecamatan') {
+            $builder->where('m_desa.id_kecamatan', session('id_kecamatan'));
+        } elseif ($scope === 'desa') {
+            $builder->where('m_desa.id_desa', session('id_desa'));
         }
 
         if ($id_desa) {
@@ -761,8 +880,10 @@ class LaporanAgregatController extends BaseController
         }
 
         // daftar desa untuk filter
-        if ($role === 'admin_kecamatan') {
-            $list_desa = $this->desaModel->where('id_kecamatan', $user['id_kecamatan'])->orderBy('nama_desa', 'ASC')->findAll();
+        if ($scope === 'kecamatan') {
+            $list_desa = $this->desaModel->where('id_kecamatan', session('id_kecamatan'))->orderBy('nama_desa', 'ASC')->findAll();
+        } elseif ($scope === 'desa') {
+            $list_desa = $this->desaModel->where('id_desa', session('id_desa'))->findAll();
         } else {
             $list_desa = $this->desaModel->orderBy('nama_desa', 'ASC')->findAll();
         }
@@ -851,8 +972,13 @@ class LaporanAgregatController extends BaseController
 
     public function exportOptions()
     {
+        if (!can('laporan.export')) {
+            return $this->tolak();
+        }
+
         $user    = session()->get();
         $desaModel = new \App\Models\DesaModel();
+        $scope   = role_scope();
 
         if ($this->request->getMethod() === 'post') {
             $format   = $this->request->getPost('format') ?? 'pdf';
@@ -867,14 +993,16 @@ class LaporanAgregatController extends BaseController
                 ->join('m_desa',     'm_desa.id_desa = laporan_agregat.id_desa')
                 ->join('kecamatan',  'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
-            if ($user['role'] == 'admin_dinas') {
+            if ($scope === 'dinas') {
                 if (!empty($id_kecamatan)) $builder->where('kecamatan.id_kecamatan', $id_kecamatan);
                 if (!empty($id_desa))      $builder->where('laporan_agregat.id_desa', $id_desa);
-            } elseif ($user['role'] == 'admin_kecamatan') {
-                $builder->where('kecamatan.id_kecamatan', $user['id_kecamatan']);
-                if (!empty($id_desa)) $builder->where('laporan_agregat.id_desa', $id_desa);
+            } elseif ($scope === 'kecamatan') {
+                $builder->where('kecamatan.id_kecamatan', session('id_kecamatan'));
+                if (!empty($id_desa) && $this->desaDalamScope((int) $id_desa)) {
+                    $builder->where('laporan_agregat.id_desa', $id_desa);
+                }
             } else {
-                $builder->where('laporan_agregat.id_desa', $user['id_desa']);
+                $builder->where('laporan_agregat.id_desa', session('id_desa'));
             }
 
             if ($bulan) $builder->where('laporan_agregat.bulan', $bulan);
@@ -900,10 +1028,10 @@ class LaporanAgregatController extends BaseController
         $data = [
             'title'          => 'Pilihan Cetak / Export',
             'bulanList'      => $this->bulanList,
-            'role'           => $user['role'],
-            'list_kecamatan' => ($user['role'] == 'admin_dinas') ? $this->kecamatanModel->findAll() : [],
-            'list_desa'      => ($user['role'] == 'admin_kecamatan')
-                ? $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll()
+            'scope'          => $scope,
+            'list_kecamatan' => ($scope === 'dinas') ? $this->kecamatanModel->findAll() : [],
+            'list_desa'      => ($scope === 'kecamatan')
+                ? $desaModel->where('id_kecamatan', session('id_kecamatan'))->findAll()
                 : [],
         ];
         return view('laporan/export_options', $data);
@@ -911,7 +1039,12 @@ class LaporanAgregatController extends BaseController
 
     public function export($format = 'excel')
     {
+        if (!can('laporan.export')) {
+            return $this->tolak();
+        }
+
         $user = session()->get();
+        $scope = role_scope();
         $id_kecamatan = $this->request->getGet('id_kecamatan');
         $id_desa      = $this->request->getGet('id_desa');
         $bulan        = $this->request->getGet('bulan');
@@ -921,14 +1054,16 @@ class LaporanAgregatController extends BaseController
             ->join('m_desa',    'm_desa.id_desa = laporan_agregat.id_desa')
             ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
-        if ($user['role'] == 'admin_dinas') {
+        if ($scope === 'dinas') {
             if (!empty($id_kecamatan)) $builder->where('kecamatan.id_kecamatan', $id_kecamatan);
             if (!empty($id_desa))      $builder->where('laporan_agregat.id_desa', $id_desa);
-        } elseif ($user['role'] == 'admin_kecamatan') {
-            $builder->where('kecamatan.id_kecamatan', $user['id_kecamatan']);
-            if (!empty($id_desa)) $builder->where('laporan_agregat.id_desa', $id_desa);
+        } elseif ($scope === 'kecamatan') {
+            $builder->where('kecamatan.id_kecamatan', session('id_kecamatan'));
+            if (!empty($id_desa) && $this->desaDalamScope((int) $id_desa)) {
+                $builder->where('laporan_agregat.id_desa', $id_desa);
+            }
         } else {
-            $builder->where('laporan_agregat.id_desa', $user['id_desa']);
+            $builder->where('laporan_agregat.id_desa', session('id_desa'));
         }
 
         if ($bulan) $builder->where('laporan_agregat.bulan', $bulan);
@@ -954,6 +1089,14 @@ class LaporanAgregatController extends BaseController
     }
     public function detailDesa($id_desa)
     {
+        if (!can('laporan.view')) {
+            return $this->tolak();
+        }
+
+        if (!$this->desaDalamScope((int) $id_desa)) {
+            return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Desa tidak ditemukan']);
+        }
+
         $bulan = $this->request->getGet('bulan') ?? date('n');
         $tahun = $this->request->getGet('tahun') ?? date('Y');
 

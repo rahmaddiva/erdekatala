@@ -31,9 +31,12 @@
                         </span>
                     </div>
                     <div class="btn-group">
+                        <?php if (can('laporan.input')): ?>
                         <a href="/laporan/input" class="btn btn-primary btn-sm">
                             <i class="fas fa-plus mr-1"></i> Input Laporan Baru
                         </a>
+                        <?php endif; ?>
+                        <?php if (can('laporan.export')): ?>
                         <a href="/laporan/export-options" class="btn btn-info btn-sm">
                             <i class="fas fa-sliders-h mr-1"></i> Cetak Kustom
                         </a>
@@ -48,6 +51,7 @@
                                 <i class="fas fa-file-pdf text-danger mr-2"></i> PDF (.pdf)
                             </a>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -88,9 +92,11 @@
                     <div class="card-body text-center py-5">
                         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                         <p class="text-muted mb-3">Belum ada laporan yang diinput.</p>
+                        <?php if (can('laporan.input')): ?>
                         <a href="/laporan/input" class="btn btn-primary">
                             <i class="fas fa-plus mr-1"></i> Input Laporan Pertama
                         </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php else: ?>
@@ -188,18 +194,24 @@
                                                     <td class="text-center text-info"><?= number_format($laporan['jiwa_l']) ?></td>
                                                     <td class="text-center text-danger"><?= number_format($laporan['jiwa_p']) ?></td>
                                                     <td class="text-center">
+                                                        <?php if (can('laporan.edit')): ?>
                                                         <a href="/laporan/edit/<?= $laporan['id_laporan'] ?>"
                                                             class="btn btn-xs btn-warning" title="Edit">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
+                                                        <?php endif; ?>
+                                                        <?php if (can('laporan.view')): ?>
                                                         <button type="button" class="btn btn-xs btn-info btn-riwayat"
                                                             data-id="<?= $laporan['id_laporan'] ?>" title="Riwayat">
                                                             <i class="fas fa-history"></i>
                                                         </button>
+                                                        <?php endif; ?>
+                                                        <?php if (can('laporan.delete')): ?>
                                                         <button type="button" class="btn btn-xs btn-danger"
                                                             onclick="confirmDelete(<?= $laporan['id_laporan'] ?>)" title="Hapus">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php else: ?>
@@ -209,9 +221,11 @@
                                                     </td>
                                                     <td colspan="4" class="text-center text-muted">-</td>
                                                     <td class="text-center">
+                                                        <?php if (can('laporan.input')): ?>
                                                         <a href="/laporan/input" class="btn btn-xs btn-primary" title="Input">
                                                             <i class="fas fa-plus"></i>
                                                         </a>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php endif; ?>

@@ -8,8 +8,12 @@ class DataTabelController extends BaseController
 {
     public function index()
     {
+        if (!can('data_tabel.view')) {
+            return redirect()->to('/dashboard')->with('error', 'Akses ditolak.');
+        }
+
         $m      = new LaporanAgregatModel();
-        $role   = session()->get('role');
+        $scope  = role_scope();
         $bulan  = $this->request->getGet('bulan');
         $tahun  = $this->request->getGet('tahun');
 
@@ -25,10 +29,10 @@ class DataTabelController extends BaseController
                    ->join('m_desa',    'm_desa.id_desa = laporan_agregat.id_desa')
                    ->join('kecamatan', 'kecamatan.id_kecamatan = m_desa.id_kecamatan');
 
-        if ($role === 'admin_desa') {
-            $base->where('laporan_agregat.id_desa', session()->get('id_desa'));
-        } elseif ($role === 'admin_kecamatan') {
-            $base->where('m_desa.id_kecamatan', session()->get('id_kecamatan'));
+        if ($scope === 'desa') {
+            $base->where('laporan_agregat.id_desa', session('id_desa'));
+        } elseif ($scope === 'kecamatan') {
+            $base->where('m_desa.id_kecamatan', session('id_kecamatan'));
         }
 
         if ($bulan) $base->where('laporan_agregat.bulan', $bulan);

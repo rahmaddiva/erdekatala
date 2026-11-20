@@ -13,7 +13,7 @@ class ApiKeyAdminController extends BaseController
         parent::initController($request, $response, $logger);
         $this->model = new ApiKeyModel();
 
-        if (session()->get('role') !== 'admin_dinas') {
+        if (!can('apikeys.manage')) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
     }

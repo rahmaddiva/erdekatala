@@ -261,6 +261,31 @@ class ProfilDukcapilModel extends Model
     }
 
     /**
+     * Statistik ringkas per desa dari snapshot terbaru (1 baris per desa).
+     * Dipakai tabel desa di halaman kecamatan — tidak double-count periode.
+     *
+     * @return list<array<string,int|string>>
+     */
+    public function getPerDesaStats(int $idKecamatan): array
+    {
+        $sub = $this->latestPerDesaSubquery();
+
+        return $this->db->query(
+            "SELECT d.id_desa, d.nama_desa, d.kode_desa,
+                    SUM(lp.jiwa_l) AS total_jiwa_l,
+                    SUM(lp.jiwa_p) AS total_jiwa_p,
+                    SUM(lp.kk_l + lp.kk_p) AS total_kk,
+                    COUNT(lp.id_profil) AS rt_count
+             FROM {$sub} lp
+             JOIN {$this->tableName('m_desa')} d ON d.id_desa = lp.id_desa
+             WHERE d.id_kecamatan = ?
+             GROUP BY d.id_desa, d.nama_desa, d.kode_desa
+             ORDER BY d.nama_desa ASC",
+            [$idKecamatan]
+        )->getResultArray();
+    }
+
+    /**
      * Agregasi snapshot Dukcapil per DESA untuk peta tematik — bentuk baris
      * IDENTIK LaporanAgregatModel::getMapDesa() (kunci join `kd_kecamatan`
      * [3 digit] + `kd_kelurahan` [3 digit], seluruh field indikator peta, plus

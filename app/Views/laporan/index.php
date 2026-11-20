@@ -49,11 +49,11 @@
                         }
                     </script>
                     <!-- admin kecamatan dan admin dinas -->
-                    <?php if (in_array(session()->get('role'), ['admin_dinas', 'admin_kecamatan'])): ?>
+                    <?php if (role_scope() !== 'desa'): ?>
                         <div class="card card-outline card-info shadow-sm mb-3">
                             <div class="card-body">
                                 <div class="row">
-                                    <?php if (session()->get('role') == 'admin_dinas'): ?>
+                                    <?php if (role_scope() === 'dinas'): ?>
                                         <div class="col-md-4">
                                             <label>Kecamatan:</label>
                                             <select id="filter_kecamatan" class="form-control select2bs4">
@@ -70,9 +70,9 @@
                                     <div class="col-md-4">
                                         <label>Desa:</label>
                                         <select id="filter_desa" class="form-control select2bs4"
-                                            <?= (session()->get('role') == 'admin_dinas') ? 'disabled' : '' ?>>
+                                            <?= (role_scope() === 'dinas') ? 'disabled' : '' ?>>
                                             <option value="">-- Semua Desa --</option>
-                                            <?php if (session()->get('role') == 'admin_kecamatan'): ?>
+                                            <?php if (role_scope() === 'kecamatan'): ?>
                                                 <?php foreach ($list_desa as $d): ?>
                                                     <option value="<?= $d['id_desa'] ?>"><?= strtoupper($d['nama_desa']) ?></option>
                                                 <?php endforeach; ?>
@@ -108,7 +108,7 @@
                             <tr class="bg-light">
                                 <th width="5%">No</th>
                                 <th>Periode</th>
-                                <?php if (session()->get('role') == 'admin_kecamatan'): ?>
+                                <?php if (role_scope() !== 'desa'): ?>
                                     <th>Desa</th>
                                 <?php endif; ?>
                                 <th>Total Jiwa</th>
@@ -122,7 +122,7 @@
                                     <input type="text" class="form-control form-control-sm search-input"
                                         placeholder="Cari periode..." data-column="1">
                                 </th>
-                                <?php if (session()->get('role') == 'admin_kecamatan'): ?>
+                                <?php if (role_scope() !== 'desa'): ?>
                                     <th>
                                         <input type="text" class="form-control form-control-sm search-input"
                                             placeholder="Cari desa..." data-column="2">
@@ -138,8 +138,6 @@
                     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
                     <script>
                         $(document).ready(function () {
-                            const role = "<?= session()->get('role') ?>";
-
                             // Store search values
                             let searchValues = {};
 

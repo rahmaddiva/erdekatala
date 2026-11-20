@@ -137,4 +137,9 @@ class Routing extends BaseRouting
      * Default: false
      */
     public bool $translateUriToCamelCase = true;
+
+    /**
+     * Enable controller attributes for routing.
+     */
+    public bool $useControllerAttributes = true;
 }

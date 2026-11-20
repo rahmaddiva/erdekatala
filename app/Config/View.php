@@ -59,4 +59,14 @@ class View extends BaseView
      * @var list<class-string<ViewDecoratorInterface>>
      */
     public array $decorators = [];
+
+    /**
+     * Restrict parser conditionals to the documented syntax.
+     */
+    public bool $restrictParserConditionals = false;
+
+    /**
+     * Folder for application view overrides.
+     */
+    public string $appOverridesFolder = 'overrides';
 }

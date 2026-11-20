@@ -89,4 +89,11 @@ class Encryption extends BaseConfig
      * by CI3 Encryption default configuration.
      */
     public string $cipher = 'AES-256-CTR';
+
+    /**
+     * Previous encryption keys, used when rotating `$key`.
+     *
+     * @var array|string
+     */
+    public $previousKeys = '';
 }

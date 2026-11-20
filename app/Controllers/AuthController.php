@@ -8,6 +8,7 @@ use App\Models\UserModel;
 use App\Models\NotifikasiModel;
 use App\Models\KecamatanModel;
 use App\Libraries\LoginThrottle;
+use App\Libraries\SafeImageUpload;
 class AuthController extends BaseController
 {
 
@@ -32,7 +33,7 @@ class AuthController extends BaseController
             'user' => $this->userModel->find($this->session->get('id_user'))
         ];
 
-        if ($this->session->get('role') === 'admin_kecamatan') {
+        if (role_scope() === 'kecamatan') {
             $data['kec'] = (new KecamatanModel())->find($this->session->get('id_kecamatan'));
         }
 
@@ -96,14 +97,20 @@ class AuthController extends BaseController
         }
 
         $hash = password_hash($new, PASSWORD_DEFAULT);
-        $this->userModel->update($id, ['password' => $hash]);
+        // Sesi lama & remember-me tidak boleh tetap valid setelah password berubah.
+        // ponytail: sesi user ini saja; untuk logout semua device perlu tabel sesi.
+        $this->userModel->update($id, ['password' => $hash, 'remember_token' => null]);
+        helper('cookie');
+        $this->session->regenerate(true);
 
-        return redirect()->to('/profile')->with('success', 'Password berhasil diubah');
+        return redirect()->to('/profile')
+            ->deleteCookie('remember_token')
+            ->with('success', 'Password berhasil diubah');
     }
 
     public function updateKecamatanProfile()
     {
-        if ($this->session->get('role') !== 'admin_kecamatan') {
+        if (role_scope() !== 'kecamatan') {
             return redirect()->to('/dashboard')->with('error', 'Anda tidak memiliki akses');
         }
 
@@ -129,6 +136,15 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('errors', $validation->getErrors());
         }
 
+        $foto = $this->request->getFile('foto');
+        $safeName = null;
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $safeName = SafeImageUpload::safeName($foto);
+            if ($safeName === null) {
+                return redirect()->back()->withInput()->with('error', 'Foto harus berupa gambar JPG, PNG, atau WebP yang valid.');
+            }
+        }
+
         $data = [
             'slug'           => $newSlug ?: null,
             'page_title'     => $this->request->getPost('page_title') ?: null,
@@ -141,20 +157,21 @@ class AuthController extends BaseController
             'jam_layanan'    => $this->request->getPost('jam_layanan') ?: null,
         ];
 
-        $foto = $this->request->getFile('foto');
-        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+        if ($safeName !== null) {
             $uploadDir = FCPATH . 'assets/uploads/kecamatan';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
+            }
+
+            if (!$foto->move($uploadDir, $safeName)) {
+                return redirect()->back()->withInput()->with('error', 'Gagal menyimpan foto.');
             }
 
             if (!empty($kec['foto']) && file_exists(FCPATH . $kec['foto'])) {
                 unlink(FCPATH . $kec['foto']);
             }
 
-            $newName = $foto->getRandomName();
-            $foto->move($uploadDir, $newName);
-            $data['foto'] = 'assets/uploads/kecamatan/' . $newName;
+            $data['foto'] = 'assets/uploads/kecamatan/' . $safeName;
         }
 
         (new KecamatanModel())->update($idKec, $data);
@@ -207,18 +224,23 @@ class AuthController extends BaseController
                 'logged_in'    => true,
             ]);
 
-            // "Ingat Saya": simpan token di cookie selama 30 hari
+            // "Ingat Saya": simpan token di cookie selama 30 hari.
+            // Cookie WAJIB ditempel ke response redirect (service('response')
+            // bukan response yang dikirim oleh redirect()).
+            $redirect = redirect()->to('/dashboard');
             if ($remember) {
                 $token = bin2hex(random_bytes(32));
                 $this->userModel->update($user['id_user'], ['remember_token' => $token]);
-                $response = service('response');
-                $response->setCookie('remember_token', $token, 30 * 24 * 3600, '', '/', '', true, true);
+                // Secure hanya saat HTTPS; CI4 melempar SecurityException bila
+                // cookie Secure dikirim lewat HTTP (mis. dev localhost).
+                $secure = str_starts_with(base_url(), 'https://');
+                $redirect->setCookie('remember_token', $token, 30 * 24 * 3600, '', '/', '', $secure, true);
             }
 
             // Generate notifikasi pengingat laporan bulan ini
-            (new NotifikasiModel())->generateReminder($user['id_user'], $user['role'], $user['id_kecamatan'], $user['id_desa']);
+            (new NotifikasiModel())->generateReminder($user['id_user'], role_scope(), $user['id_kecamatan'], $user['id_desa']);
 
-            return redirect()->to('/dashboard');
+            return $redirect;
         } else {
             $throttle->registerFailure($username, $ip);
             return redirect()->back()->withInput()->with('error', 'Username atau password salah');
@@ -232,9 +254,11 @@ class AuthController extends BaseController
         if ($id) {
             $this->userModel->update($id, ['remember_token' => null]);
         }
-        service('response')->deleteCookie('remember_token');
+
+        $redirect = redirect()->to('/login');
+        $redirect->deleteCookie('remember_token');
 
         $this->session->destroy();
-        return redirect()->to('/login');
+        return $redirect;
     }
 }

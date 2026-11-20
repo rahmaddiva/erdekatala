@@ -43,9 +43,12 @@
                         </button>
                         <div class="ml-auto">
                             <div class="btn-group">
+                                <?php if (can('laporan.aktivitas')): ?>
                                 <a href="/laporan/aktivitas" class="btn btn-outline-secondary btn-sm mr-1">
                                     <i class="fas fa-history mr-1"></i> Aktivitas Perubahan
                                 </a>
+                                <?php endif; ?>
+                                <?php if (can('laporan.export')): ?>
                                 <a href="/laporan/export-options" class="btn btn-info btn-sm">
                                     <i class="fas fa-sliders-h mr-1"></i> Cetak Kustom
                                 </a>
@@ -62,6 +65,7 @@
                                         <i class="fas fa-file-pdf text-danger mr-2"></i> PDF (.pdf)
                                     </a>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </form>

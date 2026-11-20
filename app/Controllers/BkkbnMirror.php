@@ -16,6 +16,16 @@ namespace App\Controllers;
  */
 trait BkkbnMirror
 {
+    /**
+     * Circuit breaker per request: sekali koneksi/timeout gagal, fetch
+     * berikutnya di request yang sama langsung fallback ke cache.
+     * Halaman publik tidak boleh menunggu 11 endpoint eksternal berurutan.
+     */
+    private static bool $httpDown = false;
+
+    /** Total waktu fetch eksternal per request web (detik). CLI tidak dibatasi. */
+    private const HTTP_WEB_BUDGET = 10;
+    private static float $httpBudgetStart = 0.0;
 
     /** // ponytail: hardcoded BKKBN ids, ganti DB column jika berubah */
     private function bkkbnKecamatanMap(): array
@@ -67,9 +77,9 @@ trait BkkbnMirror
             $url .= '&idKecamatan=' . $idKecamatanBkkbn;
         }
 
-        // Throttle retry saat API down: skip fetch sinkron bila baru gagal < 10 menit lalu, langsung sajikan cache basi.
+        // Throttle retry saat API down: skip fetch sinkron bila baru gagal < 10 menit lalu.
         $attemptFile = WRITEPATH . 'cache/krs_attempt_' . $cacheKey . '.txt';
-        $throttled   = is_file($attemptFile) && (time() - filemtime($attemptFile)) < 600 && is_file($cacheFile);
+        $throttled   = is_file($attemptFile) && (time() - filemtime($attemptFile)) < 600;
         $raw         = $throttled ? null : $this->httpGet($url);
         if ($raw === null) {
             if (!$throttled) {
@@ -142,6 +152,18 @@ trait BkkbnMirror
             }
         }
 
+        $attemptFile = WRITEPATH . 'cache/yankb_attempt_' . $cacheKey . '.txt';
+        $throttled   = is_file($attemptFile) && (time() - filemtime($attemptFile)) < 600;
+        if ($throttled) {
+            if (is_file($cacheFile)) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false && $cached !== '') {
+                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => 'Data cache (API tidak terjangkau).'];
+                }
+            }
+            return ['html' => '', 'updated_at' => null, 'error' => 'API BKKBN tidak terjangkau — coba lagi beberapa menit lagi.'];
+        }
+
         $filter = json_encode([
             'tahun'          => (string) $tahun,
             'bulan'          => $bulan,
@@ -156,6 +178,7 @@ trait BkkbnMirror
 
         $raw = $this->httpGet($url);
         if ($raw === null || trim($raw) === '') {
+            @touch($attemptFile);
             if (is_file($cacheFile)) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false && $cached !== '') {
@@ -164,6 +187,7 @@ trait BkkbnMirror
             }
             return ['html' => '', 'updated_at' => null, 'error' => 'Gagal mengambil data Cakupan Laporan Tempat Pelayanan KB dari BKKBN.'];
         }
+        @unlink($attemptFile);
 
         if (!is_dir(dirname($cacheFile))) {
             @mkdir(dirname($cacheFile), 0755, true);
@@ -256,6 +280,18 @@ trait BkkbnMirror
             }
         }
 
+        $attemptFile = WRITEPATH . 'cache/dallap_attempt_' . $tahun . $suffix . '.txt';
+        $throttled   = is_file($attemptFile) && (time() - filemtime($attemptFile)) < 600;
+        if ($throttled) {
+            if (is_file($cacheFile)) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false && $cached !== '') {
+                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => 'Data cache (API tidak terjangkau).'];
+                }
+            }
+            return ['html' => '', 'updated_at' => null, 'error' => 'API BKKBN tidak terjangkau — coba lagi beberapa menit lagi.'];
+        }
+
         $filter = ['tahun' => (string) $tahun, 'provinsiId' => '22', 'kabupatenId' => '322',
             'reportName' => $reportName, 'reportType' => 'html', 'reportCategory' => $def['category']];
         if ($def['monthly']) {
@@ -269,6 +305,7 @@ trait BkkbnMirror
 
         $raw = $this->httpGet($url);
         if ($raw === null || trim($raw) === '') {
+            @touch($attemptFile);
             if (is_file($cacheFile)) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false && $cached !== '') {
@@ -277,6 +314,7 @@ trait BkkbnMirror
             }
             return ['html' => '', 'updated_at' => null, 'error' => 'Gagal mengambil data ' . $def['label'] . ' dari BKKBN.'];
         }
+        @unlink($attemptFile);
 
         if (!is_dir(dirname($cacheFile))) {
             @mkdir(dirname($cacheFile), 0755, true);
@@ -493,32 +531,62 @@ trait BkkbnMirror
     }
 
 
-    /** GET remote URL — curl dulu, fallback file_get_contents. */
-    private function httpGet(string $url): ?string
+    /** GET remote URL — curl dulu, fallback file_get_contents.
+     *  Web: timeout 8 dtk/call + budget total 10 dtk/request + breaker, supaya
+     *  halaman publik tidak menunggu puluhan detik saat SIGA lambat/down.
+     *  CLI (warmup): 15 dtk/call, tanpa budget, agar report lambat tetap ter-cache. */
+    private function httpGet(string $url, ?int $timeout = null): ?string
     {
+        if (PHP_SAPI !== 'cli' && self::$httpDown) {
+            return null;
+        }
+
+        $timeout ??= PHP_SAPI === 'cli' ? 15 : 8;
+
+        if (PHP_SAPI !== 'cli') {
+            if (self::$httpBudgetStart === 0.0) {
+                self::$httpBudgetStart = microtime(true);
+            }
+            $sisa = self::HTTP_WEB_BUDGET - (microtime(true) - self::$httpBudgetStart);
+            if ($sisa < 1) {
+                return null;
+            }
+            $timeout = min($timeout, (int) floor($sisa));
+        }
+
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 8,
+                CURLOPT_TIMEOUT        => $timeout,
+                CURLOPT_CONNECTTIMEOUT => 2,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_HTTPHEADER     => ['Accept: application/json'],
                 CURLOPT_SSL_VERIFYPEER => true,
             ]);
-            $body = curl_exec($ch);
-            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $err  = curl_error($ch) ?: '-';
+            $body  = curl_exec($ch);
+            $code  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err   = curl_error($ch) ?: '-';
+            $errno = curl_errno($ch);
             curl_close($ch);
             if ($body !== false && $code >= 200 && $code < 300) {
                 return $body;
             }
+            if ($errno !== 0 && PHP_SAPI !== 'cli') {
+                self::$httpDown = true;
+            }
             log_message('debug', 'httpGet gagal: {url} (HTTP {code}, curl: {err})', ['url' => $url, 'code' => $code, 'err' => $err]);
+
+            // Server menjawab (4xx/5xx): fallback stream tidak akan mengubah hasil.
+            if ($errno === 0) {
+                return null;
+            }
         }
 
         $ctx = stream_context_create([
             'http' => [
                 'method'  => 'GET',
-                'timeout' => 8,
+                'timeout' => $timeout,
                 'header'  => "Accept: application/json\r\n",
             ],
             'ssl' => [
@@ -528,6 +596,9 @@ trait BkkbnMirror
         ]);
         $body = @file_get_contents($url, false, $ctx);
         if ($body === false) {
+            if (PHP_SAPI !== 'cli') {
+                self::$httpDown = true;
+            }
             log_message('debug', 'httpGet fallback gagal: {url}', ['url' => $url]);
             return null;
         }

@@ -90,6 +90,7 @@
                                                     </a>
                                                     <form action="<?= base_url('kecamatan/delete/' . $k['id_kecamatan']) ?>"
                                                         method="post" class="d-inline" onsubmit="return confirm('Hapus kecamatan <?= esc($k['nama_kecamatan']) ?>? Semua data terkait (desa, laporan) juga akan terhapus.')">
+                                                        <?= csrf_field() ?>
                                                         <button type="submit" class="btn btn-danger btn-sm btn-flat" title="Hapus">
                                                             <i class="fas fa-trash"></i>
                                                         </button>

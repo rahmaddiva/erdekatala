@@ -26,7 +26,7 @@ class NotifikasiModel extends Model
 
     private const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-    public function generateReminder(int $idUser, string $role, ?int $idKecamatan = null, ?int $idDesa = null): void
+    public function generateReminder(int $idUser, string $scope, ?int $idKecamatan = null, ?int $idDesa = null): void
     {
         $bulan  = (int) date('n');
         $tahun  = (int) date('Y');
@@ -34,7 +34,7 @@ class NotifikasiModel extends Model
         $label  = self::BULAN[$bulan - 1] . ' ' . $tahun;
         $laporanModel = new LaporanAgregatModel();
 
-        if ($role === 'admin_desa' && $idDesa) {
+        if ($scope === 'desa' && $idDesa) {
             $rows = array_values(array_filter($laporanModel->getStatusLaporDesa($bulan, $tahun), fn($r) => (int) $r['id_desa'] === (int) $idDesa));
             if ($rows && !$rows[0]['sudah_lapor']) {
                 $this->insertIfNotExists($idUser, 'pengingat_laporan', $periode, "Belum lapor untuk $label", 'Desa Anda belum menginput laporan agregat bulan ini.', '/laporan/input');
@@ -42,13 +42,13 @@ class NotifikasiModel extends Model
             return;
         }
 
-        $idKec = $role === 'admin_kecamatan' ? $idKecamatan : null;
+        $idKec = $scope === 'kecamatan' ? $idKecamatan : null;
         $rows = $laporanModel->getStatusLaporDesa($bulan, $tahun, $idKec);
         $belum = count(array_filter($rows, fn($r) => !$r['sudah_lapor']));
         if (!$belum) {
             return;
         }
-        $jenis = $role === 'admin_kecamatan' ? 'rekap_kecamatan' : 'rekap_dinas';
+        $jenis = $scope === 'kecamatan' ? 'rekap_kecamatan' : 'rekap_dinas';
         $this->insertIfNotExists($idUser, $jenis, $periode, "$belum desa belum lapor", "$belum desa belum menginput laporan $label.", '/laporan');
     }
 

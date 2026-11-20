@@ -1,0 +1,8 @@
+# Folder upload tidak boleh mengeksekusi script.
+Options -Indexes -ExecCGI
+
+<FilesMatch "\.(php|phtml|phar|phps|cgi|pl|py|sh|asp|aspx|jsp|shtml)$">
+    Require all denied
+</FilesMatch>
+
+RemoveHandler .php .phtml .phar .phps

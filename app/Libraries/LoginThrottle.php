@@ -14,6 +14,10 @@ class LoginThrottle
     public const WINDOW_SECONDS = 900; // jendela penghitungan (15 menit)
     public const LOCK_SECONDS   = 900; // durasi penguncian (15 menit)
 
+    // Batas global per username (lintas IP) untuk menahan brute-force terdistribusi.
+    // ponytail: hard lock tetap bisa dipakai DoS; naikkan bila perlu, atau ganti CAPTCHA.
+    public const MAX_ATTEMPTS_GLOBAL = 20;
+
     private string $cacheDir;
 
     public function __construct(?string $cacheDir = null)
@@ -26,15 +30,12 @@ class LoginThrottle
      */
     public function isLocked(string $username, string $ip): int|false
     {
-        $state = $this->readState($this->path($username, $ip));
-        if ($state === null) {
-            return false;
-        }
-        $lockedUntil = (int) ($state['locked_until'] ?? 0);
-        if ($lockedUntil > time()) {
-            return $lockedUntil - time();
-        }
-        return false;
+        $sisa = max(
+            $this->remaining($this->path($username, $ip)),
+            $this->remaining($this->pathGlobal($username))
+        );
+
+        return $sisa > 0 ? $sisa : false;
     }
 
     /**
@@ -42,8 +43,15 @@ class LoginThrottle
      */
     public function registerFailure(string $username, string $ip): void
     {
-        $path = $this->path($username, $ip);
+        $this->bump($this->path($username, $ip), self::MAX_ATTEMPTS);
+        $this->bump($this->pathGlobal($username), self::MAX_ATTEMPTS_GLOBAL);
+    }
 
+    /**
+     * Tambah satu kegagalan pada file state; kunci saat mencapai $maxAttempts.
+     */
+    private function bump(string $path, int $maxAttempts): void
+    {
         try {
             $fp = fopen($path, 'c+');
             if ($fp === false) {
@@ -68,9 +76,9 @@ class LoginThrottle
 
             $state['count'] = (int) $state['count'] + 1;
 
-            if ($state['count'] >= self::MAX_ATTEMPTS) {
+            if ($state['count'] >= $maxAttempts) {
                 $state['locked_until'] = $now + self::LOCK_SECONDS;
-                $state['count']        = 0; // 5 percobaan baru setelah kunci lewat
+                $state['count']        = 0; // percobaan baru setelah kunci lewat
             }
 
             ftruncate($fp, 0);
@@ -89,9 +97,10 @@ class LoginThrottle
      */
     public function clear(string $username, string $ip): void
     {
-        $path = $this->path($username, $ip);
-        if (is_file($path)) {
-            @unlink($path);
+        foreach ([$this->path($username, $ip), $this->pathGlobal($username)] as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
         }
     }
 
@@ -99,6 +108,21 @@ class LoginThrottle
     {
         return $this->cacheDir . DIRECTORY_SEPARATOR
             . 'login_bf_' . hash('sha256', strtolower($username) . '|' . $ip) . '.json';
+    }
+
+    private function pathGlobal(string $username): string
+    {
+        return $this->cacheDir . DIRECTORY_SEPARATOR
+            . 'login_bf_global_' . hash('sha256', strtolower($username)) . '.json';
+    }
+
+    /** Sisa detik kunci pada satu file state (0 = tidak terkunci). */
+    private function remaining(string $path): int
+    {
+        $state = $this->readState($path);
+        $until = (int) ($state['locked_until'] ?? 0);
+
+        return $until > time() ? $until - time() : 0;
     }
 
     private function readState(string $path): ?array

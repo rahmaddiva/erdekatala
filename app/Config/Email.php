@@ -118,4 +118,9 @@ class Email extends BaseConfig
      * Enable notify message from server
      */
     public bool $DSN = false;
+
+    /**
+     * SMTP authentication method.
+     */
+    public string $SMTPAuthMethod = 'login';
 }

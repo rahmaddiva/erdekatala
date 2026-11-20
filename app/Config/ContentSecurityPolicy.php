@@ -173,4 +173,44 @@ class ContentSecurityPolicy extends BaseConfig
      * Replace nonce tag automatically
      */
     public bool $autoNonce = true;
+
+    /**
+     * The URL to which violation reports are sent.
+     */
+    public ?string $reportTo = null;
+
+    /**
+     * Valid sources for script elements.
+     *
+     * @var list<string>|string
+     */
+    public array|string $scriptSrcElem = 'self';
+
+    /**
+     * Valid sources for inline script attributes.
+     *
+     * @var list<string>|string
+     */
+    public array|string $scriptSrcAttr = 'self';
+
+    /**
+     * Valid sources for style elements.
+     *
+     * @var list<string>|string
+     */
+    public array|string $styleSrcElem = 'self';
+
+    /**
+     * Valid sources for inline style attributes.
+     *
+     * @var list<string>|string
+     */
+    public array|string $styleSrcAttr = 'self';
+
+    /**
+     * Valid sources for worker scripts.
+     *
+     * @var list<string>|string
+     */
+    public array|string $workerSrc = [];
 }

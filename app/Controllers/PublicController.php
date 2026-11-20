@@ -408,7 +408,6 @@ class PublicController extends BaseController
             'map_desa'        => $mapDesa,
             'desa_rank_rows'  => $desaRankRows,
             'map_meta'        => $mapMeta,
-            'desa_stats'      => $id_kecamatan_filter ? $this->getDesaStats($id_kecamatan_filter) : [],
             'totals'          => $chart['totals'],
             'pendidikan'      => $chart['pendidikan'],
             'pekerjaan'       => $chart['pekerjaan'],
@@ -1053,33 +1052,10 @@ class PublicController extends BaseController
      */
     private function getDesaStatsLaporan($id_kecamatan)
     {
-        $builder = $this->laporanModel->builder();
-        $builder->select(
-            'm_desa.id_desa, m_desa.nama_desa, m_desa.kode_desa,
-             SUM(laporan_agregat.jiwa_l) AS total_jiwa_l,
-             SUM(laporan_agregat.jiwa_p) AS total_jiwa_p,
-             SUM(laporan_agregat.kk_l + laporan_agregat.kk_p) AS total_kk,
-             COUNT(laporan_agregat.id_laporan) AS rt_count'
+        return $this->mapDesaStats(
+            $this->laporanModel->getPerDesaStats((int) $id_kecamatan),
+            'desa'
         );
-        $builder->join('m_desa', 'm_desa.id_desa = laporan_agregat.id_desa');
-        $builder->where('m_desa.id_kecamatan', $id_kecamatan);
-        $builder->groupBy('m_desa.id_desa');
-        $builder->orderBy('m_desa.nama_desa', 'ASC');
-
-        $rows = $builder->get()->getResultArray();
-
-        // Tambah kunci join GeoJSON ("002.007") + total jiwa
-        foreach ($rows as &$r) {
-            $parts = explode('.', (string) ($r['kode_desa'] ?? ''));
-            $kec = str_pad((string) ($parts[2] ?? ''), 3, '0', STR_PAD_LEFT);
-            $desa = substr((string) ($parts[3] ?? ''), -3);
-            $r['kode'] = $kec . '.' . $desa;
-            $r['total_jiwa'] = (int) $r['total_jiwa_l'] + (int) $r['total_jiwa_p'];
-            $r['sumber'] = 'desa';
-        }
-        unset($r);
-
-        return $rows;
     }
 
     /**
@@ -1090,28 +1066,23 @@ class PublicController extends BaseController
      */
     private function getDesaStatsDukcapil($id_kecamatan)
     {
-        $builder = $this->profilDukcapilModel->builder();
-        $builder->select(
-            'm_desa.id_desa, m_desa.nama_desa, m_desa.kode_desa,
-             SUM(profil_dukcapil.jiwa_l) AS total_jiwa_l,
-             SUM(profil_dukcapil.jiwa_p) AS total_jiwa_p,
-             SUM(profil_dukcapil.kk_l + profil_dukcapil.kk_p) AS total_kk,
-             COUNT(profil_dukcapil.id_profil) AS rt_count'
+        return $this->mapDesaStats(
+            $this->profilDukcapilModel->getPerDesaStats((int) $id_kecamatan),
+            'dukcapil'
         );
-        $builder->join('m_desa', 'm_desa.id_desa = profil_dukcapil.id_desa');
-        $builder->where('m_desa.id_kecamatan', $id_kecamatan);
-        $builder->groupBy('m_desa.id_desa');
-        $builder->orderBy('m_desa.nama_desa', 'ASC');
+    }
 
-        $rows = $builder->get()->getResultArray();
-
+    /** Tambah kunci join GeoJSON ("002.007") + total jiwa ke baris statistik desa. */
+    private function mapDesaStats(array $rows, string $sumber): array
+    {
         foreach ($rows as &$r) {
             $parts = explode('.', (string) ($r['kode_desa'] ?? ''));
-            $kec = str_pad((string) ($parts[2] ?? ''), 3, '0', STR_PAD_LEFT);
-            $desa = substr((string) ($parts[3] ?? ''), -3);
-            $r['kode'] = $kec . '.' . $desa;
+            $kec   = str_pad((string) ($parts[2] ?? ''), 3, '0', STR_PAD_LEFT);
+            $desa  = substr((string) ($parts[3] ?? ''), -3);
+
+            $r['kode']       = $kec . '.' . $desa;
             $r['total_jiwa'] = (int) $r['total_jiwa_l'] + (int) $r['total_jiwa_p'];
-            $r['sumber'] = 'dukcapil';
+            $r['sumber']     = $sumber;
         }
         unset($r);
 

@@ -17,6 +17,10 @@ class RtController extends BaseController
     {
         $this->rtModel = new RtModel();
         $this->dusunModel = new DusunModel();
+
+        if (role_scope() !== 'dinas' || !can('rt.manage')) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
     }
 
     public function index()

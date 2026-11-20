@@ -378,7 +378,6 @@
 
 
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="<?= base_url('assets/') ?>plugins/jquery/jquery.min.js"></script>
     <!-- Bootstrap -->
     <script src="<?= base_url('assets/') ?>plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -511,7 +510,7 @@
             // Konfirmasi logout menggunakan SweetAlert2
             $('.logout-btn').on('click', function (e) {
                 e.preventDefault();
-                var url = $(this).data('logout-url');
+                var form = $(this).closest('form');
                 Swal.fire({
                     title: 'Konfirmasi Logout',
                     text: 'Apakah Anda yakin ingin keluar?',
@@ -522,7 +521,7 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = url;
+                        form.trigger('submit');
                     }
                 });
             });

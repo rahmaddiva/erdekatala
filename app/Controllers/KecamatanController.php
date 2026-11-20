@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\KecamatanModel;
+use App\Libraries\SafeImageUpload;
 
 class KecamatanController extends BaseController
 {
@@ -15,9 +16,8 @@ class KecamatanController extends BaseController
         $this->session = session();
         $this->kecamatanModel = new KecamatanModel();
 
-        if ($this->session->get('role') != 'admin_dinas') {
-            header('Location: ' . base_url('dashboard'));
-            exit();
+        if (role_scope() !== 'dinas' || !can('kecamatan.manage')) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
     }
 
@@ -56,6 +56,15 @@ class KecamatanController extends BaseController
             return redirect()->back()->withInput()->with('errors', $validation->getErrors());
         }
 
+        $foto = $this->request->getFile('foto');
+        $safeName = null;
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $safeName = SafeImageUpload::safeName($foto);
+            if ($safeName === null) {
+                return redirect()->back()->withInput()->with('error', 'Foto harus berupa gambar JPG, PNG, atau WebP yang valid.');
+            }
+        }
+
         $data = [
             'nama_kecamatan' => $this->request->getPost('nama_kecamatan'),
             'kode_kecamatan' => $this->request->getPost('kode_kecamatan'),
@@ -71,15 +80,15 @@ class KecamatanController extends BaseController
             'is_public'      => $this->request->getPost('is_public') ? 1 : 0,
         ];
 
-        $foto = $this->request->getFile('foto');
-        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+        if ($safeName !== null) {
             $uploadDir = FCPATH . 'assets/uploads/kecamatan';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
             }
-            $newName = $foto->getRandomName();
-            $foto->move($uploadDir, $newName);
-            $data['foto'] = 'assets/uploads/kecamatan/' . $newName;
+            if (!$foto->move($uploadDir, $safeName)) {
+                return redirect()->back()->withInput()->with('error', 'Gagal menyimpan foto.');
+            }
+            $data['foto'] = 'assets/uploads/kecamatan/' . $safeName;
         }
 
         $this->kecamatanModel->insert($data);
@@ -127,6 +136,15 @@ class KecamatanController extends BaseController
             return redirect()->back()->withInput()->with('errors', $validation->getErrors());
         }
 
+        $foto = $this->request->getFile('foto');
+        $safeName = null;
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $safeName = SafeImageUpload::safeName($foto);
+            if ($safeName === null) {
+                return redirect()->back()->withInput()->with('error', 'Foto harus berupa gambar JPG, PNG, atau WebP yang valid.');
+            }
+        }
+
         $data = [
             'nama_kecamatan' => $this->request->getPost('nama_kecamatan'),
             'kode_kecamatan' => $this->request->getPost('kode_kecamatan'),
@@ -142,20 +160,21 @@ class KecamatanController extends BaseController
             'is_public'      => $this->request->getPost('is_public') ? 1 : 0,
         ];
 
-        $foto = $this->request->getFile('foto');
-        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+        if ($safeName !== null) {
             $uploadDir = FCPATH . 'assets/uploads/kecamatan';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
+            }
+
+            if (!$foto->move($uploadDir, $safeName)) {
+                return redirect()->back()->withInput()->with('error', 'Gagal menyimpan foto.');
             }
 
             if (!empty($kec['foto']) && file_exists(FCPATH . $kec['foto'])) {
                 unlink(FCPATH . $kec['foto']);
             }
 
-            $newName = $foto->getRandomName();
-            $foto->move($uploadDir, $newName);
-            $data['foto'] = 'assets/uploads/kecamatan/' . $newName;
+            $data['foto'] = 'assets/uploads/kecamatan/' . $safeName;
         }
 
         $this->kecamatanModel->update($id, $data);

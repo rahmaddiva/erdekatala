@@ -17,4 +17,14 @@ class CURLRequest extends BaseConfig
      * It may cause an error request with unnecessary headers.
      */
     public bool $shareOptions = false;
+
+    /**
+     * cURL share options used when $shareOptions is true.
+     *
+     * @var list<int>
+     */
+    public array $shareConnectionOptions = [
+        CURL_LOCK_DATA_CONNECT,
+        CURL_LOCK_DATA_DNS,
+    ];
 }

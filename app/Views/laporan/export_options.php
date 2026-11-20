@@ -32,7 +32,7 @@
                             </div>
                             <div class="card-body">
 
-                                <?php if ($role == 'admin_dinas'): ?>
+                                <?php if ($scope === 'dinas'): ?>
                                     <div class="form-group">
                                         <label>Kecamatan</label>
                                         <select name="id_kecamatan" id="sel_kecamatan" class="form-control select2bs4">
@@ -48,7 +48,7 @@
                                             <option value="">-- Semua Desa --</option>
                                         </select>
                                     </div>
-                                <?php elseif ($role == 'admin_kecamatan'): ?>
+                                <?php elseif ($scope === 'kecamatan'): ?>
                                     <div class="form-group">
                                         <label>Desa</label>
                                         <select name="id_desa" id="sel_desa" class="form-control select2bs4">

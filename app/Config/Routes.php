@@ -16,7 +16,7 @@ $routes->get('/public/krs-desa/(:num)', 'PublicController::getKrsDesa/$1');
 // Auth Routes
 $routes->get('/login', 'AuthController::index');
 $routes->post('/proses_login', 'AuthController::proses_login');
-$routes->get('/logout', 'AuthController::logout');
+$routes->post('/logout', 'AuthController::logout');
 
 // Dashboard Routes (perlu login)
 $routes->get('/dashboard', 'DashboardController::index');
@@ -82,6 +82,14 @@ $routes->post('/users/store', 'UserController::store');
 $routes->get('/users/edit/(:num)', 'UserController::edit/$1');
 $routes->post('/users/update/(:num)', 'UserController::update/$1');
 $routes->post('/users/delete/(:num)', 'UserController::delete/$1');
+
+// Manajemen Role & Permission (admin_dinas)
+$routes->get('/roles', 'RoleController::index');
+$routes->get('/roles/create', 'RoleController::create');
+$routes->post('/roles/store', 'RoleController::store');
+$routes->get('/roles/edit/(:segment)', 'RoleController::edit/$1');
+$routes->post('/roles/update/(:segment)', 'RoleController::update/$1');
+$routes->post('/roles/delete/(:segment)', 'RoleController::delete/$1');
 
 // -------------------------------------------------------
 // API Public Routes (filter: apikeyauth)

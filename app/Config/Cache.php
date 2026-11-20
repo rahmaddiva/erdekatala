@@ -159,4 +159,12 @@ class Cache extends BaseConfig
      * @var bool|list<string>
      */
     public $cacheQueryString = false;
+
+    /**
+     * Status codes that PageCache is allowed to cache.
+     * Empty = all cacheable status codes.
+     *
+     * @var list<int>
+     */
+    public array $cacheStatusCodes = [];
 }

@@ -14,6 +14,10 @@ class DusunController extends BaseController
     public function __construct()
     {
         $this->dusunModel = new DusunModel();
+
+        if (role_scope() !== 'dinas' || !can('dusun.manage')) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
     }
 
     public function index()

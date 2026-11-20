@@ -40,9 +40,35 @@
                         </div>
                         <div class="form-group">
                             <label>Role</label>
-                            <select name="role" class="form-control">
-                                <option value="admin_desa">Admin Desa</option>
-                                <option value="admin_kecamatan">Admin Kecamatan</option>
+                            <select name="role" id="sel_role" class="form-control">
+                                <?php foreach ($roles as $r): ?>
+                                <option value="<?= esc($r['nama_role']) ?>" data-scope="<?= esc($r['scope']) ?>"
+                                    <?= old('role', 'admin_desa') === $r['nama_role'] ? 'selected' : '' ?>>
+                                    <?= esc($r['label']) ?> — <?= esc($r['scope']) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group scope-kecamatan">
+                            <label>Kecamatan</label>
+                            <select name="id_kecamatan" class="form-control">
+                                <option value="">-- Pilih Kecamatan --</option>
+                                <?php foreach ($kecamatan_list as $k): ?>
+                                <option value="<?= $k['id_kecamatan'] ?>" <?= old('id_kecamatan') == $k['id_kecamatan'] ? 'selected' : '' ?>>
+                                    <?= esc($k['nama_kecamatan']) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group scope-desa">
+                            <label>Desa</label>
+                            <select name="id_desa" class="form-control">
+                                <option value="">-- Pilih Desa --</option>
+                                <?php foreach ($desa_list as $d): ?>
+                                <option value="<?= $d['id_desa'] ?>" <?= old('id_desa') == $d['id_desa'] ? 'selected' : '' ?>>
+                                    <?= esc($d['nama_desa']) ?>
+                                </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -56,4 +82,18 @@
     </section>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+    $(function () {
+        function syncScope() {
+            var scope = $('#sel_role option:selected').data('scope');
+            $('.scope-kecamatan').toggle(scope === 'kecamatan');
+            $('.scope-desa').toggle(scope === 'desa');
+        }
+        $('#sel_role').on('change', syncScope);
+        syncScope();
+    });
+</script>
 <?= $this->endSection() ?>

@@ -18,7 +18,12 @@ class DashboardController extends BaseController
 
     public function index()
     {
+        if (!can('dashboard.view')) {
+            return redirect()->to('/profile')->with('error', 'Akses dashboard ditolak.');
+        }
+
         $user = session()->get();
+        $scope = role_scope();
         $id_kecamatan_filter = $this->request->getGet('id_kecamatan');
         $id_desa_filter = $this->request->getGet('id_desa');
 
@@ -29,11 +34,11 @@ class DashboardController extends BaseController
         $kecamatanModel = new KecamatanModel();
         $desaModel = new DesaModel();
 
-        // Tentukan scope filter berdasarkan role
+        // Tentukan scope filter berdasarkan scope role
         $scope_kec = null;
         $scope_desa = null;
 
-        if ($user['role'] == 'admin_dinas') {
+        if ($scope === 'dinas') {
             $list_kecamatan = $kecamatanModel->findAll();
             if ($id_kecamatan_filter) {
                 $list_desa = $desaModel->where('id_kecamatan', $id_kecamatan_filter)->findAll();
@@ -49,11 +54,18 @@ class DashboardController extends BaseController
             } else {
                 $data_summary = $this->laporanModel->getSummaryPerKecamatan();
             }
-        } elseif ($user['role'] == 'admin_kecamatan') {
+        } elseif ($scope === 'kecamatan') {
             $list_desa = $desaModel->where('id_kecamatan', $user['id_kecamatan'])->findAll();
-            if ($id_desa_filter) {
-                $scope_desa = (int) $id_desa_filter;
+            // id_desa dari URL hanya dipakai bila desa itu memang milik kecamatan user.
+            $desaScope = $id_desa_filter
+                ? $desaModel->where('id_desa', $id_desa_filter)
+                    ->where('id_kecamatan', $user['id_kecamatan'])
+                    ->first()
+                : null;
+            if ($desaScope) {
+                $scope_desa = (int) $desaScope['id_desa'];
             } else {
+                $id_desa_filter = null;
                 $scope_kec = (int) $user['id_kecamatan'];
                 $data_summary = $this->laporanModel->getSummaryPerDesa($user['id_kecamatan']);
             }
@@ -70,9 +82,9 @@ class DashboardController extends BaseController
         $bulanNow = (int) date('n');
         $tahunNow = (int) date('Y');
         $scopeKecForStatus = null;
-        if ($user['role'] == 'admin_kecamatan') {
+        if ($scope === 'kecamatan') {
             $scopeKecForStatus = (int) $user['id_kecamatan'];
-        } elseif ($user['role'] == 'admin_dinas' && $id_kecamatan_filter) {
+        } elseif ($scope === 'dinas' && $id_kecamatan_filter) {
             $scopeKecForStatus = (int) $id_kecamatan_filter;
         }
 
@@ -83,7 +95,7 @@ class DashboardController extends BaseController
         $statusDesaSendiri = null;
         $anomali = [];
 
-        if ($user['role'] == 'admin_desa') {
+        if ($scope === 'desa') {
             $row = $this->laporanModel
                 ->where('id_desa', $user['id_desa'])
                 ->where('bulan', $bulanNow)
@@ -136,7 +148,7 @@ class DashboardController extends BaseController
             'desaTotal'          => $desaTotal,
             'statusDesaSendiri'  => $statusDesaSendiri,
             'anomali'            => $anomali,
-            'role'               => $user['role'],
+            'scope'              => $scope,
         ];
 
         return view('dashboard/index', $data);

@@ -14,10 +14,8 @@ class DesaController extends BaseController
     {
         $this->session = session();
         $this->desaModel = new DesaModel();
-        // cek role jika bukan admin_dinas maka redirect ke dashboard
-        if ($this->session->get('role') != 'admin_dinas') {
-            header('Location: ' . base_url('dashboard'));
-            exit();
+        if (role_scope() !== 'dinas' || !can('desa.manage')) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
     }
 

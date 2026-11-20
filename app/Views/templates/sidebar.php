@@ -1,15 +1,18 @@
 <!-- Main Sidebar Container -->
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
-    <a href="index3.html" class="brand-link">
+    <a href="<?= base_url('dashboard') ?>" class="brand-link">
         <img src="<?= base_url('assets/') ?>dist/img/erdekatala.png" alt="Erdekatala Logo" style="width: 160px;"
             class="brand-image" style="opacity: .8">
     </a>
 
     <!-- Sidebar -->
     <div class="sidebar">
-        <?php $s1 = service('uri')->getSegment(1);
-        $s2 = service('uri')->getSegment(2); ?>
+        <?php
+        $s1    = service('uri')->getSegment(1);
+        $s2    = service('uri')->getSegment(2);
+        $scope = role_scope();
+        ?>
         <!-- Sidebar user panel (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
@@ -17,7 +20,7 @@
                     alt="User Image">
             </div>
             <div class="info">
-                <a href="#" class="d-block"><?= session()->get('nama_lengkap'); ?></a>
+                <a href="#" class="d-block"><?= esc(session()->get('nama_lengkap')); ?></a>
             </div>
         </div>
 
@@ -36,29 +39,33 @@
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
+                <?php if (can('dashboard.view')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('dashboard') ?>" class="nav-link <?= ($s1 == 'dashboard') ? 'active' : '' ?>">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
+                <?php endif; ?>
 
-                <!-- MENU ADMIN DINAS-->
-                <?php if (session()->get('role') === 'admin_dinas'): ?>
+                <?php $showWilayah = can('kecamatan.manage') || can('desa.manage') || can('dusun.manage') || can('rt.manage'); ?>
+                <?php if ($showWilayah): ?>
                     <li class="nav-header">MANAJEMEN WILAYAH</li>
-                    <li class="nav-item <?= (in_array($s1, ['kecamatan', 'desa']) ? 'menu-open' : '') ?>">
-                        <a href="#" class="nav-link <?= (in_array($s1, ['kecamatan', 'desa']) ? 'active' : '') ?>">
+                    <li class="nav-item <?= (in_array($s1, ['kecamatan', 'desa', 'dusun', 'rt']) ? 'menu-open' : '') ?>">
+                        <a href="#" class="nav-link <?= (in_array($s1, ['kecamatan', 'desa', 'dusun', 'rt']) ? 'active' : '') ?>">
                             <i class="nav-icon fas fa-map-marked-alt"></i>
                             <p>Master Wilayah <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
-                            <?php if (session()->get('role') == 'admin_dinas'): ?>
+                            <?php if (can('kecamatan.manage')): ?>
                                 <li class="nav-item">
                                     <a href="<?= base_url('kecamatan') ?>" class="nav-link <?= ($s1 == 'kecamatan') ? 'active' : '' ?>">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Data Kecamatan</p>
                                     </a>
                                 </li>
+                            <?php endif; ?>
+                            <?php if (can('desa.manage')): ?>
                                 <li class="nav-item">
                                     <a href="<?= base_url('desa') ?>" class="nav-link <?= ($s1 == 'desa') ? 'active' : '' ?>">
                                         <i class="far fa-circle nav-icon"></i>
@@ -70,8 +77,9 @@
                     </li>
                 <?php endif; ?>
 
+                <?php if (can('laporan.view') || can('laporan.input') || can('laporan.aktivitas')): ?>
                 <li class="nav-header">DATA AGREGAT</li>
-                <?php if (session()->get('role') != 'admin_kecamatan'): ?>
+                <?php if (can('laporan.input')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('laporan/input') ?>"
                         class="nav-link <?= ($s1 == 'laporan' && $s2 == 'input') ? 'active' : '' ?>">
@@ -80,6 +88,7 @@
                     </a>
                 </li>
                 <?php endif; ?>
+                <?php if (can('laporan.view')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('laporan') ?>"
                         class="nav-link <?= ($s1 == 'laporan' && $s2 != 'input' && $s2 != 'aktivitas') ? 'active' : '' ?>">
@@ -87,7 +96,8 @@
                         <p>Riwayat Laporan</p>
                     </a>
                 </li>
-                <?php if (in_array(session()->get('role'), ['admin_kecamatan', 'admin_dinas'], true)): ?>
+                <?php endif; ?>
+                <?php if (can('laporan.aktivitas')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('laporan/aktivitas') ?>"
                         class="nav-link <?= ($s1 == 'laporan' && $s2 == 'aktivitas') ? 'active' : '' ?>">
@@ -96,7 +106,9 @@
                     </a>
                 </li>
                 <?php endif; ?>
+                <?php endif; ?>
 
+                <?php if (can('data_tabel.view')): ?>
                 <li class="nav-header">DATA TABEL</li>
                 <li class="nav-item">
                     <a href="<?= base_url('data-tabel') ?>" class="nav-link <?= ($s1 == 'data-tabel') ? 'active' : '' ?>">
@@ -104,26 +116,29 @@
                         <p>Data Tabel</p>
                     </a>
                 </li>
-
-                <?php if (session()->get('role') == 'admin_kecamatan'): ?>
-                    <li class="nav-header">PENGATURAN</li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('users') ?>" class="nav-link <?= ($s1 == 'users') ? 'active' : '' ?>">
-                            <i class="nav-icon fas fa-user-cog"></i>
-                            <p>Akun Admin Desa</p>
-                        </a>
-                    </li>
                 <?php endif; ?>
 
-                <?php if (session()->get('role') == 'admin_dinas'): ?>
+                <?php if (can('users.view') || (can('roles.manage') && $scope === 'dinas')): ?>
                     <li class="nav-header">PENGATURAN</li>
+                    <?php if (can('users.view')): ?>
                     <li class="nav-item">
                         <a href="<?= base_url('users') ?>" class="nav-link <?= ($s1 == 'users') ? 'active' : '' ?>">
                             <i class="nav-icon fas fa-user-cog"></i>
-                            <p>Manajemen User</p>
+                            <p><?= $scope === 'kecamatan' ? 'Akun Pengguna Kecamatan' : 'Manajemen User' ?></p>
                         </a>
                     </li>
+                    <?php endif; ?>
+                    <?php if (can('roles.manage') && $scope === 'dinas'): ?>
+                    <li class="nav-item">
+                        <a href="<?= base_url('roles') ?>" class="nav-link <?= ($s1 == 'roles') ? 'active' : '' ?>">
+                            <i class="nav-icon fas fa-user-shield"></i>
+                            <p>Manajemen Role</p>
+                        </a>
+                    </li>
+                    <?php endif; ?>
+                <?php endif; ?>
 
+                <?php if (can('apikeys.manage')): ?>
                     <li class="nav-header">API PUBLIK</li>
                     <li class="nav-item <?= ($s1 == 'apikeys') ? 'menu-open' : '' ?>">
                         <a href="#" class="nav-link <?= ($s1 == 'apikeys') ? 'active' : '' ?>">
@@ -157,14 +172,17 @@
                             </li>
                         </ul>
                     </li>
+                <?php endif; ?>
 
-                    <li class="nav-item">
-                        <a href="<?= base_url('logout') ?>" class="nav-link text-danger">
+                <li class="nav-item">
+                    <form action="<?= base_url('logout') ?>" method="post">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="nav-link text-danger border-0 bg-transparent w-100 text-left">
                             <i class="nav-icon fas fa-sign-out-alt"></i>
                             <p>Logout</p>
-                        </a>
-                    </li>
-                <?php endif; ?>
+                        </button>
+                    </form>
+                </li>
 
             </ul>
         </nav>

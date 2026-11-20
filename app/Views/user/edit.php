@@ -21,10 +21,21 @@
                 <form method="post" action="/users/update/<?= $user['id_user'] ?>">
                     <?= csrf_field() ?>
                     <div class="card-body">
+                        <?php
+                        $targetScope = 'desa';
+                        $targetLabel = $user['role'];
+                        foreach ($roles as $r) {
+                            if ($r['nama_role'] === $user['role']) {
+                                $targetScope = $r['scope'];
+                                $targetLabel = $r['label'];
+                                break;
+                            }
+                        }
+                        ?>
                         <?php if (isset($is_kecamatan) && $is_kecamatan): ?>
                         <div class="form-group">
                             <label>Role</label>
-                            <input type="text" class="form-control" value="Admin Desa" disabled>
+                            <input type="text" class="form-control" value="<?= esc($targetLabel) ?>" disabled>
                         </div>
                         <?php endif; ?>
                         <div class="form-group">
@@ -46,23 +57,50 @@
                             <input type="password" name="password_confirm" class="form-control">
                         </div>
                         <?php if (isset($is_kecamatan) && $is_kecamatan): ?>
+                            <?php if ($targetScope === 'desa'): ?>
+                            <div class="form-group">
+                                <label>Desa</label>
+                                <select name="id_desa" class="form-control">
+                                    <?php foreach ($desa_list as $d): ?>
+                                    <option value="<?= $d['id_desa'] ?>" <?= ($d['id_desa'] == $user['id_desa']) ? 'selected' : '' ?>>
+                                        <?= esc($d['nama_desa']) ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                        <?php else: ?>
                         <div class="form-group">
-                            <label>Desa</label>
-                            <select name="id_desa" class="form-control">
-                                <?php foreach ($desa_list as $d): ?>
-                                <option value="<?= $d['id_desa'] ?>" <?= ($d['id_desa'] == $user['id_desa']) ? 'selected' : '' ?>>
-                                    <?= esc($d['nama_desa']) ?>
+                            <label>Role</label>
+                            <select name="role" id="sel_role" class="form-control">
+                                <?php foreach ($roles as $r): ?>
+                                <option value="<?= esc($r['nama_role']) ?>" data-scope="<?= esc($r['scope']) ?>"
+                                    <?= $user['role'] === $r['nama_role'] ? 'selected' : '' ?>>
+                                    <?= esc($r['label']) ?> — <?= esc($r['scope']) ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <?php else: ?>
-                        <div class="form-group">
-                            <label>Role</label>
-                            <select name="role" class="form-control">
-                                <option value="admin_desa" <?= $user['role'] == 'admin_desa' ? 'selected' : '' ?>>Admin Desa</option>
-                                <option value="admin_kecamatan" <?= $user['role'] == 'admin_kecamatan' ? 'selected' : '' ?>>Admin Kecamatan</option>
-                                <option value="admin_dinas" <?= $user['role'] == 'admin_dinas' ? 'selected' : '' ?>>Admin Dinas</option>
+                        <div class="form-group scope-kecamatan">
+                            <label>Kecamatan</label>
+                            <select name="id_kecamatan" class="form-control">
+                                <option value="">-- Pilih Kecamatan --</option>
+                                <?php foreach ($kecamatan_list as $k): ?>
+                                <option value="<?= $k['id_kecamatan'] ?>" <?= $k['id_kecamatan'] == $user['id_kecamatan'] ? 'selected' : '' ?>>
+                                    <?= esc($k['nama_kecamatan']) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group scope-desa">
+                            <label>Desa</label>
+                            <select name="id_desa" class="form-control">
+                                <option value="">-- Pilih Desa --</option>
+                                <?php foreach ($desa_list as $d): ?>
+                                <option value="<?= $d['id_desa'] ?>" <?= $d['id_desa'] == $user['id_desa'] ? 'selected' : '' ?>>
+                                    <?= esc($d['nama_desa']) ?>
+                                </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <?php endif; ?>
@@ -77,4 +115,18 @@
     </section>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+    $(function () {
+        function syncScope() {
+            var scope = $('#sel_role option:selected').data('scope');
+            $('.scope-kecamatan').toggle(scope === 'kecamatan');
+            $('.scope-desa').toggle(scope === 'desa');
+        }
+        $('#sel_role').on('change', syncScope);
+        syncScope();
+    });
+</script>
 <?= $this->endSection() ?>

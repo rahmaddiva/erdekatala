@@ -133,7 +133,7 @@ Selain kolom dasar, tabel ini memiliki kolom profil untuk halaman publik per kec
 |password|bcrypt via password_hash()|
 |remember_token|VARCHAR(64) nullable, untuk fitur "Ingat Saya" (cookie 30 hari)|
 |nama_lengkap|-|
-|role|ENUM: admin_dinas, admin_kecamatan, admin_desa|
+|role|VARCHAR(50): nama role di tabel `roles` (default sistem: admin_dinas, admin_kecamatan, admin_desa; role kustom didukung)|
 |id_kecamatan|FK nullable (untuk admin_kecamatan)|
 |id_desa|FK nullable (untuk admin_desa)|
 
@@ -210,10 +210,17 @@ Unique key `(id_desa, tahun, semester)`. Landing page memakai `ProfilDukcapilMod
 |Role|Scope Data|Akses Khusus|
 |---|---|---|
 |`admin_dinas`|Semua kecamatan|CRUD kecamatan/desa/dusun/rt, CRUD user, kelola API key, lihat semua laporan + aktivitas|
-|`admin_kecamatan`|Kecamatannya saja|Lihat laporan + aktivitas kecamatannya, lihat daftar akun admin desa (read-only)|
+|`admin_kecamatan`|Kecamatannya saja|Lihat laporan + aktivitas kecamatannya; default hanya lihat akun desa (`users.view`). Jika diberi `users.manage`, hanya boleh mengelola akun **scope desa** di kecamatannya (tidak bisa mengelola akun kecamatan lain)|
 |`admin_desa`|Desanya saja|Input laporan desanya, lihat laporan desanya|
 
 Sesi menyimpan: `id_user`, `id_kecamatan`, `id_desa`, `role`, `nama_lengkap`, `username`, `logged_in`.
+
+### Role & Permission Dinamis (2026-11-20)
+
+- Tabel `roles`: `nama_role` (PK VARCHAR 50), `label`, `scope` (`dinas|kecamatan|desa`), `permissions` (JSON array), `is_system`. `users.role` kini **VARCHAR(50)** (bukan ENUM) agar role kustom bisa dipakai.
+- Katalog permission ada di `App\Libraries\Permissions::GROUPS` — satu sumber untuk checkbox UI, validasi input, dan default role sistem. Helper `can('fitur')` + `role_scope()` di `app/Helpers/permission_helper.php` (autoload).
+- Halaman `/roles` (hanya `roles.manage` + scope dinas) untuk CRUD role dan centang permission per fitur. Role sistem tidak bisa dihapus / diganti scope; role yang masih dipakai tidak bisa dihapus.
+- Gate fitur dilakukan di controller (`can(...)`) dan sidebar; **scope data tetap dari `roles.scope`**, bukan dari nama role. Menambah fitur baru = tambah key di `Permissions::GROUPS` + panggil `can()` di controller/view.
 
 Semua route kecuali `/`, `/login`, `/proses_login`, `/public/*`, `/getDesaByKecamatan*`, `assets/*`, `api/*`, dan halaman slug kecamatan diproteksi filter `LoggedIn` (lihat `Filters.php`).
 
@@ -290,7 +297,13 @@ GET  /laporan/detailDesa/:id        LaporanAgregatController::detailDesa  (AJAX)
 GET  /data-tabel                    DataTabelController::index  (?bulan=&tahun=)
 
 # User Management
-GET/POST /users/*                   UserController  (admin_dinas CRUD; admin_kecamatan lihat daftar)
+GET/POST /users/*                   UserController  (users.view; CRUD butuh users.manage)
+GET  /roles                         RoleController::index     (roles.manage + scope dinas)
+GET  /roles/create                  RoleController::create
+POST /roles/store                   RoleController::store
+GET  /roles/edit/:nama              RoleController::edit
+POST /roles/update/:nama            RoleController::update
+POST /roles/delete/:nama            RoleController::delete
 
 # API Publik (filter apikeyauth pada /api/v1/*)
 GET  /api/docs                      ApiDocsController::index  (Swagger UI, tanpa auth)
@@ -425,6 +438,7 @@ Catatan penting saat mengubah halaman ini:
 2026-08-02-000001_CreateNotifikasi
 2026-10-01-000001_CreateProfilDukcapil
 2026-10-09-000001_AddDokumenToProfilDukcapil
+2026-11-20-000001_CreateRolesAndPermissions
 ```
 
 ---
@@ -461,8 +475,8 @@ Akun default setelah seeding:
 1. **Jangan gunakan route `/laporan/create`** -- route yang benar adalah `/laporan/input` (method controller tetap `create()`)
 2. **Model `LaporanAgregatModel`** memiliki ~80 `$allowedFields` -- saat menambah kolom baru, pastikan ditambahkan di sini juga
 3. **AJAX DataTables** di `laporan/index.php` menggunakan POST, bukan GET -- pastikan CSRF token disertakan
-4. **Role check di controller**: `KecamatanController`, `DesaController`, `DusunController`, `RtController` memblokir non-`admin_dinas` di `__construct()`. `UserController` mengizinkan `admin_dinas` + `admin_kecamatan` (kecamatan hanya lihat daftar akun admin desa; CRUD tetap `_blockNonDinas()`). `ApiKeyAdminController` hanya `admin_dinas`
-5. **Tampilan laporan berbeda per role** -- `index_desa.php`, `index_kecamatan.php`, `index.php` masing-masing untuk role berbeda
+4. **Otorisasi = permission + scope**: controller memakai `can('fitur')` untuk gate fitur dan `role_scope()` (`dinas|kecamatan|desa`) untuk batas data. Master wilayah (`KecamatanController`, `DesaController`, `DusunController`, `RtController`) butuh scope dinas + permission masing-masing; `ApiKeyAdminController` butuh `apikeys.manage`; `RoleController` butuh scope dinas + `roles.manage`. Jangan menambah cek nama role hardcoded baru — tambahkan key di `Permissions::GROUPS` lalu panggil `can()`
+5. **Tampilan laporan mengikuti scope** -- `index_desa.php` (scope desa), `index_kecamatan.php` (scope kecamatan), `index.php` (scope dinas); tombol aksi mengikuti `can('laporan.*')`
 6. **ZingChart** (bukan ApexCharts) digunakan untuk semua chart di dashboard
 7. **Kolom tabel**: `m_rt.no_rt` (bukan `nomor_rt`), `m_desa` (bukan `desa`), `m_dusun` (bukan `dusun`)
 8. **Unit lapor = desa**: `laporan_agregat.id_desa` (bukan `id_rt`), unique `(id_desa, bulan, tahun)`
@@ -472,7 +486,7 @@ Akun default setelah seeding:
 12. **Filter `loggedin`** mengecualikan slug kecamatan secara eksplisit (`takisung*`, `pelaihari*`, dst) — jika menambah kecamatan, tambahkan juga prefix-nya di `Filters.php`
 13. **baseURL otomatis dideteksi** dari host request di `Config\App::__construct()` — mendukung localhost ↔ produksi tanpa mengubah `.env`/`App::$baseURL`. Jangan hardcode domain di view; selalu pakai `site_url()`/`base_url()`. Skema HTTPS diambil dari `X-Forwarded-Proto` (proxy/Cloudflare) → `HTTPS` → `REQUEST_SCHEME`. Sub-folder didukung dari direktori `SCRIPT_NAME`. Deteksi dilewati (pakai nilai config) bila `app.baseURL` diset eksplisit di `.env` atau saat dijalankan dari CLI (`php spark`)
 14. **Timezone aplikasi = `Asia/Makassar` (WITA)** di `App::$appTimezone`, di-hardcode (bukan lewat `.env`). CI4 memanggil `date_default_timezone_set($appTimezone)` saat boot, jadi seluruh `date()`/`time()`/`strtotime()` di 78 titik pemakaian konsisten WITA dan tidak bergantung `date.timezone` di php.ini server. Sebelumnya `UTC` — pesan "data tersimpan per …" di landing page jadi 8 jam lebih awal dari kenyataan.
-15. **Cache BKKBN disegarkan dengan `php spark bkkbn:warmup`** — bukan cron, jalankan manual atau jadwalkan sendiri. Cache KRS diambil on-demand saat pengguna klik ▶, jadi kecamatan yang jarang dibuka bisa menyimpan cache berbulan-bulan dan memunculkan banner "data tersimpan per …". Opsi: `--only krs|yankb|dallap|all`, `--bulan 1..12`, `--tahun YYYY`. Exit code non-zero bila ada yang gagal.
+15. **Cache BKKBN disegarkan dengan `php spark bkkbn:warmup`** — bukan cron, jalankan manual atau jadwalkan sendiri. Fetch sinkron web dibatasi timeout 8 dtk/call + budget total 10 dtk/request + circuit breaker (sekali timeout, endpoint lain langsung fallback ke cache); CLI memakai 15 dtk/call tanpa budget agar report lambat tetap ter-cache. Tetap jalankan warmup agar pengunjung tidak memicu fetch dingin. Cache KRS diambil on-demand saat pengguna klik ▶, jadi kecamatan yang jarang dibuka bisa menyimpan cache berbulan-bulan dan memunculkan banner "data tersimpan per …". Opsi: `--only krs|yankb|dallap|all`, `--bulan 1..12`, `--tahun YYYY`. Exit code non-zero bila ada yang gagal.
 16. **Parser opsi CLI CodeIgniter hanya mendukung `--nama nilai` (spasi)**; bentuk `--nama=nilai` ditelan diam-diam. Command `bkkbn:warmup` menangani keduanya lewat helper `opsi()`, tapi command baru sebaiknya ikut menangani ini atau pakai sintaks spasi di dokumentasinya.
 17. **`php spark dukcapil:import`** — impor snapshot Dukcapil dari workbook Excel ke `profil_dukcapil`. **Default = DRY-RUN**: tanpa `--commit` tidak ada baris yang ditulis, hanya laporan rencana (periode lama yang akan dihapus + 135 baris periode target yang akan disisipkan). Opsi: `--file <path>` (default `ROOTPATH . 'DATA KEPENDUDUKAN KAB TALA SM I 2026.xlsx'`), `--tahun <YYYY>` (default 2026), `--semester <1|2>` (default 1), `--commit`. Sintaks resminya **spasi** (`--tahun 2026`) mengikuti batasan parser opsi CI4 di butir #16, meski helper `opsi()` di command juga menerima `--nama=nilai`. Bersifat **REPLACE**, bukan append: saat `--commit`, periode lama dihapus dulu dengan `DELETE FROM` (bukan `TRUNCATE` — di MySQL itu DDL ber-implicit commit, tidak bisa di-rollback) lalu disisipkan 135 baris periode target, semuanya dalam satu transaksi; keadaan akhir = hanya ada satu periode. Command menjalankan hard-assert V1–V7 (total jiwa 378.190, KK 132.030, join 135/135 desa) dan **membatalkan tanpa menulis** bila ada yang gagal, lalu verifikasi pasca-commit (COUNT=135, hanya periode target). Rencana & asumsi A1–A8: `docs/superpowers/plans/2026-10-09-import-dukcapil-sm1-2026.md`. **Atribusi sumber data RESMI** yang dipakai aplikasi (baku — jangan ubah ejaannya, termasuk tanda bintang di depan): `* Sumber data adalah Data Konsolidasi Bersih (DKB) Semester I Tahun 2026`. Sumber kebenarannya SATU helper: `DukcapilImport::labelSumber(int $semester, int $tahun)` (`public static`) — dipakai command pada ringkasan dry-run **dan** ringkasan pasca-commit (blok `SUMBER DATA RESMI`); semester ditulis **angka Romawi** dan tahun mengikuti opsi `--semester`/`--tahun`, sedangkan kata-katanya tetap persis. Pakai helper ini, bukan teks hardcode baru, di mana pun label perlu ditampilkan. Catatan workbook: label di atas ada di **7 sheet**; sheet `KEPEMILIKAN DOK` terlabel **"DKB pertanggal 30092026"** (beda potongan — dasar asumsi A5).
 18. **`profil_dukcapil` praktis snapshot SATU periode** — sejak 2026-10-09 `ProfilDukcapilModel::getAggregatedStats()` menjumlahkan **1 baris terbaru per desa** (bukan semua baris), jadi periode ganda tidak lagi double-count. Meski begitu tetap **jangan menambah periode baru tanpa menghapus yang lama** (label semester/tahun di note-strip masih diambil dari `orderBy('tahun DESC, semester DESC')->first()`), dan **jangan re-seed di lingkungan produksi**: `php spark db:seed DatabaseSeeder` memanggil `ProfilDukcapilSeeder` yang melakukan `truncate()` pada `profil_dukcapil` → MENGHAPUS data resm…
@@ -486,6 +500,8 @@ Akun default setelah seeding:
     - **Cara verifikasi cepat**: kesetaraan total `total_jiwa` antara GeoJSON peta dan kartu "Total Jiwa" di landing page **hanya berlaku bila sumbernya sama** — bandingkan `?sumber=desa` dengan `?sumber=desa`, atau `?sumber=dukcapil` dengan `?sumber=dukcapil`. **Sejak 2026-10-10** laporan desa MIRROR Dukcapil, jadi `?sumber=desa` ↔ **378.190** **sama dengan** `?sumber=dukcapil` (default) ↔ **378.190** (DKB Dukcapil SM I/2026) — kesetaraan lintas sumber ini sekarang WAJAR. Selisih terhadap angka dari sumber lain (mis. angka historis 375.583) adalah tanda data sudah berbeda, BUKAN tanda agregasi salah; yang berarti bug adalah selisih ≠ 0 **di dalam sumber yang sama** (mis. `/api/v1/map/kecamatan?sumber=dukcapil` vs kartu landing page default, atau `/api/v1/map/kecamatan` vs `/api/v1/map/desa` dengan `?sumber=` yang sama).
     - **Sumber data bersifat eksplisit (2026-10-09)**: **default sumber data aplikasi kini Dukcapil** (snapshot `profil_dukcapil`, DKB Semester I 2026 → Total Jiwa 378.190); laporan desa (`laporan_agregat`) dipakai bila `?sumber=desa` dipilih. Parameter `?sumber=desa|dukcapil|campuran` (default `dukcapil`) berlaku di landing page `/`, halaman per-kecamatan `/{slug}`, **dan endpoint peta `/api/v1/map/kecamatan` & `/api/v1/map/desa`**. **Sejak 2026-10-10** `laporan_agregat` MIRROR snapshot Dukcapil, jadi `?sumber=desa` dan `?sumber=dukcapil` kini memberi Total Jiwa yang **sama** (378.190) — bukan lagi 375.583 vs 378.190. Angka 375.583 adalah keadaan historis (data laporan sintetis SM2/2025) sebelum seeder diubah; 380.525 yang lama tetap salah (double-count periode).
 21. **`vendor/bin/phpunit` RUSAK di Laragon ini** — jalankan `php vendor/phpunit/phpunit/phpunit tests/unit`. Grup DB test = `tests` (SQLite `:memory:`, prefix `db_`), jadi SQL mentah di model/perintah WAJIB memakai prefix tabel (`$this->db->prefixTable()` / `protectIdentifiers`), bukan nama tabel hardcode.
+22. **Hardening keamanan (2026-11-20)** — docroot produksi WAJIB `public/`; root `.htaccess` memblokir `.env`/`.git`/`app`/`vendor`/`writable`/`docs`/`scratch`/`tests`/`build` dan file `md|sql|zip|xlsx|xls|csv|log|bak`. Filter laporan `bulan`/`tahun` wajib di-cast int sebelum masuk JOIN. `RoleController` hanya untuk role sistem `admin_dinas`; aktor non-`admin_dinas` hanya boleh mengelola akun scope desa dan hanya boleh memberi role scope desa. Logout hanya `POST` + CSRF. Cookie remember-me memakai `Secure` hanya saat HTTPS (CI4 menolak cookie Secure di HTTP).
+23. **Dependency & upload (2026-11-20)** — versi terpasang: CodeIgniter **4.7.6**, dompdf **3.1.6**, PhpSpreadsheet **5.11.0** (`composer audit` bersih). `composer update` 4.7 membutuhkan properti config baru; yang sudah ditambahkan: `Format::$jsonEncodeDepth`, `Hostnames`, `Paths::$envDirectory`, `Cache::$cacheStatusCodes`, `View::$appOverridesFolder`, `Routing::$useControllerAttributes`, dll. Upload foto **wajib** lewat `App\Libraries\SafeImageUpload` (validasi finfo + `getimagesize`, nama acak, ekstensi dari MIME), bukan `ext_in` saja; folder `public/assets/uploads/kecamatan/` punya `.htaccess` yang menolak PHP/PHTML/PHAR. Jangan gunakan `getRandomName()` untuk file upload publik.
 
 ---
 
