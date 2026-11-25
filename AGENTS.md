@@ -2,6 +2,12 @@
 
 Dokumen ini menjelaskan konteks lengkap project Erdekatala untuk model AI atau agent yang bekerja di repository ini.
 
+> **Status sesi terakhir (2026-10-13):** ringkasan kerja & langkah lanjutan ada di
+> [`docs/HANDOFF.md`](docs/HANDOFF.md) — baca itu dulu sebelum melanjutkan.
+> Ringkasan: seeder laporan desa kini MIRROR snapshot Dukcapil; fix peta halaman
+> kecamatan; paket deploy cPanel (`erdekatala-deploy-2026-10-13.zip` &
+> `ci4_core-deploy-2026-10-13.zip`) + panduan `DEPLOY.md`.
+
 ---
 
 ## Gambaran Umum
@@ -400,6 +406,7 @@ Catatan penting saat mengubah halaman ini:
 5. **Gaya komponen baru untuk dark mode** ditambahkan di `app/Views/templates/theme_toggle.php` (`.status-pill`, `.note-strip`, `.zero-report-badge`, `.summary-cta`, `.tag`, `.stat-card .icon`). Menambah komponen baru di landing page berarti menambah aturan `body.dark-mode` di sana juga.
 6. **Target sentuh minimum 44px** untuk semua kontrol (`.nav-link-sikada`, `.btn-login`, `.nav-theme-btn`, `.btn-filter`). `:focus-visible` global 3px ada di blok dasar CSS landing page.
 7. **`baseURL` auto-detect** diimplementasikan di `Config\App::__construct()` (lihat catatan #13). Sebelum ini `$baseURL` masih hardcode `http://localhost:8080/` sehingga seluruh `base_url()`/`site_url()` cross-origin — termasuk fetch peta & API yang diblokir browser.
+8. **Blok "Perbandingan Wilayah" (Bagian 2)** — 4 chart dari data peta yang sudah dikirim: komposisi usia 0–14/15–64/65+ (`zc-kec-usia`), rasio ketergantungan (`zc-kec-dep`), cakupan KB (`zc-kec-kb`), dan ranking desa top-10 (`zc-desa-rank`, metrik: jiwa/balita/lansia/PUS). Sumber data & filter mengikuti peta (`$map_kecamatan`, `$desa_rank_rows`). Tiga field turunan peta `jml_anak_0_14`, `jml_produktif` (15–64), `jml_usia_65_plus` dihitung dari kolom `u*` via `LaporanAgregatModel::kelompokUmurSumExpr()` — bukan kolom DB, dan ikut terkirim di `/api/v1/map/*` (aditif). Ranking memakai `nama_desa` yang kini disertakan `getMapDesa()`; kartu ranking disembunyikan saat filter desa tunggal aktif.
 
 ---
 
