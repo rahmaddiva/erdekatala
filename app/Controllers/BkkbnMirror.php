@@ -25,7 +25,38 @@ trait BkkbnMirror
 
     /** Total waktu fetch eksternal per request web (detik). CLI tidak dibatasi. */
     private const HTTP_WEB_BUDGET = 10;
+
+    /**
+     * Timeout per panggilan CLI untuk laporan JasperReports BKKBN (YanKB & Dallap).
+     * Terukur di gateway: 35–50 dtk per laporan. Timeout lama 15 dtk membuat
+     * warm-up hampir selalu gagal dan cache menua berhari-hari.
+     */
+    private const HTTP_REPORT_TIMEOUT_CLI = 90;
+
+    /**
+     * Timeout laporan YanKB/Dallap untuk request web. Sengaja tetap pendek:
+     * pengunjung tidak boleh menunggu 35–50 dtk. Halaman publik memakai cache
+     * yang dihangatkan `php spark bkkbn:warmup` (jadwalkan tiap 15–20 menit).
+     */
+    private const HTTP_REPORT_TIMEOUT_WEB = 8;
+
     private static float $httpBudgetStart = 0.0;
+
+    /**
+     * Timeout laporan YanKB/Dallap: CLI 90 dtk, web 8 dtk.
+     */
+    private function laporanTimeout(): int
+    {
+        return PHP_SAPI === 'cli' ? self::HTTP_REPORT_TIMEOUT_CLI : self::HTTP_REPORT_TIMEOUT_WEB;
+    }
+
+    /** Label waktu cache yang jujur untuk pesan fallback ("data tersimpan per …"). */
+    private function cacheTimestamp(string $cacheFile): string
+    {
+        $ts = is_file($cacheFile) ? (int) filemtime($cacheFile) : time();
+
+        return date('d M Y, H:i', $ts);
+    }
 
     /** // ponytail: hardcoded BKKBN ids, ganti DB column jika berubah */
     private function bkkbnKecamatanMap(): array
@@ -158,7 +189,8 @@ trait BkkbnMirror
             if (is_file($cacheFile)) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false && $cached !== '') {
-                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => 'Data cache (API tidak terjangkau).'];
+                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)),
+                        'error' => 'Data cache — API BKKBN tidak terjangkau. Menampilkan data tersimpan per ' . $this->cacheTimestamp($cacheFile) . '.'];
                 }
             }
             return ['html' => '', 'updated_at' => null, 'error' => 'API BKKBN tidak terjangkau — coba lagi beberapa menit lagi.'];
@@ -176,13 +208,14 @@ trait BkkbnMirror
         $url = 'https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport'
             . '?filterPencarian=' . urlencode($filter);
 
-        $raw = $this->httpGet($url);
+        $raw = $this->httpGet($url, $this->laporanTimeout());
         if ($raw === null || trim($raw) === '') {
             @touch($attemptFile);
             if (is_file($cacheFile)) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false && $cached !== '') {
-                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => 'Data cache (API tidak terjangkau).'];
+                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)),
+                        'error' => 'Data cache — API BKKBN tidak terjangkau. Menampilkan data tersimpan per ' . $this->cacheTimestamp($cacheFile) . '.'];
                 }
             }
             return ['html' => '', 'updated_at' => null, 'error' => 'Gagal mengambil data Cakupan Laporan Tempat Pelayanan KB dari BKKBN.'];
@@ -286,7 +319,8 @@ trait BkkbnMirror
             if (is_file($cacheFile)) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false && $cached !== '') {
-                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => 'Data cache (API tidak terjangkau).'];
+                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)),
+                        'error' => 'Data cache — API BKKBN tidak terjangkau. Menampilkan data tersimpan per ' . $this->cacheTimestamp($cacheFile) . '.'];
                 }
             }
             return ['html' => '', 'updated_at' => null, 'error' => 'API BKKBN tidak terjangkau — coba lagi beberapa menit lagi.'];
@@ -303,13 +337,14 @@ trait BkkbnMirror
         $url = 'https://siga-api-gateway.bkkbn.go.id/report-siga-dallap-ocp/viewReport'
             . '?filterPencarian=' . urlencode(json_encode($filter));
 
-        $raw = $this->httpGet($url);
+        $raw = $this->httpGet($url, $this->laporanTimeout());
         if ($raw === null || trim($raw) === '') {
             @touch($attemptFile);
             if (is_file($cacheFile)) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false && $cached !== '') {
-                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)), 'error' => 'Data cache (API tidak terjangkau).'];
+                    return ['html' => $cached, 'updated_at' => date('Y-m-d H:i:s', filemtime($cacheFile)),
+                        'error' => 'Data cache — API BKKBN tidak terjangkau. Menampilkan data tersimpan per ' . $this->cacheTimestamp($cacheFile) . '.'];
                 }
             }
             return ['html' => '', 'updated_at' => null, 'error' => 'Gagal mengambil data ' . $def['label'] . ' dari BKKBN.'];
@@ -534,7 +569,8 @@ trait BkkbnMirror
     /** GET remote URL — curl dulu, fallback file_get_contents.
      *  Web: timeout 8 dtk/call + budget total 10 dtk/request + breaker, supaya
      *  halaman publik tidak menunggu puluhan detik saat SIGA lambat/down.
-     *  CLI (warmup): 15 dtk/call, tanpa budget, agar report lambat tetap ter-cache. */
+     *  CLI (warmup): 15 dtk/call untuk KRS; laporan YanKB/Dallap memakai
+     *  laporanTimeout() = 90 dtk karena JasperReports butuh 35–50 dtk. */
     private function httpGet(string $url, ?int $timeout = null): ?string
     {
         if (PHP_SAPI !== 'cli' && self::$httpDown) {

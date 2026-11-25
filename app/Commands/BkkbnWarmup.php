@@ -18,6 +18,10 @@ use CodeIgniter\CLI\CLI;
  *
  * Perintah ini menarik ulang seluruh cache kabupaten + 11 kecamatan.
  *
+ * Timeout: KRS 15 dtk/call (cepat), laporan YanKB/Dallap 90 dtk/call karena
+ * JasperReports BKKBN terukur butuh 35–50 dtk untuk generate. Tanpa timeout
+ * panjang, warm-up selalu gagal dan landing page menampilkan cache berhari-hari.
+ *
  * Pemakaian:
  *   php spark bkkbn:warmup                    # KRS kabupaten + 11 kecamatan
  *   php spark bkkbn:warmup --only krs         # hanya KRS
@@ -59,9 +63,23 @@ class BkkbnWarmup extends BaseCommand
         // 1. Hapus penanda throttle supaya fetch benar-benar dicoba.
         //    Tanpa ini, kegagalan < 10 menit terakhir membuat semua request
         //    langsung dilayani cache basi dan warm-up tidak ada gunanya.
-        $throttle = glob(WRITEPATH . 'cache/krs_attempt_*.txt') ?: [];
-        foreach ($throttle as $f) {
-            @unlink($f);
+        //    HARUS mencakup yankb/dallap juga — dulu hanya krs, sehingga
+        //    `--only yankb`/`--only dallap` selalu "GAGAL" palsu karena
+        //    throttle dari percobaan sebelumnya.
+        $polaThrottle = [];
+        if ($only === 'all' || $only === 'krs') {
+            $polaThrottle[] = 'krs_attempt_*.txt';
+        }
+        if ($only === 'all' || $only === 'yankb') {
+            $polaThrottle[] = 'yankb_attempt_*.txt';
+        }
+        if ($only === 'all' || $only === 'dallap') {
+            $polaThrottle[] = 'dallap_attempt_*.txt';
+        }
+        foreach ($polaThrottle as $pola) {
+            foreach (glob(WRITEPATH . 'cache/' . $pola) ?: [] as $f) {
+                @unlink($f);
+            }
         }
         $mtimeAsli = $this->rewindTime($tahun, $only, $bulan);
 

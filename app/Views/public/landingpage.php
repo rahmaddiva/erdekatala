@@ -126,6 +126,26 @@ $bulanNama = [
 ];
 $yankbBulanNama = $bulanNama[$yankbBulan] ?? 'Agustus';
 
+/* ===== Badge & label cache BKKBN =====
+ * "LIVE MIRROR" hanya boleh muncul bila data benar-benar segar (≤ 30 menit
+ * TTL dan tanpa error). Selain itu tampilkan "CACHE · <tanggal>" supaya
+ * pengunjung tidak mengira data berhari-hari ditampilkan sebagai live. */
+$cacheBadge = static function (?string $updatedAt, ?string $error): string {
+    $ts    = $updatedAt ? strtotime($updatedAt) : null;
+    $stale = !empty($error) || $ts === null || (time() - $ts) > 1800;
+    if (!$stale) {
+        return '<span class="badge-live">LIVE MIRROR</span>';
+    }
+    $when = $ts ? date('d M Y, H:i', $ts) : 'tanggal tidak diketahui';
+
+    return '<span class="badge-stale" title="Sebagian/seluruh data berasal dari cache lokal">CACHE · ' . esc($when) . '</span>';
+};
+$cacheDate = static function (?string $updatedAt): string {
+    $ts = $updatedAt ? strtotime($updatedAt) : null;
+
+    return $ts ? date('d M Y, H:i', $ts) : '—';
+};
+
 // ===== Cakupan tab BKKBN (YanKB & Dallap) — mengikuti filter kecamatan =====
 // Saat ?kecamatan= aktif, baris YanKB/Dallap sudah disaring ke 1 kecamatan di
 // controller; label/crumb di sini harus menyebut cakupan itu (bukan "seluruh
@@ -1080,6 +1100,13 @@ $renderYankbTable = static function (array $data): string {
             border: 1px solid rgba(72,199,142,.35);
             border-radius: 999px; padding: .2rem .65rem;
             font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+        }
+        .krs-toolbar .badge-stale {
+            background: rgba(255, 193, 7, .18); color: #ffd66b;
+            border: 1px solid rgba(255,193,7,.45);
+            border-radius: 999px; padding: .2rem .65rem;
+            font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+            white-space: nowrap;
         }
         .krs-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
         table.krs-tree {
@@ -2268,9 +2295,9 @@ $renderYankbTable = static function (array $data): string {
                 <div class="krs-toolbar">
                     <div>
                         <h3 style="color:#ffffff;">Monitoring VERVAL KRS — Kabupaten Tanah Laut</h3>
-                        <div class="meta">Provinsi Kalimantan Selatan · Tahun 2026 · klik ▶ untuk expand desa</div>
+                        <div class="meta">Provinsi Kalimantan Selatan · Tahun 2026 · cache per <?= esc($cacheDate($krsUpdatedAt)) ?> · klik ▶ untuk expand desa</div>
                     </div>
-                    <span class="badge-live">LIVE MIRROR</span>
+                    <?= $cacheBadge($krsUpdatedAt, $krsError) ?>
                 </div>
                 <div class="krs-scroll">
                     <table class="krs-tree" id="krs-tree">
@@ -2374,9 +2401,9 @@ $renderYankbTable = static function (array $data): string {
 			            <div class="krs-toolbar">
 			                <div>
 			                    <h3 style="color:#ffffff;">Cakupan Laporan Tempat Pelayanan KB — <?= esc($bkkbnScope) ?></h3>
-			                    <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankbUpdatedAt)): ?> · update <?= esc($yankbUpdatedAt) ?><?php endif; ?></div>
+			                    <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?> · cache per <?= esc($cacheDate($yankbUpdatedAt)) ?></div>
 			                </div>
-			                <span class="badge-live">LIVE MIRROR</span>
+			                <?= $cacheBadge($yankbUpdatedAt, $yankbError) ?>
 			            </div>
 			            <?php
 			            // YanKB Tabel1: kolom ke-3 dst = angka; baris non-total saja
@@ -2420,9 +2447,9 @@ $renderYankbTable = static function (array $data): string {
 			            <div class="krs-toolbar">
 			                <div>
 			                    <h3 style="color:#ffffff;">Jumlah Pelayanan Peserta KB Baru — <?= esc($bkkbnScope) ?></h3>
-			                    <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?><?php if (!empty($yankb21UpdatedAt)): ?> · update <?= esc($yankb21UpdatedAt) ?><?php endif; ?></div>
+			                    <div class="meta">SIGA BKKBN · Bulan <?= $yankbBulanNama ?> <?= $yankbTahun ?> · cache per <?= esc($cacheDate($yankb21UpdatedAt)) ?></div>
 			                </div>
-			                <span class="badge-live">LIVE MIRROR</span>
+			                <?= $cacheBadge($yankb21UpdatedAt, $yankb21Error) ?>
 			            </div>
 			            <?php
 			            // YanKB Tabel21 (kumulatif "S.D BULAN"): kolom ke-3 dst = angka
@@ -2483,9 +2510,9 @@ $renderYankbTable = static function (array $data): string {
 			            <div class="krs-toolbar">
 			                <div>
 			                    <h3 style="color:#ffffff;">Rekap Program Bangga Kencana — <?= esc($bkkbnScope) ?></h3>
-			                    <div class="meta">SIGA BKKBN · Tahun <?= $dallapTahun ?? 2026 ?><?php if (!empty($dallapUpdatedAt)): ?> · update <?= esc($dallapUpdatedAt) ?><?php endif; ?> · klik ▶ untuk lihat rincian per desa</div>
+			                    <div class="meta">SIGA BKKBN · Tahun <?= $dallapTahun ?? 2026 ?> · cache per <?= esc($cacheDate($dallapUpdatedAt)) ?> · klik ▶ untuk lihat rincian per desa</div>
 			                </div>
-			                <span class="badge-live">LIVE MIRROR</span>
+			                <?= $cacheBadge($dallapUpdatedAt, $dallapError) ?>
 			            </div>
 			            <div class="krs-scroll"><table class="krs-tree" id="dallap-tree">
 			                <thead>
@@ -2552,9 +2579,9 @@ $renderYankbTable = static function (array $data): string {
 			            <div class="krs-toolbar">
 			                <div>
 			                    <h3 style="color:#ffffff;">PUS &amp; KB Aktif — <?= esc($bkkbnScope) ?></h3>
-			                    <div class="meta">SIGA BKKBN · Dallap Tabel10/11 · Bulan <?= $yankbBulanNama ?> <?= $dallapTahun ?? 2026 ?><?php if (!empty($dallapUpdatedAt)): ?> · update <?= esc($dallapUpdatedAt) ?><?php endif; ?> · klik ▶ untuk rincian per desa</div>
+			                    <div class="meta">SIGA BKKBN · Dallap Tabel10/11 · Bulan <?= $yankbBulanNama ?> <?= $dallapTahun ?? 2026 ?> · cache per <?= esc($cacheDate($dallapUpdatedAt)) ?> · klik ▶ untuk rincian per desa</div>
 			                </div>
-			                <span class="badge-live">LIVE MIRROR</span>
+			                <?= $cacheBadge($dallapUpdatedAt, $dallapError) ?>
 			            </div>
 			            <?= $dallapZeroBadge($dallapAllZero($dallapRows, ['Tabel10', 'Tabel11']), $yankbBulan, 'PUS &amp; KB Aktif') ?>
 			            <div class="krs-scroll"><table class="krs-tree" id="puskb-tree">
